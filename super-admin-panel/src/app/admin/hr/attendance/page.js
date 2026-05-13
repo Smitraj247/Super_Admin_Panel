@@ -337,11 +337,10 @@ export default function SuperAdminAttendance() {
             <div className="col-span-full text-center p-8 text-slate-500">
               No users found
             </div>
+            
           )}
         </div>
       </div>
     </div>
   );
 }
-
-  

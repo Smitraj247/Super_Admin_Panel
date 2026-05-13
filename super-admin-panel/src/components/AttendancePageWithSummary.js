@@ -325,7 +325,7 @@ export default function AttendancePageWithSummary() {
     <div className="flex min-h-screen bg-gray-50">
       <Sidebar />
 
-      {open && (
+      {/* {open && (
         <div className="fixed inset-0 z-50 bg-black/60 md:hidden backdrop-blur-md">
           <div className="w-64 bg-white h-full shadow-2xl p-4 border-r border-slate-200">
             <button
@@ -337,7 +337,7 @@ export default function AttendancePageWithSummary() {
             <Sidebar />
           </div>
         </div>
-      )}
+      )} */}
 
       <div className="flex-1 flex flex-col md:ml-64">
         <Navbar />

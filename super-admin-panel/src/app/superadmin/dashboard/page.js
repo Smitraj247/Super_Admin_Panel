@@ -29,6 +29,7 @@ import HolidayWidget from "../../../components/HolidayWidget";
 import Sidebar from "../../../components/Sidebar";
 import Navbar from "../../../components/Navbar";
 import SuperAdminBroadcast from "../../../components/SuperAdminBroadcast";
+import { Breadcrumb } from "../../../components/Breadcrumb";
 import { getStatsApi } from "../../../services/superAdminApi";
 import Loader from "../../../components/Loader";
 import { ProtectedDashboardRoute } from "../../../components/ProtectedDashboardRoute";
@@ -131,6 +132,12 @@ export default function SuperAdminDashboard() {
 
         <main className="md:pl-64 pt-16">
           <div className="p-8">
+            <Breadcrumb
+              items={[
+                { label: "Super Admin", href: "/superadmin/dashboard" },
+                { label: "Dashboard" },
+              ]}
+            />
             <div className="mb-8 flex flex-col md:flex-row md:items-center md:justify-between gap-4">
               <div>
                 <p className="text-slate-500 font-medium mb-1">Overview</p>

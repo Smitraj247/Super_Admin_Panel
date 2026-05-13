@@ -38,7 +38,7 @@ export default function Register() {
 
           <div className="relative z-10 flex items-center gap-3">
             <div className="h-10 w-10 text-indigo-600  flex items-center justify-center font-bold text-xl shadow-lg">
-              <img src="/images/edit.png"></img>
+              <img src="/images/edit.png" alt="Super Admin Panel Logo"></img>
             </div>
             <span className="font-bold text-xl text-white tracking-tight">
               Register Page

@@ -149,11 +149,11 @@ function HRAdminDashboard() {
             <h1 className=" text-2xl font-bold text-green-900">
               Attendance System
             </h1>
-            <AttendanceButtons userId={user?._id} />
+               <AttendanceButtons userId={user?._id} />
           </div>
 
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-7">
-            <div className="bg-white rounded-2xl p-4  ">
+            <div className="bg-white rounded-2xl p-4 ">
               <Calander />
             </div>
 

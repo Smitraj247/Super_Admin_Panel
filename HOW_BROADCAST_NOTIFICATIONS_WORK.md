@@ -33,38 +33,42 @@
 **File:** `Backend/models/Notification.js`
 
 ```javascript
-const NotificationSchema = new mongoose.Schema({
-  userId: {
-    type: mongoose.Schema.Types.ObjectId,
-    ref: "User",
-    required: true,
-    index: true  // For fast queries
+const NotificationSchema = new mongoose.Schema(
+  {
+    userId: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "User",
+      required: true,
+      index: true, // For fast queries
+    },
+    type: {
+      type: String,
+      enum: ["info", "success", "warning", "alert"],
+      default: "info",
+    },
+    title: {
+      type: String,
+      required: true,
+    },
+    message: {
+      type: String,
+      required: true,
+    },
+    read: {
+      type: Boolean,
+      default: false, // Unread by default
+    },
+    link: {
+      type: String,
+      default: null,
+    },
   },
-  type: {
-    type: String,
-    enum: ["info", "success", "warning", "alert"],
-    default: "info"
-  },
-  title: {
-    type: String,
-    required: true
-  },
-  message: {
-    type: String,
-    required: true
-  },
-  read: {
-    type: Boolean,
-    default: false  // Unread by default
-  },
-  link: {
-    type: String,
-    default: null
-  }
-}, { timestamps: true });
+  { timestamps: true },
+);
 ```
 
 **What it stores:**
+
 - `userId` - Who receives the notification
 - `type` - Visual style (info/success/warning/alert)
 - `title` - Notification headline
@@ -89,18 +93,22 @@ export const broadcastToAll = async (req, res) => {
 
     // 2. Validate input
     if (!title || !message) {
-      return res.status(400).json({ message: "Title and message are required" });
+      return res
+        .status(400)
+        .json({ message: "Title and message are required" });
     }
 
     // 3. Check if user is super admin
-    const userRole = typeof superAdminUser.role === "object" 
-      ? superAdminUser.role.name 
-      : superAdminUser.role;
-    
+    const userRole =
+      typeof superAdminUser.role === "object"
+        ? superAdminUser.role.name
+        : superAdminUser.role;
+
     if (userRole !== "SUPER_ADMIN") {
-      return res.status(403).json({ message: "Only super admins can broadcast" });
+      return res
+        .status(403)
+        .json({ message: "Only super admins can broadcast" });
     }
-  
 
     // 4. Import User model
     const User = (await import("../models/User.models.js")).default;
@@ -139,6 +147,7 @@ export const broadcastToAll = async (req, res) => {
 ```
 
 **What happens:**
+
 1. Super admin sends title, message, type, and optional department
 2. Backend validates the super admin role
 3. Finds all active users (or users in specific department)
@@ -180,19 +189,19 @@ export default router;
 import API from "@/lib/api";
 
 // Broadcast to all users or specific department (super admin only)
-export const broadcastToAllApi = (data) => 
+export const broadcastToAllApi = (data) =>
   API.post("/notifications/broadcast-all", data);
 
 // Get notifications for current user
-export const getNotificationsApi = (limit = 20, skip = 0) => 
+export const getNotificationsApi = (limit = 20, skip = 0) =>
   API.get(`/notifications?limit=${limit}&skip=${skip}`);
 
 // Mark notification as read
-export const markAsReadApi = (id) => 
-  API.put(`/notifications/${id}/read`);
+export const markAsReadApi = (id) => API.put(`/notifications/${id}/read`);
 ```
 
 **What it does:**
+
 - Wraps API calls with axios
 - Automatically adds JWT token from localStorage
 - Handles request/response
@@ -215,7 +224,7 @@ export default function SuperAdminBroadcast() {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    
+
     try {
       const payload = {
         title: form.title,
@@ -230,7 +239,7 @@ export default function SuperAdminBroadcast() {
 
       // Call API
       await broadcastToAllApi(payload);
-      
+
       // Show success and close
       setSuccess(true);
       setTimeout(() => setIsOpen(false), 2000);
@@ -240,15 +249,14 @@ export default function SuperAdminBroadcast() {
   };
 
   return (
-    <button onClick={() => setIsOpen(true)}>
-      Broadcast Message
-    </button>
+    <button onClick={() => setIsOpen(true)}>Broadcast Message</button>
     // ... modal form
   );
 }
 ```
 
 **User Flow:**
+
 1. Super admin clicks "Broadcast Message" button
 2. Modal opens with form
 3. Fills in: Target (all/department), Type, Title, Message
@@ -298,9 +306,7 @@ export default function Navbar() {
       {/* Bell icon with badge */}
       <button onClick={() => setShowNotifications(!showNotifications)}>
         <Bell size={20} />
-        {unreadCount > 0 && (
-          <span className="badge">{unreadCount}</span>
-        )}
+        {unreadCount > 0 && <span className="badge">{unreadCount}</span>}
       </button>
 
       {/* Notifications dropdown */}
@@ -310,9 +316,7 @@ export default function Navbar() {
             <div key={notif._id} className={!notif.read ? "unread" : ""}>
               <h4>{notif.title}</h4>
               <p>{notif.message}</p>
-              <button onClick={() => markAsRead(notif._id)}>
-                Mark read
-              </button>
+              <button onClick={() => markAsRead(notif._id)}>Mark read</button>
             </div>
           ))}
         </div>
@@ -323,6 +327,7 @@ export default function Navbar() {
 ```
 
 **What happens:**
+
 1. When user logs in, notifications are fetched
 2. Unread count shows in badge on bell icon
 3. Auto-refreshes every 30 seconds
@@ -337,6 +342,7 @@ export default function Navbar() {
 ### Example: Super Admin sends message to HR Department
 
 **Step 1: Super Admin Action**
+
 ```
 Super Admin Dashboard
   ↓
@@ -352,6 +358,7 @@ Clicks "Send Message"
 ```
 
 **Step 2: Frontend Processing**
+
 ```javascript
 // API call made
 POST /api/notifications/broadcast-all
@@ -364,12 +371,13 @@ POST /api/notifications/broadcast-all
 ```
 
 **Step 3: Backend Processing**
+
 ```javascript
 // 1. Validate super admin role ✓
 // 2. Find all users in HR department
 const users = await User.find({
   department: "60d5ec49f1b2c72b8c8e4f1a",
-  isActive: true
+  isActive: true,
 });
 // Result: 15 users found
 
@@ -380,14 +388,14 @@ const notifications = [
     type: "warning",
     title: "[Super Admin] Policy Update",
     message: "Please review new HR policy",
-    read: false
+    read: false,
   },
   {
     userId: "user2_id",
     type: "warning",
     title: "[Super Admin] Policy Update",
     message: "Please review new HR policy",
-    read: false
+    read: false,
   },
   // ... 13 more
 ];
@@ -396,10 +404,11 @@ const notifications = [
 await Notification.insertMany(notifications);
 
 // 5. Return success
-return { recipientCount: 15 }
+return { recipientCount: 15 };
 ```
 
 **Step 4: Database State**
+
 ```
 Notifications Collection:
 ┌──────────────────────────────────────────────────┐
@@ -415,6 +424,7 @@ Notifications Collection:
 ```
 
 **Step 5: User Receives Notification**
+
 ```
 HR User logs in
   ↓
@@ -454,6 +464,7 @@ Badge disappears
 ## 4. Key Features Explained
 
 ### A. Bulk Insert for Performance
+
 ```javascript
 // BAD: Loop and save one by one (slow)
 for (const user of users) {
@@ -465,26 +476,28 @@ await Notification.insertMany(notifications);
 ```
 
 ### B. Auto-Refresh Mechanism
+
 ```javascript
 // Refresh notifications every 30 seconds
 useEffect(() => {
   const interval = setInterval(() => {
     fetchNotifications();
   }, 30000); // 30 seconds
-  
+
   return () => clearInterval(interval); // Cleanup
 }, [user]);
 ```
 
 ### C. Optimistic UI Updates
+
 ```javascript
 // Update UI immediately, then call API
 const markAsRead = async (id) => {
   // 1. Update UI first (optimistic)
-  setNotifications(prev => prev.map(notif => 
-    notif._id === id ? { ...notif, read: true } : notif
-  ));
-  setUnreadCount(prev => prev - 1);
+  setNotifications((prev) =>
+    prev.map((notif) => (notif._id === id ? { ...notif, read: true } : notif)),
+  );
+  setUnreadCount((prev) => prev - 1);
 
   // 2. Then call API
   try {
@@ -497,15 +510,14 @@ const markAsRead = async (id) => {
 ```
 
 ### D. Role-Based Access Control
+
 ```javascript
 // Backend checks role before allowing broadcast
-const userRole = typeof user.role === "object" 
-  ? user.role.name 
-  : user.role;
+const userRole = typeof user.role === "object" ? user.role.name : user.role;
 
 if (userRole !== "SUPER_ADMIN") {
-  return res.status(403).json({ 
-    message: "Only super admins can broadcast" 
+  return res.status(403).json({
+    message: "Only super admins can broadcast",
   });
 }
 ```
@@ -526,7 +538,7 @@ if (userRole !== "SUPER_ADMIN") {
    - Admins can only message their own department
    - Super admins can target any department
 
-4. **Input Validation**
+4. Input Validation\*\*
    - Title and message required
    - Type must be one of: info/success/warning/alert
 
@@ -539,6 +551,7 @@ if (userRole !== "SUPER_ADMIN") {
 ## 6. Testing the System
 
 ### Test 1: Super Admin Broadcast to All
+
 ```bash
 # 1. Login as super admin
 POST /api/auth/login
@@ -562,6 +575,7 @@ Response: { "notifications": [...], "unreadCount": 1 }
 ```
 
 ### Test 2: Super Admin Broadcast to Department
+
 ```bash
 # Send to specific department
 POST /api/notifications/broadcast-all
@@ -580,21 +594,27 @@ Body: {
 ## 7. Troubleshooting
 
 ### Issue: Notifications not appearing
+
 **Check:**
+
 1. Is user logged in? (JWT token valid)
 2. Is auto-refresh working? (Check console for API calls)
 3. Are notifications in database? (Check MongoDB)
 4. Is userId correct in notification records?
 
 ### Issue: Broadcast fails
+
 **Check:**
+
 1. Is user super admin? (Check role in JWT)
 2. Are there active users? (Check User collection)
 3. Is targetDepartment valid? (Check Department collection)
 4. Check backend logs for errors
 
 ### Issue: Unread count wrong
+
 **Check:**
+
 1. Are notifications marked as read correctly?
 2. Is optimistic update reverting?
 3. Check database `read` field values
@@ -622,10 +642,11 @@ Body: {
    - Users can mark as read/delete
 
 **Key Benefits:**
-- ✅ Real-time communication
-- ✅ Targeted messaging (all users or specific department)
-- ✅ Persistent notifications (stored in database)
-- ✅ Read/unread tracking
-- ✅ Auto-refresh
-- ✅ Role-based access control
-- ✅ Scalable (bulk insert)
+
+- Real-time communication
+- Targeted messaging (all users or specific department)
+- Persistent notifications (stored in database)
+- Read/unread tracking
+- Auto-refresh
+- Role-based access control
+- Scalable (bulk insert)

@@ -3,7 +3,19 @@
 import { useAuth } from "../context/AuthContext";
 import Sidebar from "@/components/Sidebar";
 import Navbar from "@/components/Navbar";
-import { User, Mail, Shield, Settings, X, Save, Phone, Calendar, Heart, Briefcase, Users } from "lucide-react";
+import {
+  User,
+  Mail,
+  Shield,
+  Settings,
+  X,
+  Save,
+  Phone,
+  Calendar,
+  Heart,
+  Briefcase,
+  Users,
+} from "lucide-react";
 import { useState, useEffect } from "react";
 import { getProfile, updateProfile } from "@/services/userApi";
 
@@ -15,7 +27,7 @@ export default function ProfilePage() {
   const [message, setMessage] = useState("");
   const [messageType, setMessageType] = useState("");
   const [profileData, setProfileData] = useState(null);
-  
+
   const [formData, setFormData] = useState({
     name: "",
     email: "",
@@ -32,48 +44,47 @@ export default function ProfilePage() {
     probationEndDate: "",
   });
 
- useEffect(() => {
-   if (user) {
-     fetchProfile();
-   }
- }, [user]);
+  useEffect(() => {
+    if (user) {
+      fetchProfile();
+    }
+  }, [user]);
 
- const fetchProfile = async () => {
-   try {
-     setFetchLoading(true);
+  const fetchProfile = async () => {
+    try {
+      setFetchLoading(true);
 
-     const res = await getProfile();
+      const res = await getProfile();
 
-     const data = res?.data?.data || res?.data;
+      const data = res?.data?.data || res?.data;
 
-     setProfileData(data);
+      setProfileData(data);
 
-     setFormData({
-       name: data?.name || "",
-       email: data?.email || "",
-       personalEmail: data?.personalEmail || "",
-       companyEmail: data?.companyEmail || "",
-       phone: data?.phone || "",
-       gender: data?.gender || "Male",
-       birthday: data?.birthday ? data.birthday.split("T")[0] : "",
-       maritalStatus: data?.maritalStatus || "Unmarried",
-       marriageAnniversary: data?.marriageAnniversary
-         ? data.marriageAnniversary.split("T")[0]
-         : "",
-       designation: data?.designation || "",
-       batch: data?.batch || "",
-       joiningDate: data?.joiningDate ? data.joiningDate.split("T")[0] : "",
-       probationEndDate: data?.probationEndDate
-         ? data.probationEndDate.split("T")[0]
-         : "",
-     });
-   } catch (error) {
-     console.log(error);
-   } finally {
-     setFetchLoading(false);
-   }
- };
-
+      setFormData({
+        name: data?.name || "",
+        email: data?.email || "",
+        personalEmail: data?.personalEmail || "",
+        companyEmail: data?.companyEmail || "",
+        phone: data?.phone || "",
+        gender: data?.gender || "Male",
+        birthday: data?.birthday ? data.birthday.split("T")[0] : "",
+        maritalStatus: data?.maritalStatus || "Unmarried",
+        marriageAnniversary: data?.marriageAnniversary
+          ? data.marriageAnniversary.split("T")[0]
+          : "",
+        designation: data?.designation || "",
+        batch: data?.batch || "",
+        joiningDate: data?.joiningDate ? data.joiningDate.split("T")[0] : "",
+        probationEndDate: data?.probationEndDate
+          ? data.probationEndDate.split("T")[0]
+          : "",
+      });
+    } catch (error) {
+      console.log(error);
+    } finally {
+      setFetchLoading(false);
+    }
+  };
 
   const handleEdit = () => {
     setIsEditing(true);
@@ -92,13 +103,23 @@ export default function ProfilePage() {
         companyEmail: profileData.companyEmail || "",
         phone: profileData.phone || "",
         gender: profileData.gender || "Male",
-        birthday: profileData.birthday ? new Date(profileData.birthday).toISOString().split('T')[0] : "",
+        birthday: profileData.birthday
+          ? new Date(profileData.birthday).toISOString().split("T")[0]
+          : "",
         maritalStatus: profileData.maritalStatus || "Unmarried",
-        marriageAnniversary: profileData.marriageAnniversary ? new Date(profileData.marriageAnniversary).toISOString().split('T')[0] : "",
+        marriageAnniversary: profileData.marriageAnniversary
+          ? new Date(profileData.marriageAnniversary)
+              .toISOString()
+              .split("T")[0]
+          : "",
         designation: profileData.designation || "",
         batch: profileData.batch || "",
-        joiningDate: profileData.joiningDate ? new Date(profileData.joiningDate).toISOString().split('T')[0] : "",
-        probationEndDate: profileData.probationEndDate ? new Date(profileData.probationEndDate).toISOString().split('T')[0] : "",
+        joiningDate: profileData.joiningDate
+          ? new Date(profileData.joiningDate).toISOString().split("T")[0]
+          : "",
+        probationEndDate: profileData.probationEndDate
+          ? new Date(profileData.probationEndDate).toISOString().split("T")[0]
+          : "",
       });
     }
   };
@@ -118,21 +139,21 @@ export default function ProfilePage() {
     try {
       console.log("=== SUBMITTING FORM ===");
       console.log("Form data:", formData);
-      
+
       const res = await updateProfile(formData);
       console.log("Update response:", res.data);
-      
+
       // Refresh profile data WITHOUT setting fetchLoading
       const profileRes = await getProfile();
       console.log("Fresh profile data:", profileRes.data);
-      
+
       const freshData = profileRes.data.data || profileRes.data;
       console.log("Extracted fresh data:", freshData);
       console.log("Personal Email in fresh data:", freshData?.personalEmail);
-      
+
       // Update profileData state
       setProfileData(freshData);
-      
+
       // Update formData state
       setFormData({
         name: freshData.name || "",
@@ -141,26 +162,35 @@ export default function ProfilePage() {
         companyEmail: freshData.companyEmail || "",
         phone: freshData.phone || "",
         gender: freshData.gender || "Male",
-        birthday: freshData.birthday ? new Date(freshData.birthday).toISOString().split('T')[0] : "",
+        birthday: freshData.birthday
+          ? new Date(freshData.birthday).toISOString().split("T")[0]
+          : "",
         maritalStatus: freshData.maritalStatus || "Unmarried",
-        marriageAnniversary: freshData.marriageAnniversary ? new Date(freshData.marriageAnniversary).toISOString().split('T')[0] : "",
+        marriageAnniversary: freshData.marriageAnniversary
+          ? new Date(freshData.marriageAnniversary).toISOString().split("T")[0]
+          : "",
         designation: freshData.designation || "",
         batch: freshData.batch || "",
-        joiningDate: freshData.joiningDate ? new Date(freshData.joiningDate).toISOString().split('T')[0] : "",
-        probationEndDate: freshData.probationEndDate ? new Date(freshData.probationEndDate).toISOString().split('T')[0] : "",
+        joiningDate: freshData.joiningDate
+          ? new Date(freshData.joiningDate).toISOString().split("T")[0]
+          : "",
+        probationEndDate: freshData.probationEndDate
+          ? new Date(freshData.probationEndDate).toISOString().split("T")[0]
+          : "",
       });
-      
+
       // Update the user context with new data
-      const currentToken = sessionStorage.getItem("token") || localStorage.getItem("token");
+      const currentToken =
+        sessionStorage.getItem("token") || localStorage.getItem("token");
       login({ token: currentToken, user: freshData });
-      
+
       console.log("=== UPDATE COMPLETE ===");
       console.log("ProfileData state:", freshData);
-      
+
       setMessage("Profile updated successfully!");
       setMessageType("success");
       setIsEditing(false);
-      
+
       setTimeout(() => setMessage(""), 3000);
     } catch (error) {
       console.error("Update profile error:", error);
@@ -493,7 +523,6 @@ export default function ProfilePage() {
                         <User size={20} />
                         Basic Information
                       </h4>{" "}
-                      
                       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                         <div>
                           <p className="text-sm text-gray-500">FullName</p>
@@ -645,6 +674,7 @@ export default function ProfilePage() {
                         </div>
                       </div>
                     </div>
+
                   </div>
                 </div>
               )}
@@ -655,3 +685,4 @@ export default function ProfilePage() {
     </div>
   );
 }
+
