@@ -6,6 +6,7 @@
   "scripts": {
     "start": "node server.js",
     "dev": "nodemon server.js",
+     "build": "next build",
     "migrate:leave-attendance": "node migrations/fixExistingLeaveAttendance.js"
   },
   "author": "smit",
