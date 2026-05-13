@@ -1,0 +1,13 @@
+{
+  "name": "super-admin-panel-root",
+  "private": true,
+  "packageManager": "npm@10",
+  "workspaces": [
+    "super-admin-panel"
+  ],
+  "scripts": {
+    "dev": "cd super-admin-panel && npm run dev",
+    "build": "cd super-admin-panel && npm run build",
+    "start": "cd super-admin-panel && npm run start"
+  }
+}
