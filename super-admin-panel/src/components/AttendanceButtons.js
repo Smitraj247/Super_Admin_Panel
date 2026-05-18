@@ -194,7 +194,9 @@ export default function AttendanceButtons({ userId }) {
                     ? "bg-purple-100 text-purple-800"
                     : status === "CHECKED_OUT"
                       ? "bg-green-100 text-green-800"
-                      : "bg-gray-100 text-gray-800"
+                      : status === "LATE"
+                        ? "bg-orange-100 text-orange-800"
+                        : "bg-gray-100 text-gray-800"
             }`}
           >
             {status === "CHECKED_IN"
@@ -205,7 +207,9 @@ export default function AttendanceButtons({ userId }) {
                   ? "Back to Work"
                   : status === "CHECKED_OUT"
                     ? "Checked Out"
-                    : status}
+                    : status === "LATE"
+                      ? "Late Check In"
+                      : status}
           </span>
         </div>
         {message && (
@@ -234,11 +238,11 @@ export default function AttendanceButtons({ userId }) {
           </button>
           <button
             disabled={
-              loading || !["CHECKED_IN", "BACK_TO_WORK"].includes(status)
+              loading || !["CHECKED_IN", "BACK_TO_WORK", "LATE"].includes(status)
             }
             onClick={() => handleAction("breakIn")}
             className={`px-6 py-3 rounded-lg font-semibold flex items-center justify-center gap-2 transition-colors ${
-              loading || !["CHECKED_IN", "BACK_TO_WORK"].includes(status)
+              loading || !["CHECKED_IN", "BACK_TO_WORK", "LATE"].includes(status)
                 ? "bg-gray-400 text-white cursor-not-allowed"
                 : "bg-yellow-500 hover:bg-yellow-600 text-white cursor-pointer"
             }`}
@@ -248,11 +252,11 @@ export default function AttendanceButtons({ userId }) {
           </button>
           <button
             disabled={
-              loading || !["CHECKED_IN", "BACK_TO_WORK"].includes(status)
+              loading || !["CHECKED_IN", "BACK_TO_WORK", "LATE"].includes(status)
             }
             onClick={() => handleAction("checkOut")}
             className={`px-6 py-3 rounded-lg font-semibold flex items-center justify-center gap-2 transition-colors ${
-              loading || !["CHECKED_IN", "BACK_TO_WORK"].includes(status)
+              loading || !["CHECKED_IN", "BACK_TO_WORK", "LATE"].includes(status)
                 ? "bg-gray-400 text-white cursor-not-allowed"
                 : "bg-red-500 hover:bg-red-600 text-white cursor-pointer"
             }`}
@@ -301,7 +305,10 @@ export default function AttendanceButtons({ userId }) {
                   Exit Time
                 </th>
                 <th className="text-left py-3 px-4 font-semibold text-gray-700">
-                  Break Time
+                  Breaks
+                </th>
+                <th className="text-left py-3 px-4 font-semibold text-gray-700">
+                  Total Break Time
                 </th>
                 <th className="text-left py-3 px-4 font-semibold text-gray-700">
                   Working Hours
@@ -321,6 +328,24 @@ export default function AttendanceButtons({ userId }) {
                     <td className="py-3 px-4">{record.date}</td>
                     <td className="py-3 px-4">{formatTime(record.checkIn)}</td>
                     <td className="py-3 px-4">{formatTime(record.checkOut)}</td>
+                    <td className="py-3 px-4">
+                      {record.breaks && record.breaks.length > 0 ? (
+                        <div className="space-y-1">
+                          {record.breaks.map((brk, idx) => (
+                            <div key={idx} className="text-xs">
+                              <span className="font-medium text-gray-700">Break {idx + 1}:</span>
+                              <div className="ml-2">
+                                <span className="text-green-600">In: {formatTime(brk.breakIn)}</span>
+                                {" → "}
+                                <span className="text-red-600">Out: {formatTime(brk.breakOut)}</span>
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      ) : (
+                        <span className="text-gray-400">No breaks</span>
+                      )}
+                    </td>
                     <td className="py-3 px-4">
                       {calculateBreakTime(record.breaks)}
                     </td>

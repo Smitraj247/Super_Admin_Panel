@@ -72,8 +72,16 @@ export const breakIn = async (req, res) => {
 
     const record = await Attendance.findOne({ userId, date: today });
 
-    if (!record || !["CHECKED_IN", "BACK_TO_WORK"].includes(record.status)) {
-      return res.status(400).json({ message: "Cannot start break" });
+    if (!record) {
+      console.log("Break In Error: No attendance record found for today");
+      return res.status(400).json({ message: "Please check in first" });
+    }
+
+    if (!["CHECKED_IN", "BACK_TO_WORK", "LATE"].includes(record.status)) {
+      console.log(`Break In Error: Invalid status - ${record.status}`);
+      return res.status(400).json({ 
+        message: `Cannot start break. Current status: ${record.status}` 
+      });
     }
 
     record.breaks.push({ breakIn: new Date() });
