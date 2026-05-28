@@ -158,8 +158,7 @@ const StatCard = ({ title, value, icon, trend, trendUp, color, sparkline }) => {
   const c = COLOR_MAP[color];
   const max = Math.max(...(sparkline || [1]));
   return (
-    <div className="rounded-2xl p-5 border border-[var(--border)] hover:shadow-lg hover:-translate-y-0.5 transition-all duration-200"
-      style={{ background: "var(--bg-surface)", boxShadow: "var(--shadow-sm)" }}>
+    <div className="flex flex-col h-full rounded-2xl p-5 border border-[var(--border)] hover:shadow-lg hover:-translate-y-0.5 transition-all duration-200" style={{ background: "var(--bg-surface)", boxShadow: "var(--shadow-sm)" }}>
       <div className={`inline-flex p-2.5 rounded-xl mb-3 ${c.bg} ${c.text}`}>
         {icon}
       </div>
@@ -410,7 +409,7 @@ export default function UnifiedDashboard() {
           </div>
 
           {/* Stat Cards */}
-          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3 sm:gap-4">
+          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-2 sm:gap-3 auto-rows-fr">
             <StatCard
               title="Days Present"
               color="green"

@@ -17,7 +17,7 @@ dotenv.config();
 
 const addDLBalanceForEligibleUsers = async () => {
   try {
-    console.log("🔄 Starting DL balance migration...");
+    console.log(" Starting DL balance migration...");
     
     // Connect to MongoDB (use MONGO_URL from .env)
     const mongoUrl = process.env.MONGO_URL || process.env.MONGO_URI;
@@ -27,11 +27,11 @@ const addDLBalanceForEligibleUsers = async () => {
     }
     
     await mongoose.connect(mongoUrl);
-    console.log("✅ Connected to MongoDB");
+    console.log(" Connected to MongoDB");
 
     // Get all users
     const users = await User.find({});
-    console.log(`📊 Found ${users.length} users to check`);
+    console.log(` Found ${users.length} users to check`);
 
     let updatedCount = 0;
     let skippedCount = 0;
@@ -58,24 +58,24 @@ const addDLBalanceForEligibleUsers = async () => {
         user.leaveBalance.DL = currentDL + 1;
         await user.save();
         
-        console.log(`✅ ${user.name} (${user.email}): Added 1 DL. New balance: ${user.leaveBalance.DL}`);
+        console.log(` ${user.name} (${user.email}): Added 1 DL. New balance: ${user.leaveBalance.DL}`);
         updatedCount++;
       } else {
-        console.log(`ℹ️  ${user.name} (${user.email}): Skipped (${previousMonthLeaves} PL/CL taken in April)`);
+        console.log(`  ${user.name} (${user.email}): Skipped (${previousMonthLeaves} PL/CL taken in April)`);
         skippedCount++;
       }
     }
 
-    console.log("\n📊 Migration Summary:");
+    console.log("\n Migration Summary:");
     console.log(`   Total users: ${users.length}`);
-    console.log(`   ✅ Updated: ${updatedCount}`);
-    console.log(`   ℹ️  Skipped: ${skippedCount}`);
-    console.log("\n✅ Migration completed successfully!");
+    console.log(`   Updated: ${updatedCount}`);
+    console.log(`     Skipped: ${skippedCount}`);
+    console.log("\n Migration completed successfully!");
 
     await mongoose.connection.close();
     process.exit(0);
   } catch (error) {
-    console.error("❌ Migration failed:", error);
+    console.error(" Migration failed:", error);
     process.exit(1);
   }
 };

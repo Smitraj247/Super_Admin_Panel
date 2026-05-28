@@ -21,10 +21,6 @@ export default function RolesPage() {
   const [editingId, setEditingId] = useState(null);
   const [editName, setEditName] = useState("");
 
-  useEffect(() => {
-    fetchRoles();
-  }, []);
-
   const fetchRoles = async () => {
     try {
       const response = await getRolesApi();
@@ -35,6 +31,10 @@ export default function RolesPage() {
       setLoading(false);
     }
   };
+
+  useEffect(() => {
+    fetchRoles();
+  }, []);
 
   const handleAddRole = async () => {
     if (!roleName.trim()) return;
