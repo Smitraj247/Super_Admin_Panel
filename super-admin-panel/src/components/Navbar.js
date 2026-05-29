@@ -6,7 +6,7 @@ import {
   AlertCircle, Search, Sun, Moon,
 } from "lucide-react";
 import { useRouter } from "next/navigation";
-import { useState, useEffect, useCallback, useMemo, useRef, memo } from "react";
+import { useState, useEffect, useCallback, useMemo, useRef, memo, use } from "react";
 import { useTheme } from "next-themes";
 import {
   getNotificationsApi, markAsReadApi, markAllAsReadApi, deleteNotificationApi,
@@ -19,7 +19,7 @@ const DEPT_MAP = { CE: "ce", IT: "it", SALES: "sales", HR: "hr" };
 const ICON_MAP = {
   success: <Check size={13} className="text-emerald-400" />,
   warning: <Clock size={13} className="text-amber-400" />,
-  alert:   <AlertCircle size={13} className="text-rose-400" />,
+  alert: <AlertCircle size={13} className="text-rose-400" />,
   default: <Bell size={13} className="text-[#7c6fff]" />,
 };
 const NOTIF_TTL = 60_000;
@@ -165,7 +165,7 @@ export default function Navbar() {
     const val = e.target.value;
     setSearchQuery(val);
     clearTimeout(searchTimer.current);
-    searchTimer.current = setTimeout(() => {}, 300);
+    searchTimer.current = setTimeout(() => { }, 300);
   }, []);
 
   const markAsRead = useCallback(async (id) => {
@@ -197,7 +197,7 @@ export default function Navbar() {
   const goToProfile = useCallback(() => {
     const path = roleKey === "SUPER_ADMIN" ? `/${rolePath}/profile`
       : roleKey === "ADMIN" ? `/admin/${deptPath}/profile`
-      : `/dashboard/${deptPath}/profile`;
+        : `/dashboard/${deptPath}/profile`;
     router.push(path);
     setShowProfile(false);
   }, [roleKey, rolePath, deptPath, router]);
@@ -209,20 +209,35 @@ export default function Navbar() {
 
   return (
     <header
-      className={`fixed top-0 right-0 z-30 flex items-center justify-between px-4 py-2.5
-        glass border-b border-[var(--border)] transition-all duration-300
-        ${collapsed ? "left-20" : "left-64"}
-      `}
-      style={{ boxShadow: "var(--shadow-sm)" }}
+      className={`
+    fixed top-0 z-40
+    h-[72px] 
+    flex items-center justify-between
+    px-4 lg:px-6
+    border-b border-white/10
+    backdrop-blur-2xl
+    bg-white dark:bg-[#111827]/95
+    transition-all duration-300
+
+    left-0 right-0
+
+    ${collapsed ? "lg:left-20" : "lg:left-[248px]"}
+  `}
+      style={{
+        boxShadow: "0 8px 30px rgba(0,0,0,0.18)",
+      }}
     >
       {/* Greeting */}
       {!showMobileSearch && (
-        <div className="shrink-0 animate-fade-in">
-          <h2 className="text-[15px] font-semibold text-[var(--text-primary)] leading-tight">
+        <div className="shrink-0 animate-fade-in relative z-10">
+          <h2 className="text-[15px] font-semibold text-black leading-tight">
             {greetingIcon} {greeting}
           </h2>
-          <p className="text-[11px] text-[var(--text-muted)] hidden lg:block mt-0.5">
-            <span className="font-mono">{timeStr}</span>
+
+          <p className="text-[11px] text-slate-400 hidden lg:block mt-0.5">
+            <span className="font-mono">
+              {timeStr}
+            </span>
             {timeStr && " · "}Welcome back to HRMS
           </p>
         </div>
@@ -230,125 +245,270 @@ export default function Navbar() {
 
       {/* Mobile Search */}
       {showMobileSearch && (
-        <div className="flex-1 md:hidden animate-fade-in">
+        <div className="flex-1 md:hidden animate-fade-in relative z-10">
           <div className="relative">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-[var(--text-muted)]" size={14} />
+            <Search
+              className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-500"
+              size={14}
+            />
+
             <input
               autoFocus
               type="text"
               value={searchQuery}
               onChange={handleSearchChange}
               placeholder="Search anything..."
-              className="input-base w-full rounded-xl pl-9 pr-9 py-2 text-sm"
+              className="
+            w-full rounded-2xl
+            bg-white/5 border border-white/10
+            pl-9 pr-9 py-2
+            text-sm text-white
+            outline-none
+            focus:border-violet-500/50
+          "
             />
-            <button onClick={() => setShowMobileSearch(false)} className="absolute right-3 top-1/2 -translate-y-1/2">
-              <X size={14} className="text-[var(--text-muted)]" />
+
+            <button
+              onClick={() =>
+                setShowMobileSearch(false)
+              }
+              className="absolute right-3 top-1/2 -translate-y-1/2"
+            >
+              <X
+                size={14}
+                className="text-slate-400"
+              />
             </button>
           </div>
         </div>
       )}
 
       {/* Desktop Search */}
-      <div className="hidden md:flex flex-1 max-w-sm mx-6">
+      <div className="hidden md:flex flex-1 max-w-md mx-6 relative z-10">
         <div className="relative w-full">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-[var(--text-muted)]" size={14} />
+          <Search
+            className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-500"
+            size={15}
+          />
+
           <input
             type="text"
             value={searchQuery}
             onChange={handleSearchChange}
             placeholder="Search anything..."
-            className="input-base w-full rounded-xl pl-9 pr-3 py-2 text-[13px]"
+            className="
+          w-full rounded-2xl
+          bg-white/5 border border-violet-500/40
+          pl-10 pr-4 py-2.5
+          text-sm text-black
+          placeholder:text-slate-500
+          outline-none
+          transition-all
+          focus:border-violet-800/40
+          focus:bg-white/[0.07]
+        "
           />
         </div>
       </div>
 
-      {/* Right controls */}
-      <div className={`flex items-center gap-1 ${showMobileSearch ? "hidden md:flex" : "flex"}`}>
-        <NavIconBtn onClick={() => setShowMobileSearch(true)} className="md:hidden">
+      {/* RIGHT CONTROLS */}
+      <div
+        className={`flex items-center gap-2 relative z-10 ${showMobileSearch
+          ? "hidden md:flex"
+          : "flex"
+          }`}
+      >
+        {/* MOBILE SEARCH BTN */}
+        <button
+          onClick={() =>
+            setShowMobileSearch(true)
+          }
+          className="
+        md:hidden
+        p-2 rounded-xl
+        text-slate-400
+        hover:text-white
+        hover:bg-white/5
+        transition-all
+      "
+        >
           <Search size={17} />
-        </NavIconBtn>
+        </button>
 
-        {/* Date pill */}
-        <div className="hidden sm:flex items-center px-3 py-1.5 rounded-xl bg-[var(--bg-elevated)] border border-[var(--border)]">
-          <span className="text-[12px] font-medium text-[var(--text-secondary)]">{dateStr}</span>
+        {/* DATE */}
+        <div
+          className="
+        hidden sm:flex items-center
+        px-3 py-2 rounded-2xl
+        bg-slate-100 border border-white/10
+      "
+        >
+          <span className="text-[12px] font-medium text-slate-400">
+            {dateStr}
+          </span>
         </div>
 
-        {/* Theme toggle */}
+        {/* THEME */}
         {mounted && (
-          <NavIconBtn onClick={() => setTheme(isDark ? "light" : "dark")}>
-            {isDark ? <Sun size={16} /> : <Moon size={16} />}
-          </NavIconBtn>
+          <button
+            onClick={() =>
+              setTheme(
+                isDark ? "light" : "dark"
+              )
+            }
+            className="
+          p-2 rounded-xl
+          text-slate-400
+          hover:text-gray-600
+          
+          transition-all
+        "
+          >
+            {isDark ? (
+              <Sun size={16} />
+            ) : (
+              <Moon size={16} />
+            )}
+          </button>
         )}
 
-        {/* Notifications */}
+        {/* NOTIFICATIONS */}
         <div className="relative notif-dropdown">
-          <NavIconBtn onClick={() => setShowNotifs((v) => !v)} badge={unreadCount}>
+          <button
+            onClick={() =>
+              setShowNotifs((v) => !v)
+            }
+            className="
+          relative
+          p-2 rounded-xl
+          text-slate-400
+          hover:text-gray-600
+          hover:bg-white/5
+          transition-all
+        "
+          >
             <Bell size={17} />
-          </NavIconBtn>
+
+            {unreadCount > 0 && (
+              <span
+                className="
+              absolute -top-1 -right-1
+              min-w-[18px] h-[18px]
+              rounded-full
+              bg-rose-500
+              text-white text-[10px]
+              flex items-center justify-center
+              font-bold
+            "
+              >
+                {unreadCount > 9
+                  ? "9+"
+                  : unreadCount}
+              </span>
+            )}
+          </button>
 
           {showNotifs && (
-            <div className="absolute right-0 mt-2 w-[340px] sm:w-[380px] rounded-2xl overflow-hidden animate-scale-in z-50 border border-[var(--border-strong)]"
-              style={{ background: "var(--bg-surface)", boxShadow: "var(--shadow-lg)" }}>
-              {/* Header — teal-to-purple gradient */}
-              <div className="px-4 py-3.5 flex items-center justify-between"
-                style={{ background: "linear-gradient(135deg, #7c6fff 0%, #4f46e5 60%, #00d4aa 100%)" }}>
+            <div
+              className="
+            absolute right-0 mt-3
+            w-[360px]
+            rounded-3xl overflow-hidden
+            border border-white/10
+            bg-gray-100
+            shadow-2xl
+            animate-scale-in
+          "
+            >
+              {/* HEADER */}
+              <div
+                className="px-5 py-4 flex items-center justify-between"
+                style={{
+                  background:
+                    "linear-gradient(135deg,#7c6fff 0%,#4f46e5 60%,#00d4aa 100%)",
+                }}
+              >
                 <div>
-                  <h3 className="font-semibold text-[14px] text-white">Notifications</h3>
-                  <p className="text-[11px] text-white/70 mt-0.5">{unreadCount} unread</p>
+                  <h3 className="text-white font-semibold text-sm">
+                    Notifications
+                  </h3>
+
+                  <p className="text-white/70 text-xs mt-0.5">
+                    {unreadCount} unread
+                  </p>
                 </div>
-                <button onClick={() => setShowNotifs(false)} className="p-1.5 text-white/70 hover:text-white hover:bg-white/15 rounded-lg transition-all">
+
+                <button
+                  onClick={() =>
+                    setShowNotifs(false)
+                  }
+                  className="
+                p-2 rounded-xl
+                hover:bg-white/10
+                text-white/70 hover:text-white
+              "
+                >
                   <X size={15} />
                 </button>
               </div>
 
-              {unreadCount > 0 && (
-                <div className="px-4 py-2 flex justify-end border-b border-[var(--border)]">
-                  <button onClick={markAllRead} className="text-[12px] text-[#7c6fff] hover:text-[#a5b4fc] font-medium transition-colors">
-                    Mark all as read
-                  </button>
-                </div>
-              )}
-
+              {/* LIST */}
               <div className="max-h-[360px] overflow-y-auto">
-                {loadingNotifs ? (
-                  <div className="py-10 flex flex-col items-center gap-3 text-[var(--text-muted)]">
-                    <div className="w-7 h-7 border-2 border-[var(--border-strong)] border-t-[#7c6fff] rounded-full animate-spin" />
-                    <p className="text-xs">Loading…</p>
-                  </div>
-                ) : notifications.length === 0 ? (
-                  <div className="py-12 flex flex-col items-center gap-2 text-[var(--text-muted)]">
-                    <Bell size={32} className="opacity-20" />
-                    <p className="text-xs">No notifications yet</p>
+                {notifications.length === 0 ? (
+                  <div className="py-14 flex flex-col items-center text-slate-500">
+                    <Bell
+                      size={32}
+                      className="opacity-20"
+                    />
+
+                    <p className="text-xs mt-2">
+                      No notifications yet
+                    </p>
                   </div>
                 ) : (
                   notifications.map((n) => (
-                    <NotificationItem key={n._id} notif={n} onMarkRead={markAsRead} onDelete={deleteNotif} />
+                    <NotificationItem
+                      key={n._id}
+                      notif={n}
+                      onMarkRead={markAsRead}
+                      onDelete={deleteNotif}
+                    />
                   ))
                 )}
               </div>
-
-              {notifications.length > 0 && (
-                <div className="px-4 py-2.5 border-t border-[var(--border)] text-center bg-[var(--bg-elevated)]">
-                  <button className="text-[12px] text-[#7c6fff] hover:text-[#a5b4fc] font-medium transition-colors">
-                    View all notifications
-                  </button>
-                </div>
-              )}
             </div>
           )}
         </div>
 
-        {/* Profile */}
-        <div className="relative profile-dropdown ml-1">
+        {/* PROFILE */}
+        <div className="relative profile-dropdown">
           <button
-            onClick={() => setShowProfile((v) => !v)}
-            className="flex items-center gap-2 p-1 pr-2 rounded-xl hover:bg-[var(--bg-elevated)] transition-all"
+            onClick={() =>
+              setShowProfile((v) => !v)
+            }
+            className="
+          flex items-center gap-2
+          p-1.5 pr-3 rounded-2xl
+          hover:bg-white/5
+          transition-all
+        "
           >
-            <div className="w-8 h-8 rounded-xl flex items-center justify-center text-white text-[13px] font-bold shadow-lg"
-              style={{ background: "linear-gradient(135deg, #7c6fff, #00d4aa)" }}>
+            <div
+              className="
+            w-9 h-9 rounded-2xl
+            flex items-center justify-center
+            text-white text-sm font-bold
+            shadow-lg
+          "
+              style={{
+                background:
+                  "linear-gradient(135deg,#7c6fff,#00d4aa)",
+              }}
+            >
               {userInitial}
             </div>
-            <span className="hidden sm:block text-[13px] font-medium text-[var(--text-secondary)] max-w-[80px] truncate">
+
+            <span className="hidden sm:block text-sm text-slate-400 font-medium max-w-[90px] truncate">
               {user?.name?.split(" ")[0]}
             </span>
           </button>
@@ -377,7 +537,7 @@ export default function Navbar() {
               <div className="py-1">
                 {[
                   { icon: <User size={14} />, label: "Profile Settings", action: goToProfile },
-                  { icon: <Settings size={14} />, label: "System Config", action: () => {} },
+                  { icon: <Settings size={14} />, label: "System Config", action: () => { } },
                 ].map(({ icon, label, action }) => (
                   <button
                     key={label}
@@ -405,3 +565,7 @@ export default function Navbar() {
     </header>
   );
 }
+
+
+
+// 

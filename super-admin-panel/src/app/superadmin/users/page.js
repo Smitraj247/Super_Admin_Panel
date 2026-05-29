@@ -37,7 +37,13 @@ export default function UsersPage() {
     password: "",
     role: "USER",
     department: "",
-    sidebarPermissions: [],
+    sidebarPermissions: [
+      "Dashboard",
+      "Profile",
+      "Chats",
+      "Attendance",
+      "Apply Leave",
+    ],
   });
 
   const [editingId, setEditingId] = useState(null);
@@ -49,18 +55,9 @@ export default function UsersPage() {
   const availableSidebarOptions = [
     "Dashboard",
     "Profile",
-    "Users",
-    "Departments",
-    "Roles",
-    "Help Desk",
-    "Network Monitor",
-    "Projects",
-    "Reports",
-    "Leads",
-    "Targets",
+    "Chats",
     "Attendance",
     "Apply Leave",
-    "Holidays",
   ];
 
   const handlePermissionToggle = (permission) => {
@@ -110,6 +107,7 @@ export default function UsersPage() {
           name: form.name,
           email: form.email,
           department: form.department,
+          sidebarPermissions: form.sidebarPermissions,
         });
         setUsers(users.map((u) => (u._id === editingId ? res.data : u)));
         setEditingId(null);
@@ -129,7 +127,13 @@ export default function UsersPage() {
         password: "",
         role: "USER",
         department: "",
-        sidebarPermissions: [],
+        sidebarPermissions: [
+          "Dashboard",
+          "Profile",
+          "Chats",
+          "Attendance",
+          "Apply Leave",
+        ],
       });
     } catch (err) {
       alert(err.response?.data?.message || "Operation failed");
@@ -154,7 +158,16 @@ export default function UsersPage() {
       password: "",
       role: user.role?.name || "USER",
       department: user.department?._id || "",
-      sidebarPermissions: user.sidebarPermissions || [],
+      sidebarPermissions:
+        user.sidebarPermissions?.length > 0
+          ? user.sidebarPermissions
+          : [
+            "Dashboard",
+            "Profile",
+            "Chats",
+            "Attendance",
+            "Apply Leave",
+          ],
     });
     window.scrollTo({ top: 0, behavior: "smooth" });
   };

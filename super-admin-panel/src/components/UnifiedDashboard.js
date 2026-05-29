@@ -259,9 +259,9 @@ export default function UnifiedDashboard() {
   const [leaves, setLeaves] = useState([]);
   const [holidays, setHolidays] = useState([]);
 
-  // Fetch
 
-  const fetchAll = useCallback(async () => {
+  // Fetch All Data
+  const fetchAll = useCallback(async (forceRefresh = false) => {
     try {
       const today = new Date().toISOString().split("T")[0];
       const { first, last } = monthBounds();
@@ -275,21 +275,68 @@ export default function UnifiedDashboard() {
         leavesRes,
         holidaysRes,
       ] = await Promise.all([
-        cachedFetch("ud:stats", () => getDashboardStatsApi(), 30_000),
-        cachedFetch("ud:weekly", () => getWeeklyAttendanceApi(), 60_000),
-        cachedFetch(`ud:history:${today}`, () => getAttendanceHistoryApi(today, today), 30_000),
-        cachedFetch(`ud:monthly:${first}`, () => getMonthlyAttendanceApi(first, last), 60_000),
-        cachedFetch(`ud:summary:${first}`, () => getAttendanceSummary(first, last), 60_000),
-        cachedFetch("ud:leaves", () => getUserLeavesApi(), 60_000),
-        cachedFetch("ud:holidays", () => getHolidaysApi(), 3_600_000),
+        forceRefresh
+          ? getDashboardStatsApi()
+          : cachedFetch("ud:stats", () => getDashboardStatsApi(), 30_000),
+
+        forceRefresh
+          ? getWeeklyAttendanceApi()
+          : cachedFetch("ud:weekly", () => getWeeklyAttendanceApi(), 60_000),
+
+        forceRefresh
+          ? getAttendanceHistoryApi(today, today)
+          : cachedFetch(
+            `ud:history:${today}`,
+            () => getAttendanceHistoryApi(today, today),
+            30_000
+          ),
+
+        forceRefresh
+          ? getMonthlyAttendanceApi(first, last)
+          : cachedFetch(
+            `ud:monthly:${first}`,
+            () => getMonthlyAttendanceApi(first, last),
+            60_000
+          ),
+
+        forceRefresh
+          ? getAttendanceSummary(first, last)
+          : cachedFetch(
+            `ud:summary:${first}`,
+            () => getAttendanceSummary(first, last),
+            60_000
+          ),
+
+        forceRefresh
+          ? getUserLeavesApi()
+          : cachedFetch(
+            "ud:leaves",
+            () => getUserLeavesApi(),
+            60_000
+          ),
+
+        forceRefresh
+          ? getHolidaysApi()
+          : cachedFetch(
+            "ud:holidays",
+            () => getHolidaysApi(),
+            3_600_000
+          ),
       ]);
 
-      if (statsRes.data)
-        setStats({ ...statsRes.data, breaks: statsRes.data.breaks || [] });
+      // Update states
+      if (statsRes.data) {
+        setStats({
+          ...statsRes.data,
+          breaks: statsRes.data.breaks || [],
+        });
+      }
+
       if (weeklyRes.data) {
         setWeeklyAttendance(weeklyRes.data.weeklyAttendance || []);
         setWeeklyWorkHours(weeklyRes.data.weeklyWorkHours || []);
       }
+
       if (historyRes.data) {
         setHistory(
           historyRes.data.map((r) => ({
@@ -305,27 +352,38 @@ export default function UnifiedDashboard() {
             userEmail: r.userId?.email || "N/A",
             userName: r.userId?.name || "N/A",
             userId: r.userId?._id || "N/A",
-          })),
+          }))
         );
       }
+
       if (monthlyRes.data) setMonthlyRecords(monthlyRes.data);
+
       if (summaryRes.data) setMonthlySummary(summaryRes.data);
+
       if (leavesRes.data) setLeaves(leavesRes.data.data || []);
-      if (holidaysRes.data)
-        setHolidays(Array.isArray(holidaysRes.data) ? holidaysRes.data : []);
+
+      if (holidaysRes.data) {
+        setHolidays(
+          Array.isArray(holidaysRes.data)
+            ? holidaysRes.data
+            : []
+        );
+      }
     } catch (err) {
       console.error("Dashboard fetch:", err);
-      if (!refreshing)
-        alert("Failed to load dashboard data. Please try again.");
+      alert("Failed to refresh dashboard");
     } finally {
       setLoading(false);
-      setRefreshing(false);
     }
-  }, [refreshing]);
+  }, []);
 
   useEffect(() => {
     fetchAll();
-    const t = setInterval(fetchAll, 30_000);
+
+    const t = setInterval(() => {
+      fetchAll();
+    }, 30000);
+
     return () => clearInterval(t);
   }, [fetchAll]);
 
@@ -351,11 +409,17 @@ export default function UnifiedDashboard() {
 
   const action = (apiFn, msg) => async () => {
     try {
+      setRefreshing(true);
+
       await apiFn();
-      alert(msg);
-      fetchAll();
+
+      // Instant fresh fetch
+      await fetchAll(true);
+
     } catch (e) {
       alert(e.response?.data?.message || "Action failed");
+    } finally {
+      setRefreshing(false);
     }
   };
 
@@ -384,14 +448,14 @@ export default function UnifiedDashboard() {
       <Navbar />
       <Sidebar />
 
-      <div className="sidebar-aware pt-14">
+      <div className="sidebar-aware pt-20">
         <div className="max-w-7xl mx-auto p-4 sm:p-6 space-y-6 animate-fade-in">
           {/* Header */}
           <div className="flex items-center justify-between">
             <h2
               className="text-2xl sm:text-3xl font-semibold tracking-tight
-  bg-gradient-to-r from-indigo-500 via-purple-500 to-pink-500
-  bg-clip-text text-transparent animate-pulse"
+              bg-gradient-to-r from-indigo-500 via-purple-500 to-pink-500
+              bg-clip-text text-transparent animate-pulse"
             >
               Attendance System
             </h2>
@@ -640,7 +704,7 @@ export default function UnifiedDashboard() {
 
               {/* Today's Summary */}
               <div
-                className="rounded-2xl border border-[var(--border)] p-5 sm:p-6"
+                className="h-[45vh] rounded-2xl border border-[var(--border)] p-5 sm:p-6 h-[494px] overflow-y-scroll"
                 style={{
                   background: "var(--bg-surface)",
                   boxShadow: "var(--shadow-sm)",
@@ -793,8 +857,6 @@ export default function UnifiedDashboard() {
             </div>
 
           </div>
-
-
 
         </div>
       </div>

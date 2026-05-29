@@ -602,7 +602,7 @@ export default function SuperAdminDashboard() {
             <SectionCard
               title="Attendance Trend"
               className="lg:col-span-2"
-              action={
+              action={~
                 <select className="text-xs border border-[var(--border-strong)] bg-[var(--bg-elevated)] text-[var(--text-secondary)] rounded-lg px-2 py-1 focus:outline-none focus:ring-2 focus:ring-indigo-400">
                   <option>This Month</option>
                   <option>Last Month</option>
