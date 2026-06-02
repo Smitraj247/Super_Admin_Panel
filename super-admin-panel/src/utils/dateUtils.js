@@ -24,9 +24,9 @@ export const getMonthBounds = () => {
 export const formatTime = (dateStr) =>
   dateStr
     ? new Date(dateStr).toLocaleTimeString("en-US", {
-      hour: "2-digit",
-      minute: "2-digit",
-    })
+        hour: "2-digit",
+        minute: "2-digit",
+      })
     : "—";
 
 /**
@@ -77,7 +77,9 @@ export const countLeaveDays = (leaves, startDate, endDate) =>
     )
     .reduce((acc, leave) => {
       const s =
-        new Date(leave.fromDate) < startDate ? startDate : new Date(leave.fromDate);
+        new Date(leave.fromDate) < startDate
+          ? startDate
+          : new Date(leave.fromDate);
       const e =
         new Date(leave.toDate) > endDate ? endDate : new Date(leave.toDate);
       const daysDiff = Math.ceil((e - s) / 86400000) + 1;

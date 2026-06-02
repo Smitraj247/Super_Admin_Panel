@@ -41,33 +41,38 @@ export const useUnifiedDashboardData = () => {
   const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState(null);
 
-  const fetchAll = useCallback(async (forceRefresh = false) => {
-    try {
-      const isInitialLoad = loading;
-      if (!isInitialLoad) setRefreshing(true);
+  const fetchAll = useCallback(
+    async (forceRefresh = false) => {
+      try {
+        const isInitialLoad = loading;
+        if (!isInitialLoad) setRefreshing(true);
 
-      const responses = await fetchDashboardData(forceRefresh);
-      const normalizedData = normalizeApiResponses(responses);
+        const responses = await fetchDashboardData(forceRefresh);
+        const normalizedData = normalizeApiResponses(responses);
 
-      // Transform break data for display
-      const transformedStats = {
-        ...normalizedData.stats,
-        breaks: transformBreakData(normalizedData.stats.breaks || []),
-      };
+        // Transform break data for display
+        const transformedStats = {
+          ...normalizedData.stats,
+          breaks: transformBreakData(normalizedData.stats.breaks || []),
+        };
 
-      setData({
-        ...normalizedData,
-        stats: transformedStats,
-      });
-      setError(null);
-    } catch (err) {
-      console.error("Dashboard data fetch error:", err);
-      setError(err.response?.data?.message || "Failed to fetch dashboard data");
-    } finally {
-      setLoading(false);
-      setRefreshing(false);
-    }
-  }, [loading]);
+        setData({
+          ...normalizedData,
+          stats: transformedStats,
+        });
+        setError(null);
+      } catch (err) {
+        console.error("Dashboard data fetch error:", err);
+        setError(
+          err.response?.data?.message || "Failed to fetch dashboard data",
+        );
+      } finally {
+        setLoading(false);
+        setRefreshing(false);
+      }
+    },
+    [loading],
+  );
 
   // Fetch data on mount and set up auto-refresh
   useEffect(() => {

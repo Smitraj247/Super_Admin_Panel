@@ -59,12 +59,7 @@ export const uniqueByPath = (items = []) => {
   });
 };
 
-export const buildDeptMenu = (
-  roleKey,
-  dept,
-  prefix,
-  permissions = [],
-) => {
+export const buildDeptMenu = (roleKey, dept, prefix, permissions = []) => {
   const extra = DEPT_EXTRA?.[roleKey]?.[dept] ?? [];
   const items = [...BASE_ITEMS(), ...extra, ...TAIL_ITEMS];
 

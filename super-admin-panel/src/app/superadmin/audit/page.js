@@ -59,14 +59,21 @@ export default function AuditPage() {
 
                 <tbody className="divide-y">
                   {logs.map((log) => (
-                    <tr key={log.id} className="hover:bg-[var(--bg-elevated)] transition">
+                    <tr
+                      key={log.id}
+                      className="hover:bg-[var(--bg-elevated)] transition"
+                    >
                       <td className="p-5 font-semibold text-[var(--text-primary)]">
                         {log.action}
                       </td>
 
-                      <td className="p-5 text-[var(--text-secondary)]">{log.admin}</td>
+                      <td className="p-5 text-[var(--text-secondary)]">
+                        {log.admin}
+                      </td>
 
-                      <td className="p-5 text-[var(--text-secondary)]">{log.date}</td>
+                      <td className="p-5 text-[var(--text-secondary)]">
+                        {log.date}
+                      </td>
                     </tr>
                   ))}
                 </tbody>
@@ -78,4 +85,3 @@ export default function AuditPage() {
     </ProtectedDashboardRoute>
   );
 }
-

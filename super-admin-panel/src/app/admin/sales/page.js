@@ -10,7 +10,10 @@ export default function SalesAdminPage() {
       requiredRole={ROLES.ADMIN}
       requiredDepartment={DEPARTMENTS.SALES.name}
     >
-      <UnifiedDashboard userRole={ROLES.ADMIN} department={DEPARTMENTS.SALES.name} />
+      <UnifiedDashboard
+        userRole={ROLES.ADMIN}
+        department={DEPARTMENTS.SALES.name}
+      />
     </ProtectedDashboardRoute>
   );
 }

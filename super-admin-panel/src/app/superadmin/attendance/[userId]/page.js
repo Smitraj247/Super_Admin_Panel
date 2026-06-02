@@ -158,9 +158,9 @@ export default function UserAttendanceDetail() {
   const formatTime = (t) =>
     t
       ? new Date(t).toLocaleTimeString([], {
-        hour: "2-digit",
-        minute: "2-digit",
-      })
+          hour: "2-digit",
+          minute: "2-digit",
+        })
       : "-";
 
   const formatBreakTime = (breaks = []) => {
@@ -297,11 +297,9 @@ export default function UserAttendanceDetail() {
               </select>
             </div>
           </div>
-        </div>.
-
-        {/* Attendance Table */}
+        </div>
+        .{/* Attendance Table */}
         <div className="rounded-2xl border border-[var(--border)] bg-[var(--bg-surface)] shadow-sm overflow-hidden">
-
           {/* HEADER */}
           <div className="px-6 py-5 border-b border-[var(--border)] flex items-center justify-between">
             <div>
@@ -317,11 +315,21 @@ export default function UserAttendanceDetail() {
           {/* TABLE */}
           <div className="overflow-x-auto">
             <table className="w-full text-sm">
-
               <thead className="bg-[var(--bg-elevated)] text-[var(--text-secondary)]">
                 <tr>
-                  {["Date", "Check In", "Check Out", "Break", "Hours", "Status", "Actions"].map((h) => (
-                    <th key={h} className="px-6 py-4 text-left font-medium whitespace-nowrap">
+                  {[
+                    "Date",
+                    "Check In",
+                    "Check Out",
+                    "Break",
+                    "Hours",
+                    "Status",
+                    "Actions",
+                  ].map((h) => (
+                    <th
+                      key={h}
+                      className="px-6 py-4 text-left font-medium whitespace-nowrap"
+                    >
                       {h}
                     </th>
                   ))}
@@ -329,10 +337,12 @@ export default function UserAttendanceDetail() {
               </thead>
 
               <tbody className="divide-y divide-[var(--border)]">
-
                 {loading ? (
                   <tr>
-                    <td colSpan="7" className="text-center py-10 text-[var(--text-secondary)]">
+                    <td
+                      colSpan="7"
+                      className="text-center py-10 text-[var(--text-secondary)]"
+                    >
                       Loading attendance records...
                     </td>
                   </tr>
@@ -342,7 +352,6 @@ export default function UserAttendanceDetail() {
                       key={record._id}
                       className="hover:bg-[var(--bg-elevated)] transition"
                     >
-
                       {/* DATE */}
                       <td className="px-6 py-4 font-medium text-[var(--text-primary)] whitespace-nowrap">
                         {new Date(record.date).toLocaleDateString("en-GB", {
@@ -379,7 +388,7 @@ export default function UserAttendanceDetail() {
                           {calculateWorkingHours(
                             record.checkIn,
                             record.checkOut,
-                            record.breaks
+                            record.breaks,
                           )}
                         </span>
                       </td>
@@ -387,12 +396,13 @@ export default function UserAttendanceDetail() {
                       {/* STATUS */}
                       <td className="px-6 py-4">
                         <span
-                          className={`px-3 py-1 text-xs rounded-full font-medium ${record.status === "CHECKED_OUT"
-                            ? "bg-green-100 text-green-700"
-                            : record.status === "ON_BREAK"
-                              ? "bg-yellow-100 text-yellow-700"
-                              : "bg-blue-100 text-blue-700"
-                            }`}
+                          className={`px-3 py-1 text-xs rounded-full font-medium ${
+                            record.status === "CHECKED_OUT"
+                              ? "bg-green-100 text-green-700"
+                              : record.status === "ON_BREAK"
+                                ? "bg-yellow-100 text-yellow-700"
+                                : "bg-blue-100 text-blue-700"
+                          }`}
                         >
                           {record.status}
                         </span>
@@ -408,12 +418,14 @@ export default function UserAttendanceDetail() {
                           Edit
                         </button>
                       </td>
-
                     </tr>
                   ))
                 ) : (
                   <tr>
-                    <td colSpan="7" className="text-center py-10 text-[var(--text-secondary)]">
+                    <td
+                      colSpan="7"
+                      className="text-center py-10 text-[var(--text-secondary)]"
+                    >
                       No attendance records found for this month
                     </td>
                   </tr>
@@ -495,7 +507,3 @@ export default function UserAttendanceDetail() {
     </div>
   );
 }
-
-
-
-

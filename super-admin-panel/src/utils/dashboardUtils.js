@@ -18,7 +18,9 @@ export const transformHistoryData = (rawData) =>
     date: record.date,
     entryTime: formatTime(record.checkIn),
     exitTime: formatTime(record.checkOut),
-    breaks: record.breaks?.length ? `${record.breaks.length} break(s)` : "No breaks",
+    breaks: record.breaks?.length
+      ? `${record.breaks.length} break(s)`
+      : "No breaks",
     totalBreakTime: minutesToHM(calculateBreakMinutes(record.breaks)),
     workingHours: calculateWorkingHours(record),
     status: record.status,
@@ -52,9 +54,10 @@ export const transformBreakData = (breaks = []) =>
     breakStart: formatTime(breakItem.breakIn),
     breakEnd: formatTime(breakItem.breakOut),
     isActive: !breakItem.breakOut,
-    duration: calculateBreakMinutes([breakItem]) > 0
-      ? minutesToHM(calculateBreakMinutes([breakItem]))
-      : "—",
+    duration:
+      calculateBreakMinutes([breakItem]) > 0
+        ? minutesToHM(calculateBreakMinutes([breakItem]))
+        : "—",
   }));
 
 /**

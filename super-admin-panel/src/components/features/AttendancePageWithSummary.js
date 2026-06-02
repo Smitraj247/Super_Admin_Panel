@@ -118,7 +118,7 @@ const MetricBadge = ({ icon: Icon, label, value, colorClass, borderClass }) => (
   </div>
 );
 
-// ─── Main Component 
+// ─── Main Component
 
 export default function AttendancePage() {
   const [attendance, setAttendance] = useState([]);
@@ -132,7 +132,7 @@ export default function AttendancePage() {
   const abortRef = useRef(null);
   const requestRef = useRef(0);
 
-  // ── Fetch 
+  // ── Fetch
 
   const fetch = useCallback(async (from, to) => {
     abortRef.current?.abort();
@@ -177,7 +177,7 @@ export default function AttendancePage() {
     return () => abortRef.current?.abort();
   }, [fetchCurrentMonth]);
 
-  // ── Derived values 
+  // ── Derived values
 
   const sorted = useMemo(
     () => [...attendance].sort((a, b) => new Date(b.date) - new Date(a.date)),

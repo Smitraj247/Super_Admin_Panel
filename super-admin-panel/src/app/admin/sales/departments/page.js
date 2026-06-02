@@ -110,7 +110,7 @@ export default function DepartmentsPage() {
                 Manage Departments
               </h1>
               <p className="text-sm text-purple-900">
-                Create and manage compan  s
+                Create and manage compan s
               </p>
             </div>
 

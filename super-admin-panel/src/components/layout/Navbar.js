@@ -2,14 +2,34 @@
 
 import { useAuth } from "@/context/AuthContext";
 import {
-  Bell, User, Settings, LogOut, X, Check, Clock,
-  AlertCircle, Search, Sun, Moon,
+  Bell,
+  User,
+  Settings,
+  LogOut,
+  X,
+  Check,
+  Clock,
+  AlertCircle,
+  Search,
+  Sun,
+  Moon,
 } from "lucide-react";
 import { useRouter } from "next/navigation";
-import { useState, useEffect, useCallback, useMemo, useRef, memo, use } from "react";
+import {
+  useState,
+  useEffect,
+  useCallback,
+  useMemo,
+  useRef,
+  memo,
+  use,
+} from "react";
 import { useTheme } from "next-themes";
 import {
-  getNotificationsApi, markAsReadApi, markAllAsReadApi, deleteNotificationApi,
+  getNotificationsApi,
+  markAsReadApi,
+  markAllAsReadApi,
+  deleteNotificationApi,
 } from "@/services/notificationApi";
 import { cachedFetch, invalidateCache } from "@/lib/cache";
 import { useSidebar } from "@/context/SidebarContext";
@@ -30,9 +50,18 @@ const getGreeting = (h = new Date().getHours()) =>
 const getGreetingIcon = (h = new Date().getHours()) =>
   h < 12 ? "🌅" : h < 18 ? "☀️" : "🌙";
 const getTimeStr = () =>
-  new Date().toLocaleTimeString("en-US", { hour: "2-digit", minute: "2-digit", second: "2-digit", hour12: true });
+  new Date().toLocaleTimeString("en-US", {
+    hour: "2-digit",
+    minute: "2-digit",
+    second: "2-digit",
+    hour12: true,
+  });
 const getDateStr = () =>
-  new Date().toLocaleDateString("en-US", { weekday: "short", month: "short", day: "numeric" });
+  new Date().toLocaleDateString("en-US", {
+    weekday: "short",
+    month: "short",
+    day: "numeric",
+  });
 const getTimeAgo = (date) => {
   const s = Math.floor((Date.now() - new Date(date)) / 1000);
   if (s < 60) return "Just now";
@@ -43,28 +72,44 @@ const getTimeAgo = (date) => {
 };
 
 const NotificationItem = memo(({ notif, onMarkRead, onDelete }) => (
-  <div className={`px-4 py-3 border-b border-[var(--border)] hover:bg-[var(--bg-elevated)] transition-colors ${!notif.read ? "bg-[#7c6fff]/5" : ""}`}>
+  <div
+    className={`px-4 py-3 border-b border-[var(--border)] hover:bg-[var(--bg-elevated)] transition-colors ${!notif.read ? "bg-[#7c6fff]/5" : ""}`}
+  >
     <div className="flex gap-3">
       <div className="shrink-0 mt-0.5 w-6 h-6 rounded-full bg-[var(--bg-elevated)] flex items-center justify-center">
         {ICON_MAP[notif.type] ?? ICON_MAP.default}
       </div>
       <div className="flex-1 min-w-0">
         <div className="flex items-start justify-between gap-2">
-          <p className={`text-[13px] font-semibold truncate ${!notif.read ? "text-[var(--text-primary)]" : "text-[var(--text-secondary)]"}`}>
+          <p
+            className={`text-[13px] font-semibold truncate ${!notif.read ? "text-[var(--text-primary)]" : "text-[var(--text-secondary)]"}`}
+          >
             {notif.title}
           </p>
-          {!notif.read && <span className="w-1.5 h-1.5 bg-[#7c6fff] rounded-full shrink-0 mt-1.5 animate-pulse" />}
+          {!notif.read && (
+            <span className="w-1.5 h-1.5 bg-[#7c6fff] rounded-full shrink-0 mt-1.5 animate-pulse" />
+          )}
         </div>
-        <p className="text-xs text-[var(--text-muted)] mt-0.5 line-clamp-2">{notif.message}</p>
+        <p className="text-xs text-[var(--text-muted)] mt-0.5 line-clamp-2">
+          {notif.message}
+        </p>
         <div className="flex items-center justify-between mt-2">
-          <span className="text-[11px] text-[var(--text-muted)]">{getTimeAgo(notif.createdAt)}</span>
+          <span className="text-[11px] text-[var(--text-muted)]">
+            {getTimeAgo(notif.createdAt)}
+          </span>
           <div className="flex gap-2">
             {!notif.read && (
-              <button onClick={() => onMarkRead(notif._id)} className="text-[11px] text-[#7c6fff] hover:text-[#a5b4fc] font-medium transition-colors">
+              <button
+                onClick={() => onMarkRead(notif._id)}
+                className="text-[11px] text-[#7c6fff] hover:text-[#a5b4fc] font-medium transition-colors"
+              >
                 Mark read
               </button>
             )}
-            <button onClick={() => onDelete(notif._id)} className="text-[11px] text-rose-400 hover:text-rose-300 font-medium transition-colors">
+            <button
+              onClick={() => onDelete(notif._id)}
+              className="text-[11px] text-rose-400 hover:text-rose-300 font-medium transition-colors"
+            >
               Delete
             </button>
           </div>
@@ -110,19 +155,33 @@ export default function Navbar() {
   const [mounted, setMounted] = useState(false);
   const searchTimer = useRef(null);
 
-  useEffect(() => { setMounted(true); }, []);
+  useEffect(() => {
+    setMounted(true);
+  }, []);
 
   const { roleKey, rolePath, deptPath } = useMemo(() => {
-    const roleKey = (user?.role?.name || user?.role || "USER").toUpperCase().replace(" ", "_");
-    const deptKey = (user?.department?.name || user?.department || "CE").toUpperCase().replace(" ", "_");
-    return { roleKey, rolePath: ROLE_MAP[roleKey] || "user", deptPath: DEPT_MAP[deptKey] || "ce" };
+    const roleKey = (user?.role?.name || user?.role || "USER")
+      .toUpperCase()
+      .replace(" ", "_");
+    const deptKey = (user?.department?.name || user?.department || "CE")
+      .toUpperCase()
+      .replace(" ", "_");
+    return {
+      roleKey,
+      rolePath: ROLE_MAP[roleKey] || "user",
+      deptPath: DEPT_MAP[deptKey] || "ce",
+    };
   }, [user?.role, user?.department]);
 
   const fetchNotifs = useCallback(async () => {
     if (!user) return;
     setLoadingNotifs(true);
     try {
-      const res = await cachedFetch(NOTIF_CACHE_KEY, () => getNotificationsApi(20, 0), NOTIF_TTL);
+      const res = await cachedFetch(
+        NOTIF_CACHE_KEY,
+        () => getNotificationsApi(20, 0),
+        NOTIF_TTL,
+      );
       setNotifications(res.data?.notifications || []);
       setUnreadCount(res.data?.unreadCount || 0);
     } catch (e) {
@@ -165,39 +224,61 @@ export default function Navbar() {
     const val = e.target.value;
     setSearchQuery(val);
     clearTimeout(searchTimer.current);
-    searchTimer.current = setTimeout(() => { }, 300);
+    searchTimer.current = setTimeout(() => {}, 300);
   }, []);
 
-  const markAsRead = useCallback(async (id) => {
-    setNotifications((prev) => prev.map((n) => (n._id === id ? { ...n, read: true } : n)));
-    setUnreadCount((prev) => Math.max(0, prev - 1));
-    invalidateCache(NOTIF_CACHE_KEY);
-    try { await markAsReadApi(id); } catch { fetchNotifs(); }
-  }, [fetchNotifs]);
+  const markAsRead = useCallback(
+    async (id) => {
+      setNotifications((prev) =>
+        prev.map((n) => (n._id === id ? { ...n, read: true } : n)),
+      );
+      setUnreadCount((prev) => Math.max(0, prev - 1));
+      invalidateCache(NOTIF_CACHE_KEY);
+      try {
+        await markAsReadApi(id);
+      } catch {
+        fetchNotifs();
+      }
+    },
+    [fetchNotifs],
+  );
 
   const markAllRead = useCallback(async () => {
     const snap = { notifications, unreadCount };
     setNotifications((prev) => prev.map((n) => ({ ...n, read: true })));
     setUnreadCount(0);
     invalidateCache(NOTIF_CACHE_KEY);
-    try { await markAllAsReadApi(); } catch {
+    try {
+      await markAllAsReadApi();
+    } catch {
       setNotifications(snap.notifications);
       setUnreadCount(snap.unreadCount);
     }
   }, [notifications, unreadCount]);
 
-  const deleteNotif = useCallback(async (id) => {
-    const target = notifications.find((n) => n._id === id);
-    setNotifications((prev) => prev.filter((n) => n._id !== id));
-    if (target && !target.read) setUnreadCount((prev) => Math.max(0, prev - 1));
-    invalidateCache(NOTIF_CACHE_KEY);
-    try { await deleteNotificationApi(id); } catch { fetchNotifs(); }
-  }, [notifications, fetchNotifs]);
+  const deleteNotif = useCallback(
+    async (id) => {
+      const target = notifications.find((n) => n._id === id);
+      setNotifications((prev) => prev.filter((n) => n._id !== id));
+      if (target && !target.read)
+        setUnreadCount((prev) => Math.max(0, prev - 1));
+      invalidateCache(NOTIF_CACHE_KEY);
+      try {
+        await deleteNotificationApi(id);
+      } catch {
+        fetchNotifs();
+      }
+    },
+    [notifications, fetchNotifs],
+  );
 
   const goToProfile = useCallback(() => {
-    const path = roleKey === "SUPER_ADMIN" ? `/${rolePath}/profile`
-      : roleKey === "ADMIN" ? `/admin/${deptPath}/profile`
-        : `/dashboard/${deptPath}/profile`;
+    const path =
+      roleKey === "SUPER_ADMIN"
+        ? `/${rolePath}/profile`
+        : roleKey === "ADMIN"
+          ? `/admin/${deptPath}/profile`
+          : `/dashboard/${deptPath}/profile`;
     router.push(path);
     setShowProfile(false);
   }, [roleKey, rolePath, deptPath, router]);
@@ -235,9 +316,7 @@ export default function Navbar() {
           </h2>
 
           <p className="text-[11px] text-slate-400 hidden lg:block mt-0.5">
-            <span className="font-mono">
-              {timeStr}
-            </span>
+            <span className="font-mono">{timeStr}</span>
             {timeStr && " · "}Welcome back to HRMS
           </p>
         </div>
@@ -269,15 +348,10 @@ export default function Navbar() {
             />
 
             <button
-              onClick={() =>
-                setShowMobileSearch(false)
-              }
+              onClick={() => setShowMobileSearch(false)}
               className="absolute right-3 top-1/2 -translate-y-1/2"
             >
-              <X
-                size={14}
-                className="text-slate-400"
-              />
+              <X size={14} className="text-slate-400" />
             </button>
           </div>
         </div>
@@ -313,16 +387,13 @@ export default function Navbar() {
 
       {/* RIGHT CONTROLS */}
       <div
-        className={`flex items-center gap-2 relative z-10 ${showMobileSearch
-          ? "hidden md:flex"
-          : "flex"
-          }`}
+        className={`flex items-center gap-2 relative z-10 ${
+          showMobileSearch ? "hidden md:flex" : "flex"
+        }`}
       >
         {/* MOBILE SEARCH BTN */}
         <button
-          onClick={() =>
-            setShowMobileSearch(true)
-          }
+          onClick={() => setShowMobileSearch(true)}
           className="
         md:hidden
         p-2 rounded-xl
@@ -351,11 +422,7 @@ export default function Navbar() {
         {/* THEME */}
         {mounted && (
           <button
-            onClick={() =>
-              setTheme(
-                isDark ? "light" : "dark"
-              )
-            }
+            onClick={() => setTheme(isDark ? "light" : "dark")}
             className="
           p-2 rounded-xl
           text-slate-400
@@ -364,20 +431,14 @@ export default function Navbar() {
           transition-all
         "
           >
-            {isDark ? (
-              <Sun size={16} />
-            ) : (
-              <Moon size={16} />
-            )}
+            {isDark ? <Sun size={16} /> : <Moon size={16} />}
           </button>
         )}
 
         {/* NOTIFICATIONS */}
         <div className="relative notif-dropdown">
           <button
-            onClick={() =>
-              setShowNotifs((v) => !v)
-            }
+            onClick={() => setShowNotifs((v) => !v)}
             className="
           relative
           p-2 rounded-xl
@@ -401,9 +462,7 @@ export default function Navbar() {
               font-bold
             "
               >
-                {unreadCount > 9
-                  ? "9+"
-                  : unreadCount}
+                {unreadCount > 9 ? "9+" : unreadCount}
               </span>
             )}
           </button>
@@ -439,9 +498,7 @@ export default function Navbar() {
                 </div>
 
                 <button
-                  onClick={() =>
-                    setShowNotifs(false)
-                  }
+                  onClick={() => setShowNotifs(false)}
                   className="
                 p-2 rounded-xl
                 hover:bg-white/10
@@ -456,14 +513,9 @@ export default function Navbar() {
               <div className="max-h-[360px] overflow-y-auto">
                 {notifications.length === 0 ? (
                   <div className="py-14 flex flex-col items-center text-slate-500">
-                    <Bell
-                      size={32}
-                      className="opacity-20"
-                    />
+                    <Bell size={32} className="opacity-20" />
 
-                    <p className="text-xs mt-2">
-                      No notifications yet
-                    </p>
+                    <p className="text-xs mt-2">No notifications yet</p>
                   </div>
                 ) : (
                   notifications.map((n) => (
@@ -483,9 +535,7 @@ export default function Navbar() {
         {/* PROFILE */}
         <div className="relative profile-dropdown">
           <button
-            onClick={() =>
-              setShowProfile((v) => !v)
-            }
+            onClick={() => setShowProfile((v) => !v)}
             className="
           flex items-center gap-2
           p-1.5 pr-3 rounded-2xl
@@ -501,8 +551,7 @@ export default function Navbar() {
             shadow-lg
           "
               style={{
-                background:
-                  "linear-gradient(135deg,#7c6fff,#00d4aa)",
+                background: "linear-gradient(135deg,#7c6fff,#00d4aa)",
               }}
             >
               {userInitial}
@@ -514,30 +563,58 @@ export default function Navbar() {
           </button>
 
           {showProfile && (
-            <div className="absolute right-0 mt-2 w-56 rounded-2xl overflow-hidden animate-scale-in z-50 border border-[var(--border-strong)]"
-              style={{ background: "var(--bg-surface)", boxShadow: "var(--shadow-lg)" }}>
+            <div
+              className="absolute right-0 mt-2 w-56 rounded-2xl overflow-hidden animate-scale-in z-50 border border-[var(--border-strong)]"
+              style={{
+                background: "var(--bg-surface)",
+                boxShadow: "var(--shadow-lg)",
+              }}
+            >
               {/* Profile header */}
-              <div className="px-4 py-3.5 border-b border-[var(--border)]"
-                style={{ background: "linear-gradient(135deg, rgba(124,111,255,0.12) 0%, rgba(0,212,170,0.06) 100%)" }}>
+              <div
+                className="px-4 py-3.5 border-b border-[var(--border)]"
+                style={{
+                  background:
+                    "linear-gradient(135deg, rgba(124,111,255,0.12) 0%, rgba(0,212,170,0.06) 100%)",
+                }}
+              >
                 <div className="flex items-center gap-3">
-                  <div className="w-9 h-9 rounded-xl flex items-center justify-center text-white font-bold text-sm shadow"
-                    style={{ background: "linear-gradient(135deg, #7c6fff, #00d4aa)" }}>
+                  <div
+                    className="w-9 h-9 rounded-xl flex items-center justify-center text-white font-bold text-sm shadow"
+                    style={{
+                      background: "linear-gradient(135deg, #7c6fff, #00d4aa)",
+                    }}
+                  >
                     {userInitial}
                   </div>
                   <div className="flex-1 min-w-0">
-                    <p className="text-[13px] font-semibold text-[var(--text-primary)] truncate">{user?.name}</p>
+                    <p className="text-[13px] font-semibold text-[var(--text-primary)] truncate">
+                      {user?.name}
+                    </p>
                     <p className="text-[11px] text-[var(--text-muted)] capitalize truncate">
-                      {(user?.role?.name || user?.role || "").toLowerCase().replace("_", " ")}
+                      {(user?.role?.name || user?.role || "")
+                        .toLowerCase()
+                        .replace("_", " ")}
                     </p>
                   </div>
                 </div>
-                <p className="text-[11px] text-[var(--text-muted)] mt-2 truncate">{user?.email}</p>
+                <p className="text-[11px] text-[var(--text-muted)] mt-2 truncate">
+                  {user?.email}
+                </p>
               </div>
 
               <div className="py-1">
                 {[
-                  { icon: <User size={14} />, label: "Profile Settings", action: goToProfile },
-                  { icon: <Settings size={14} />, label: "System Config", action: () => { } },
+                  {
+                    icon: <User size={14} />,
+                    label: "Profile Settings",
+                    action: goToProfile,
+                  },
+                  {
+                    icon: <Settings size={14} />,
+                    label: "System Config",
+                    action: () => {},
+                  },
                 ].map(({ icon, label, action }) => (
                   <button
                     key={label}
@@ -552,7 +629,10 @@ export default function Navbar() {
                 <div className="h-px bg-[var(--border)] mx-3 my-1" />
 
                 <button
-                  onClick={() => { logout(); router.push("/login"); }}
+                  onClick={() => {
+                    logout();
+                    router.push("/login");
+                  }}
                   className="w-full flex items-center gap-3 px-4 py-2.5 text-[13px] text-rose-400 hover:text-rose-300 hover:bg-rose-500/8 transition-all"
                 >
                   <LogOut size={14} /> Sign Out
@@ -566,6 +646,4 @@ export default function Navbar() {
   );
 }
 
-
-
-// 
+//

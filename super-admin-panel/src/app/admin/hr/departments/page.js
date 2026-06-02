@@ -151,7 +151,9 @@ export default function DepartmentsPage() {
                 <table className="w-full text-md">
                   <thead className="border-b border-slate-200">
                     <tr>
-                      <th className="p-4 text-left text-green-900">Department</th>
+                      <th className="p-4 text-left text-green-900">
+                        Department
+                      </th>
                       <th className="p-4 text-right text-green-900">Actions</th>
                     </tr>
                   </thead>

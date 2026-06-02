@@ -27,14 +27,14 @@ export default function ChatsPage() {
   const [selectedChat, setSelectedChat] = useState(null);
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState("");
-  
+
   // New chat modal
   const [showNewChatModal, setShowNewChatModal] = useState(false);
   const [modalType, setModalType] = useState("direct"); // "direct" or "group"
   const [allUsers, setAllUsers] = useState([]);
   const [userSearchQuery, setUserSearchQuery] = useState("");
   const [loadingUsers, setLoadingUsers] = useState(false);
-  
+
   // Group chat creation
   const [groupName, setGroupName] = useState("");
   const [selectedParticipants, setSelectedParticipants] = useState([]);
@@ -47,7 +47,7 @@ export default function ChatsPage() {
     if (searchQuery) {
       const filtered = chats.filter((chat) => {
         const otherUser = chat.participants.find(
-          (p) => p._id !== currentUser._id
+          (p) => p._id !== currentUser._id,
         );
         return (
           otherUser?.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -80,15 +80,15 @@ export default function ChatsPage() {
         getUsersApi(),
         getAdminsApi(),
       ]);
-      
+
       const users = usersRes.data.users || usersRes.data || [];
       const admins = adminsRes.data || [];
-      
+
       // Combine and filter out current user
       const combined = [...users, ...admins].filter(
-        (u) => u._id !== currentUser._id
+        (u) => u._id !== currentUser._id,
       );
-      
+
       setAllUsers(combined);
     } catch (error) {
       console.error("Load users error:", error);
@@ -132,7 +132,7 @@ export default function ChatsPage() {
     setSelectedParticipants((prev) =>
       prev.includes(userId)
         ? prev.filter((id) => id !== userId)
-        : [...prev, userId]
+        : [...prev, userId],
     );
   };
 
@@ -186,7 +186,7 @@ export default function ChatsPage() {
     return chat.messages.filter(
       (msg) =>
         !msg.readBy.includes(currentUser._id) &&
-        msg.sender._id !== currentUser._id
+        msg.sender._id !== currentUser._id,
     ).length;
   };
 
@@ -211,9 +211,10 @@ export default function ChatsPage() {
     }
   };
 
-  const filteredUsers = allUsers.filter((user) =>
-    user.name.toLowerCase().includes(userSearchQuery.toLowerCase()) ||
-    user.email.toLowerCase().includes(userSearchQuery.toLowerCase())
+  const filteredUsers = allUsers.filter(
+    (user) =>
+      user.name.toLowerCase().includes(userSearchQuery.toLowerCase()) ||
+      user.email.toLowerCase().includes(userSearchQuery.toLowerCase()),
   );
 
   return (
@@ -234,7 +235,7 @@ export default function ChatsPage() {
                   Chat with admins and users
                 </p>
               </div>
-              
+
               <div className="flex gap-2">
                 <button
                   onClick={handleNewChat}
@@ -288,9 +289,18 @@ export default function ChatsPage() {
                         className="p-4 hover:bg-[var(--bg-elevated)] cursor-pointer transition"
                       >
                         <div className="flex items-center gap-4">
-                          <div className={`w-12 h-12 ${chat.isGroupChat ? 'bg-purple-100' : 'bg-indigo-100'} rounded-full flex items-center justify-center flex-shrink-0`}>
+                          <div
+                            className={`w-12 h-12 ${chat.isGroupChat ? "bg-purple-100" : "bg-indigo-100"} rounded-full flex items-center justify-center flex-shrink-0`}
+                          >
                             {chat.isGroupChat ? (
-                              <Users className={chat.isGroupChat ? 'text-purple-600' : 'text-indigo-600'} size={24} />
+                              <Users
+                                className={
+                                  chat.isGroupChat
+                                    ? "text-purple-600"
+                                    : "text-indigo-600"
+                                }
+                                size={24}
+                              />
                             ) : (
                               <UserIcon className="text-indigo-600" size={24} />
                             )}
@@ -354,7 +364,9 @@ export default function ChatsPage() {
             <div className="bg-[var(--bg-surface)] rounded-2xl shadow-2xl max-w-2xl w-full max-h-[80vh] flex flex-col">
               <div className="p-6 border-b border-[var(--border)] flex items-center justify-between">
                 <h2 className="text-xl font-bold text-[var(--text-primary)]">
-                  {modalType === "direct" ? "Start New Chat" : "Create Group Chat"}
+                  {modalType === "direct"
+                    ? "Start New Chat"
+                    : "Create Group Chat"}
                 </h2>
                 <button
                   onClick={() => setShowNewChatModal(false)}
@@ -395,7 +407,11 @@ export default function ChatsPage() {
                     type="text"
                     value={userSearchQuery}
                     onChange={(e) => setUserSearchQuery(e.target.value)}
-                    placeholder={modalType === "direct" ? "Search users and admins..." : "Search participants..."}
+                    placeholder={
+                      modalType === "direct"
+                        ? "Search users and admins..."
+                        : "Search participants..."
+                    }
                     className="w-full bg-[var(--bg-elevated)] border border-[var(--border-strong)] rounded-lg pl-10 pr-4 py-2 focus:outline-none focus:ring-2 focus:ring-indigo-500"
                   />
                 </div>
@@ -411,13 +427,18 @@ export default function ChatsPage() {
               <div className="flex-1 overflow-y-auto p-6">
                 {loadingUsers ? (
                   <div className="flex items-center justify-center py-12">
-                    <Loader2 className="animate-spin text-indigo-600" size={32} />
+                    <Loader2
+                      className="animate-spin text-indigo-600"
+                      size={32}
+                    />
                   </div>
                 ) : filteredUsers.length > 0 ? (
                   <div className="space-y-2">
                     {filteredUsers.map((user) => {
-                      const isSelected = selectedParticipants.includes(user._id);
-                      
+                      const isSelected = selectedParticipants.includes(
+                        user._id,
+                      );
+
                       return (
                         <div
                           key={user._id}
@@ -434,7 +455,9 @@ export default function ChatsPage() {
                               : "hover:bg-[var(--bg-elevated)] border-2 border-transparent"
                           }`}
                         >
-                          <div className={`w-12 h-12 ${isSelected ? 'bg-indigo-200' : 'bg-indigo-100'} rounded-full flex items-center justify-center flex-shrink-0`}>
+                          <div
+                            className={`w-12 h-12 ${isSelected ? "bg-indigo-200" : "bg-indigo-100"} rounded-full flex items-center justify-center flex-shrink-0`}
+                          >
                             <UserIcon className="text-indigo-600" size={24} />
                           </div>
                           <div className="flex-1 min-w-0">
@@ -450,7 +473,9 @@ export default function ChatsPage() {
                               </span>
                               {user.department && (
                                 <>
-                                  <span className="text-xs text-slate-400">•</span>
+                                  <span className="text-xs text-slate-400">
+                                    •
+                                  </span>
                                   <span className="text-xs text-[var(--text-secondary)]">
                                     {typeof user.department === "object"
                                       ? user.department.name
@@ -462,8 +487,18 @@ export default function ChatsPage() {
                           </div>
                           {modalType === "group" && isSelected && (
                             <div className="w-6 h-6 bg-indigo-600 rounded-full flex items-center justify-center">
-                              <svg className="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                              <svg
+                                className="w-4 h-4 text-white"
+                                fill="none"
+                                stroke="currentColor"
+                                viewBox="0 0 24 24"
+                              >
+                                <path
+                                  strokeLinecap="round"
+                                  strokeLinejoin="round"
+                                  strokeWidth={2}
+                                  d="M5 13l4 4L19 7"
+                                />
                               </svg>
                             </div>
                           )}
@@ -482,15 +517,16 @@ export default function ChatsPage() {
                 <div className="p-6 border-t border-[var(--border)] bg-[var(--bg-elevated)]">
                   <button
                     onClick={handleCreateGroup}
-                    disabled={!groupName.trim() || selectedParticipants.length < 2}
+                    disabled={
+                      !groupName.trim() || selectedParticipants.length < 2
+                    }
                     className="w-full bg-indigo-600 text-white px-4 py-3 rounded-lg hover:bg-indigo-700 disabled:opacity-50 disabled:cursor-not-allowed transition font-semibold text-base"
                   >
-                    {!groupName.trim() 
-                      ? "Enter Group Name to Continue" 
+                    {!groupName.trim()
+                      ? "Enter Group Name to Continue"
                       : selectedParticipants.length < 2
-                      ? "Select at least 2 participants"
-                      : `Create Group (${selectedParticipants.length} participants)`
-                    }
+                        ? "Select at least 2 participants"
+                        : `Create Group (${selectedParticipants.length} participants)`}
                   </button>
                   {!groupName.trim() && selectedParticipants.length >= 2 && (
                     <p className="text-center text-sm text-red-600 mt-2">
@@ -520,4 +556,3 @@ export default function ChatsPage() {
     </ProtectedDashboardRoute>
   );
 }
-

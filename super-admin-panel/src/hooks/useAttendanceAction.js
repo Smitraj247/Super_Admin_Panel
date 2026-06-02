@@ -4,7 +4,10 @@
  */
 
 import { useState, useCallback } from "react";
-import { executeAttendanceAction, attendanceActions } from "@/services/dashboardService";
+import {
+  executeAttendanceAction,
+  attendanceActions,
+} from "@/services/dashboardService";
 
 export const useAttendanceAction = (onActionSuccess) => {
   const [isLoading, setIsLoading] = useState(false);
@@ -34,7 +37,7 @@ export const useAttendanceAction = (onActionSuccess) => {
         setIsLoading(false);
       }
     },
-    [onActionSuccess]
+    [onActionSuccess],
   );
 
   return {

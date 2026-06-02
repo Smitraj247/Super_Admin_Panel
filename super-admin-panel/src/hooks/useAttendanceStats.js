@@ -16,33 +16,33 @@ export const useAttendanceStats = (
   stats,
   monthlyRecords,
   monthlySummary,
-  leaves
+  leaves,
 ) => {
   // Derived status flags
   const isCheckedIn = useMemo(
     () => ACTIVE_STATUSES.has(stats?.userStatus),
-    [stats?.userStatus]
+    [stats?.userStatus],
   );
 
   const isOnBreak = useMemo(
     () => stats?.userStatus === "ON_BREAK",
-    [stats?.userStatus]
+    [stats?.userStatus],
   );
 
   const isCheckedOut = useMemo(
     () => stats?.userStatus === "CHECKED_OUT",
-    [stats?.userStatus]
+    [stats?.userStatus],
   );
 
   const hasCheckedInToday = useMemo(
     () => isCheckedIn || isCheckedOut,
-    [isCheckedIn, isCheckedOut]
+    [isCheckedIn, isCheckedOut],
   );
 
   // Count late check-ins
   const lateCount = useMemo(
     () => monthlyRecords?.filter((r) => r.isLate).length ?? 0,
-    [monthlyRecords]
+    [monthlyRecords],
   );
 
   // Calculate actual absent days (excluding approved leaves)
@@ -53,7 +53,7 @@ export const useAttendanceStats = (
       monthlySummary,
       leaves,
       new Date(first),
-      new Date(last)
+      new Date(last),
     );
   }, [leaves, monthlySummary]);
 
@@ -67,14 +67,21 @@ export const useAttendanceStats = (
   }, [stats?.workingHours]);
 
   // Display values (month vs daily)
-  const displayValues = useMemo(() => ({
-    present: getDisplayValue(monthlySummary, monthlySummary?.present, stats?.presentToday),
-    workHours: getDisplayValue(
-      monthlySummary,
-      Math.floor(monthlySummary?.totalWorkHours),
-      stats?.totalWorkHours
-    ),
-  }), [monthlySummary, stats?.presentToday, stats?.totalWorkHours]);
+  const displayValues = useMemo(
+    () => ({
+      present: getDisplayValue(
+        monthlySummary,
+        monthlySummary?.present,
+        stats?.presentToday,
+      ),
+      workHours: getDisplayValue(
+        monthlySummary,
+        Math.floor(monthlySummary?.totalWorkHours),
+        stats?.totalWorkHours,
+      ),
+    }),
+    [monthlySummary, stats?.presentToday, stats?.totalWorkHours],
+  );
 
   return {
     isCheckedIn,

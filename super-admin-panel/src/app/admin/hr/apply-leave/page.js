@@ -328,8 +328,13 @@ export default function HRLeaveDashboard() {
                     </h3>
                     <p className="text-xs opacity-75 mt-1">
                       {(() => {
-                        const targetDate = form.fromDate ? new Date(form.fromDate) : new Date();
-                        const monthName = targetDate.toLocaleDateString("en-US", { month: "short", year: "numeric" });
+                        const targetDate = form.fromDate
+                          ? new Date(form.fromDate)
+                          : new Date();
+                        const monthName = targetDate.toLocaleDateString(
+                          "en-US",
+                          { month: "short", year: "numeric" },
+                        );
                         return monthlyUsage.PL >= 1
                           ? `Limit reached for ${monthName}`
                           : `✓ ${monthlyUsage.PL}/1 used in ${monthName}`;
@@ -350,8 +355,13 @@ export default function HRLeaveDashboard() {
                     </h3>
                     <p className="text-xs opacity-75 mt-1">
                       {(() => {
-                        const targetDate = form.fromDate ? new Date(form.fromDate) : new Date();
-                        const monthName = targetDate.toLocaleDateString("en-US", { month: "short", year: "numeric" });
+                        const targetDate = form.fromDate
+                          ? new Date(form.fromDate)
+                          : new Date();
+                        const monthName = targetDate.toLocaleDateString(
+                          "en-US",
+                          { month: "short", year: "numeric" },
+                        );
                         return monthlyUsage.SL >= 1
                           ? `Limit reached for ${monthName}`
                           : `✓ ${monthlyUsage.SL}/1 used in ${monthName}`;
@@ -364,8 +374,8 @@ export default function HRLeaveDashboard() {
                       {leaveBalance.leaveBalance.DL}
                     </h3>
                     <p className="text-xs opacity-75 mt-1">
-                      {dlEligibility?.eligible 
-                        ? "✓ Eligible (No PL/CL last month)" 
+                      {dlEligibility?.eligible
+                        ? "✓ Eligible (No PL/CL last month)"
                         : "✗ Not eligible (PL/CL taken)"}
                     </p>
                   </div>
@@ -390,7 +400,7 @@ export default function HRLeaveDashboard() {
                   <h3 className="text-xl font-bold mb-4">
                     {editingLeave ? "Edit Leave" : "Apply for Leave"}
                   </h3>
-                  
+
                   {/* Warning Messages */}
                   {monthlyUsage.PL >= 1 && monthlyUsage.SL >= 1 && (
                     <div className="mb-4 p-3 bg-red-100 border border-red-400 text-red-700 rounded">
@@ -441,7 +451,9 @@ export default function HRLeaveDashboard() {
                   {/* DL Eligibility Warning */}
                   {dlEligibility && !dlEligibility.eligible && (
                     <div className="mb-4 p-3 bg-orange-100 border border-orange-400 text-orange-700 rounded">
-                      ⚠️ DL (Duty Leave) is not available. {dlEligibility.reason}. DL is only available when no PL or CL is taken in the previous month.
+                      ⚠️ DL (Duty Leave) is not available.{" "}
+                      {dlEligibility.reason}. DL is only available when no PL or
+                      CL is taken in the previous month.
                     </div>
                   )}
 
@@ -476,11 +488,14 @@ export default function HRLeaveDashboard() {
                               ? ` (Limit reached for ${form.fromDate ? new Date(form.fromDate).toLocaleDateString("en-US", { month: "short", year: "numeric" }) : new Date().toLocaleDateString("en-US", { month: "short", year: "numeric" })})`
                               : ` (${monthlyUsage.SL}/1 for ${form.fromDate ? new Date(form.fromDate).toLocaleDateString("en-US", { month: "short", year: "numeric" }) : new Date().toLocaleDateString("en-US", { month: "short", year: "numeric" })})`}
                           </option>
-                          <option value="DL" disabled={dlEligibility && !dlEligibility.eligible}>
+                          <option
+                            value="DL"
+                            disabled={dlEligibility && !dlEligibility.eligible}
+                          >
                             Duty Leave (DL) - Balance:{" "}
                             {leaveBalance?.leaveBalance.DL || 0}
-                            {dlEligibility?.eligible 
-                              ? " (Eligible)" 
+                            {dlEligibility?.eligible
+                              ? " (Eligible)"
                               : " (Not eligible - PL/CL taken last month)"}
                           </option>
                         </select>
@@ -599,14 +614,15 @@ export default function HRLeaveDashboard() {
                             </td>
                             <td className="p-4">
                               <div className="flex gap-2">
-                                {leave.status === "PENDING" && !isLeaveDatePassed(leave.fromDate) && (
-                                  <button
-                                    onClick={() => handleEdit(leave)}
-                                    className="px-3 py-1 bg-blue-500 text-white text-sm rounded hover:bg-blue-600 transition"
-                                  >
-                                    Edit
-                                  </button>
-                                )}
+                                {leave.status === "PENDING" &&
+                                  !isLeaveDatePassed(leave.fromDate) && (
+                                    <button
+                                      onClick={() => handleEdit(leave)}
+                                      className="px-3 py-1 bg-blue-500 text-white text-sm rounded hover:bg-blue-600 transition"
+                                    >
+                                      Edit
+                                    </button>
+                                  )}
                                 {!isLeaveDatePassed(leave.fromDate) && (
                                   <button
                                     onClick={() => handleDelete(leave._id)}

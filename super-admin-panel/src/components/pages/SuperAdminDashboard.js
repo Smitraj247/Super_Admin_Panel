@@ -46,7 +46,6 @@ import { cachedFetch } from "@/lib/cache";
 // ─── Constants
 const COLORS = ["#10b981", "#f59e0b", "#8b5cf6", "#3b82f6"];
 
-
 const STATUS_PRESENT = new Set([
   "CHECKED_IN",
   "LATE",
@@ -70,7 +69,7 @@ const LEAVE_COLOR = (s) =>
       ? "bg-yellow-100 text-yellow-700"
       : "bg-red-100 text-red-700";
 
-// ─── Helpers 
+// ─── Helpers
 const todayStr = () => new Date().toISOString().split("T")[0];
 
 const monthRange = () => {
@@ -85,8 +84,7 @@ const monthRange = () => {
   };
 };
 
-const isPresent = (r) =>
-  STATUS_PRESENT.has(r.status) || r.checkIn;
+const isPresent = (r) => STATUS_PRESENT.has(r.status) || r.checkIn;
 
 const getTimeAgo = (timestamp) => {
   const s = Math.floor((Date.now() - new Date(timestamp)) / 1000);
@@ -115,29 +113,45 @@ const LegendItem = memo(({ color, label, value }) => (
       <div className={`w-2.5 h-2.5 rounded-full ${color}`} />
       <span className="text-[13px] text-[var(--text-secondary)]">{label}</span>
     </div>
-    <span className="text-[13px] font-semibold text-[var(--text-primary)]">{value}</span>
+    <span className="text-[13px] font-semibold text-[var(--text-primary)]">
+      {value}
+    </span>
   </div>
 ));
 LegendItem.displayName = "LegendItem";
 
-const SystemMetric = memo(({ icon, label, value, subtitle, trend, trendUp }) => (
-  <div className="flex items-center justify-between p-3 rounded-xl bg-[var(--bg-elevated)] border border-[var(--border)]">
-    <div className="flex items-center gap-3">
-      <div className="p-2 rounded-lg bg-[var(--bg-surface)]">{icon}</div>
-      <div>
-        <p className="text-[11px] text-[var(--text-muted)]">{label}</p>
-        <p className="text-[13px] font-bold text-[var(--text-primary)]">{value}</p>
-        {subtitle && <p className="text-[11px] text-[var(--text-muted)]">{subtitle}</p>}
+const SystemMetric = memo(
+  ({ icon, label, value, subtitle, trend, trendUp }) => (
+    <div className="flex items-center justify-between p-3 rounded-xl bg-[var(--bg-elevated)] border border-[var(--border)]">
+      <div className="flex items-center gap-3">
+        <div className="p-2 rounded-lg bg-[var(--bg-surface)]">{icon}</div>
+        <div>
+          <p className="text-[11px] text-[var(--text-muted)]">{label}</p>
+          <p className="text-[13px] font-bold text-[var(--text-primary)]">
+            {value}
+          </p>
+          {subtitle && (
+            <p className="text-[11px] text-[var(--text-muted)]">{subtitle}</p>
+          )}
+        </div>
       </div>
+      {trend && (
+        <div className="flex items-center gap-1">
+          {trendUp ? (
+            <TrendingUp className="w-3 h-3 text-emerald-400" />
+          ) : (
+            <TrendingDown className="w-3 h-3 text-rose-400" />
+          )}
+          <span
+            className={`text-[11px] font-semibold ${trendUp ? "text-emerald-400" : "text-rose-400"}`}
+          >
+            {trend}
+          </span>
+        </div>
+      )}
     </div>
-    {trend && (
-      <div className="flex items-center gap-1">
-        {trendUp ? <TrendingUp className="w-3 h-3 text-emerald-400" /> : <TrendingDown className="w-3 h-3 text-rose-400" />}
-        <span className={`text-[11px] font-semibold ${trendUp ? "text-emerald-400" : "text-rose-400"}`}>{trend}</span>
-      </div>
-    )}
-  </div>
-));
+  ),
+);
 SystemMetric.displayName = "SystemMetric";
 
 const SectionCard = memo(({ title, action, children, className = "" }) => (
@@ -146,7 +160,9 @@ const SectionCard = memo(({ title, action, children, className = "" }) => (
     style={{ background: "var(--bg-surface)", boxShadow: "var(--shadow-sm)" }}
   >
     <div className="flex items-center justify-between mb-4">
-      <h3 className="text-[15px] font-semibold text-[var(--text-primary)]">{title}</h3>
+      <h3 className="text-[15px] font-semibold text-[var(--text-primary)]">
+        {title}
+      </h3>
       {action}
     </div>
     {children}
@@ -165,7 +181,9 @@ export default function SuperAdminDashboard() {
   const [mounted, setMounted] = useState(false);
   const router = useRouter();
 
-  useEffect(() => { setMounted(true); }, []);
+  useEffect(() => {
+    setMounted(true);
+  }, []);
 
   const [stats, setStats] = useState({
     totalEmployees: 0,
@@ -216,8 +234,16 @@ export default function SuperAdminDashboard() {
         cachedFetch("sa:departments", () => getDepartmentsApi(), 120_000),
         cachedFetch("sa:users", () => getUsersApi(), 120_000),
         cachedFetch("sa:admins", () => getAdminsApi(), 120_000),
-        cachedFetch(`sa:att:today:${today}`, () => getAllUsersAttendanceApi(today, today), 30_000),
-        cachedFetch(`sa:att:month:${first}`, () => getAllUsersAttendanceApi(first, last), 60_000),
+        cachedFetch(
+          `sa:att:today:${today}`,
+          () => getAllUsersAttendanceApi(today, today),
+          30_000,
+        ),
+        cachedFetch(
+          `sa:att:month:${first}`,
+          () => getAllUsersAttendanceApi(first, last),
+          60_000,
+        ),
         cachedFetch("sa:leaves", () => getSuperAdminLeavesApi(), 60_000),
         cachedFetch("sa:holidays", () => getHolidaysApi(), 3_600_000),
       ]);
@@ -345,8 +371,8 @@ export default function SuperAdminDashboard() {
             dStr === today
               ? todayRecs
               : monthRecs.filter(
-                (r) => new Date(r.date).toISOString().split("T")[0] === dStr,
-              );
+                  (r) => new Date(r.date).toISOString().split("T")[0] === dStr,
+                );
           const present = dayRecs.filter(isPresent).length;
           return {
             day: d.toLocaleDateString("en-US", { weekday: "short" }),
@@ -414,7 +440,9 @@ export default function SuperAdminDashboard() {
         <div className="sidebar-aware pt-20 flex items-center justify-center min-h-screen">
           <div className="text-center animate-fade-in">
             <div className="w-10 h-10 border-2 border-[var(--border-strong)] border-t-indigo-500 rounded-full animate-spin mx-auto mb-4" />
-            <p className="text-[var(--text-muted)] text-sm">Loading dashboard…</p>
+            <p className="text-[var(--text-muted)] text-sm">
+              Loading dashboard…
+            </p>
           </div>
         </div>
       </main>
@@ -570,8 +598,12 @@ export default function SuperAdminDashboard() {
                     </ResponsiveContainer>
                   )}
                   <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none">
-                    <p className="text-2xl font-bold text-[var(--text-primary)]">{total}</p>
-                    <p className="text-[11px] text-[var(--text-muted)]">Employees</p>
+                    <p className="text-2xl font-bold text-[var(--text-primary)]">
+                      {total}
+                    </p>
+                    <p className="text-[11px] text-[var(--text-muted)]">
+                      Employees
+                    </p>
                   </div>
                 </div>
               </div>
@@ -591,7 +623,9 @@ export default function SuperAdminDashboard() {
                 ))}
               </div>
               <div className="mt-4 pt-4 border-t border-[var(--border)] flex items-center justify-between text-lg">
-                <span className="text-[var(--text-secondary)]">Attendance Rate</span>
+                <span className="text-[var(--text-secondary)]">
+                  Attendance Rate
+                </span>
                 <span className="font-bold text-[var(--text-primary)]">
                   {stats.attendanceRate}%
                 </span>
@@ -602,11 +636,13 @@ export default function SuperAdminDashboard() {
             <SectionCard
               title="Attendance Trend"
               className="lg:col-span-2"
-              action={~
-                <select className="text-xs border border-[var(--border-strong)] bg-[var(--bg-elevated)] text-[var(--text-secondary)] rounded-lg px-2 py-1 focus:outline-none focus:ring-2 focus:ring-indigo-400">
-                  <option>This Month</option>
-                  <option>Last Month</option>
-                </select>
+              action={
+                ~(
+                  <select className="text-xs border border-[var(--border-strong)] bg-[var(--bg-elevated)] text-[var(--text-secondary)] rounded-lg px-2 py-1 focus:outline-none focus:ring-2 focus:ring-indigo-400">
+                    <option>This Month</option>
+                    <option>Last Month</option>
+                  </select>
+                )
               }
             >
               <p className="text-xs text-[var(--text-muted)] -mt-3 mb-4">
@@ -617,7 +653,13 @@ export default function SuperAdminDashboard() {
                   <ResponsiveContainer width="100%" height="100%">
                     <AreaChart data={trend}>
                       <defs>
-                        <linearGradient id="gPresent" x1="0" y1="0" x2="0" y2="1">
+                        <linearGradient
+                          id="gPresent"
+                          x1="0"
+                          y1="0"
+                          x2="0"
+                          y2="1"
+                        >
                           <stop
                             offset="5%"
                             stopColor="#3b82f6"
@@ -630,13 +672,19 @@ export default function SuperAdminDashboard() {
                           />
                         </linearGradient>
                       </defs>
-                      <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" />
+                      <CartesianGrid
+                        strokeDasharray="3 3"
+                        stroke="var(--border)"
+                      />
                       <XAxis
                         dataKey="day"
                         stroke="var(--text-muted)"
                         tick={{ fontSize: 11, fill: "var(--text-muted)" }}
                       />
-                      <YAxis stroke="var(--text-muted)" tick={{ fontSize: 11, fill: "var(--text-muted)" }} />
+                      <YAxis
+                        stroke="var(--text-muted)"
+                        tick={{ fontSize: 11, fill: "var(--text-muted)" }}
+                      />
                       <Tooltip
                         formatter={(v) => [v, "Present"]}
                         labelFormatter={(l) =>
@@ -697,21 +745,37 @@ export default function SuperAdminDashboard() {
                 <table className="w-full text-sm">
                   <thead>
                     <tr className="border-b border-[var(--border)]">
-                      {["Department", "Employees", "Present", "Rate"].map((h) => (
-                        <th key={h} className="text-left py-2 px-2 text-[11px] font-semibold text-[var(--text-muted)] uppercase tracking-wider">
-                          {h}
-                        </th>
-                      ))}
+                      {["Department", "Employees", "Present", "Rate"].map(
+                        (h) => (
+                          <th
+                            key={h}
+                            className="text-left py-2 px-2 text-[11px] font-semibold text-[var(--text-muted)] uppercase tracking-wider"
+                          >
+                            {h}
+                          </th>
+                        ),
+                      )}
                     </tr>
                   </thead>
                   <tbody>
                     {deptSummary.slice(0, 5).map((d, i) => (
-                      <tr key={i} className="border-b border-[var(--border)] hover:bg-[var(--bg-elevated)] transition-colors">
-                        <td className="py-2.5 px-2 text-[13px] text-[var(--text-primary)]">{d.department}</td>
-                        <td className="py-2.5 px-2 text-[13px] text-[var(--text-secondary)]">{d.employees}</td>
-                        <td className="py-2.5 px-2 text-[13px] text-[var(--text-secondary)]">{d.presentToday}</td>
+                      <tr
+                        key={i}
+                        className="border-b border-[var(--border)] hover:bg-[var(--bg-elevated)] transition-colors"
+                      >
+                        <td className="py-2.5 px-2 text-[13px] text-[var(--text-primary)]">
+                          {d.department}
+                        </td>
+                        <td className="py-2.5 px-2 text-[13px] text-[var(--text-secondary)]">
+                          {d.employees}
+                        </td>
+                        <td className="py-2.5 px-2 text-[13px] text-[var(--text-secondary)]">
+                          {d.presentToday}
+                        </td>
                         <td className="py-2.5 px-2">
-                          <span className={`px-2 py-0.5 rounded-full text-[11px] font-semibold ${RATE_COLOR(d.rate)}`}>
+                          <span
+                            className={`px-2 py-0.5 rounded-full text-[11px] font-semibold ${RATE_COLOR(d.rate)}`}
+                          >
                             {d.rate}%
                           </span>
                         </td>
@@ -735,7 +799,10 @@ export default function SuperAdminDashboard() {
                   <thead>
                     <tr className="border-b border-[var(--border)]">
                       {["Employee", "Type", "From", "To", "Status"].map((h) => (
-                        <th key={h} className="text-left py-2 px-2 text-[11px] font-semibold text-[var(--text-muted)] uppercase tracking-wider">
+                        <th
+                          key={h}
+                          className="text-left py-2 px-2 text-[11px] font-semibold text-[var(--text-muted)] uppercase tracking-wider"
+                        >
                           {h}
                         </th>
                       ))}
@@ -743,20 +810,33 @@ export default function SuperAdminDashboard() {
                   </thead>
                   <tbody>
                     {recentLeaves.map((l, i) => (
-                      <tr key={i} className="border-b border-[var(--border)] hover:bg-[var(--bg-elevated)] transition-colors">
+                      <tr
+                        key={i}
+                        className="border-b border-[var(--border)] hover:bg-[var(--bg-elevated)] transition-colors"
+                      >
                         <td className="py-2.5 px-2">
                           <div className="flex items-center gap-2">
                             <div className="w-7 h-7 rounded-xl bg-indigo-500/10 text-indigo-400 text-xs font-bold flex items-center justify-center">
                               {l.employee.charAt(0)}
                             </div>
-                            <span className="text-[13px] text-[var(--text-primary)] truncate max-w-[80px]">{l.employee}</span>
+                            <span className="text-[13px] text-[var(--text-primary)] truncate max-w-[80px]">
+                              {l.employee}
+                            </span>
                           </div>
                         </td>
-                        <td className="py-2.5 px-2 text-[13px] text-[var(--text-secondary)] whitespace-nowrap">{l.leaveType}</td>
-                        <td className="py-2.5 px-2 text-[13px] text-[var(--text-secondary)]">{l.from}</td>
-                        <td className="py-2.5 px-2 text-[13px] text-[var(--text-secondary)]">{l.to}</td>
+                        <td className="py-2.5 px-2 text-[13px] text-[var(--text-secondary)] whitespace-nowrap">
+                          {l.leaveType}
+                        </td>
+                        <td className="py-2.5 px-2 text-[13px] text-[var(--text-secondary)]">
+                          {l.from}
+                        </td>
+                        <td className="py-2.5 px-2 text-[13px] text-[var(--text-secondary)]">
+                          {l.to}
+                        </td>
                         <td className="py-2.5 px-2">
-                          <span className={`px-2 py-0.5 rounded-full text-[11px] font-semibold ${LEAVE_COLOR(l.status)}`}>
+                          <span
+                            className={`px-2 py-0.5 rounded-full text-[11px] font-semibold ${LEAVE_COLOR(l.status)}`}
+                          >
                             {l.status}
                           </span>
                         </td>
@@ -769,10 +849,7 @@ export default function SuperAdminDashboard() {
           </div>
 
           {/* Recent Leaves Calendar - Full Width */}
-          <SectionCard
-            title="Recent Leaves Calendar"
-
-          >
+          <SectionCard title="Recent Leaves Calendar">
             <LeaveCalendar leaves={allLeaves} holidays={holidays} />
           </SectionCard>
 
@@ -872,6 +949,6 @@ export default function SuperAdminDashboard() {
           </SectionCard>
         </div>
       </div>
-    </main >
+    </main>
   );
 }

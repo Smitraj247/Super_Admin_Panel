@@ -103,7 +103,13 @@ export default function UsersPage() {
         setUsers([...users, res.data]);
       }
 
-      setForm({ name: "", email: "", role: "USER", department: "", sidebarPermissions: [] });
+      setForm({
+        name: "",
+        email: "",
+        role: "USER",
+        department: "",
+        sidebarPermissions: [],
+      });
     } catch (err) {
       console.error(err.response?.data);
       alert("Operation failed");
@@ -255,9 +261,7 @@ export default function UsersPage() {
                           onChange={() => handlePermissionToggle(option)}
                           className="w-4 h-4 text-green-600 rounded focus:ring-2 focus:ring-green-500"
                         />
-                        <span className="text-sm text-green-700">
-                          {option}
-                        </span>
+                        <span className="text-sm text-green-700">{option}</span>
                       </label>
                     ))}
                   </div>

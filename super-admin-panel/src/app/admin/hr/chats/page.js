@@ -23,7 +23,7 @@ export default function ChatsPage() {
   const [selectedUser, setSelectedUser] = useState(null);
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState("");
-  
+
   // New chat modal
   const [showNewChatModal, setShowNewChatModal] = useState(false);
   const [allUsers, setAllUsers] = useState([]);
@@ -38,7 +38,7 @@ export default function ChatsPage() {
     if (searchQuery) {
       const filtered = chats.filter((chat) => {
         const otherUser = chat.participants.find(
-          (p) => p._id !== currentUser._id
+          (p) => p._id !== currentUser._id,
         );
         return (
           otherUser?.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -71,15 +71,15 @@ export default function ChatsPage() {
         getUsersApi(),
         getAdminsApi(),
       ]);
-      
+
       const users = usersRes.data || [];
       const admins = adminsRes.data || [];
-      
+
       // Combine and filter out current user
       const combined = [...users, ...admins].filter(
-        (u) => u._id !== currentUser._id
+        (u) => u._id !== currentUser._id,
       );
-      
+
       setAllUsers(combined);
     } catch (error) {
       console.error("Load users error:", error);
@@ -106,7 +106,7 @@ export default function ChatsPage() {
     return chat.messages.filter(
       (msg) =>
         !msg.readBy.includes(currentUser._id) &&
-        msg.sender._id !== currentUser._id
+        msg.sender._id !== currentUser._id,
     ).length;
   };
 
@@ -131,9 +131,10 @@ export default function ChatsPage() {
     }
   };
 
-  const filteredUsers = allUsers.filter((user) =>
-    user.name.toLowerCase().includes(userSearchQuery.toLowerCase()) ||
-    user.email.toLowerCase().includes(userSearchQuery.toLowerCase())
+  const filteredUsers = allUsers.filter(
+    (user) =>
+      user.name.toLowerCase().includes(userSearchQuery.toLowerCase()) ||
+      user.email.toLowerCase().includes(userSearchQuery.toLowerCase()),
   );
 
   return (
@@ -153,7 +154,7 @@ export default function ChatsPage() {
                 Chat with admins and users
               </p>
             </div>
-            
+
             <button
               onClick={handleNewChat}
               className="flex items-center gap-2 bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700 transition"
@@ -230,7 +231,9 @@ export default function ChatsPage() {
                             </span>
                             {otherUser?.department && (
                               <>
-                                <span className="text-xs text-green-400">•</span>
+                                <span className="text-xs text-green-400">
+                                  •
+                                </span>
                                 <span className="text-xs text-green-600">
                                   {typeof otherUser.department === "object"
                                     ? otherUser.department.name

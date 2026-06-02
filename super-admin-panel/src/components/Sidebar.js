@@ -120,8 +120,8 @@ export default function Sidebar() {
       role === "SUPER_ADMIN"
         ? "/superadmin/profile"
         : role === "ADMIN"
-        ? `/admin/${dept}/profile`
-        : `/dashboard/${dept}/profile`;
+          ? `/admin/${dept}/profile`
+          : `/dashboard/${dept}/profile`;
 
     router.push(profilePath);
   }, [dept, role, router]);
@@ -208,4 +208,3 @@ export default function Sidebar() {
     </>
   );
 }
-

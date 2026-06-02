@@ -36,33 +36,25 @@ export const fetchDashboardData = async (forceRefresh = false) => {
     fetchFn(
       "ud:weekly",
       () => getWeeklyAttendanceApi(),
-      CACHE_DURATIONS.WEEKLY
+      CACHE_DURATIONS.WEEKLY,
     ),
     fetchFn(
       `ud:history:${today}`,
       () => getAttendanceHistoryApi(today, today),
-      CACHE_DURATIONS.HISTORY
+      CACHE_DURATIONS.HISTORY,
     ),
     fetchFn(
       `ud:monthly:${first}`,
       () => getMonthlyAttendanceApi(first, last),
-      CACHE_DURATIONS.MONTHLY
+      CACHE_DURATIONS.MONTHLY,
     ),
     fetchFn(
       `ud:summary:${first}`,
       () => getAttendanceSummary(first, last),
-      CACHE_DURATIONS.STATS
+      CACHE_DURATIONS.STATS,
     ),
-    fetchFn(
-      "ud:leaves",
-      () => getUserLeavesApi(),
-      CACHE_DURATIONS.LEAVES
-    ),
-    fetchFn(
-      "ud:holidays",
-      () => getHolidaysApi(),
-      CACHE_DURATIONS.HOLIDAYS
-    ),
+    fetchFn("ud:leaves", () => getUserLeavesApi(), CACHE_DURATIONS.LEAVES),
+    fetchFn("ud:holidays", () => getHolidaysApi(), CACHE_DURATIONS.HOLIDAYS),
   ]);
 };
 

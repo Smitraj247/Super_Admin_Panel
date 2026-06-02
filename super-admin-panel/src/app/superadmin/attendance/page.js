@@ -204,8 +204,12 @@ export default function SuperAdminAttendance() {
         {/* Stats Cards */}
         <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
           <div className="bg-[var(--bg-surface)] rounded-xl shadow-sm border border-[var(--border)] p-4">
-            <p className="text-sm text-[var(--text-secondary)]">Total Users & Admins</p>
-            <p className="text-2xl font-bold text-[var(--text-primary)]">{users.length}</p>
+            <p className="text-sm text-[var(--text-secondary)]">
+              Total Users & Admins
+            </p>
+            <p className="text-2xl font-bold text-[var(--text-primary)]">
+              {users.length}
+            </p>
           </div>
           <div className="bg-[var(--bg-surface)] rounded-xl shadow-sm border border-[var(--border)] p-4">
             <p className="text-sm text-[var(--text-secondary)]">Departments</p>
@@ -220,7 +224,9 @@ export default function SuperAdminAttendance() {
             </p>
           </div>
           <div className="bg-[var(--bg-surface)] rounded-xl shadow-sm border border-[var(--border)] p-4">
-            <p className="text-sm text-[var(--text-secondary)]">Active This Month</p>
+            <p className="text-sm text-[var(--text-secondary)]">
+              Active This Month
+            </p>
             <p className="text-2xl font-bold text-green-600">
               {
                 Object.values(attendanceStats).filter((s) => s.totalDays > 0)
@@ -309,17 +315,30 @@ export default function SuperAdminAttendance() {
             <table className="w-full text-left">
               <thead className="bg-[var(--bg-elevated)] border-b border-[var(--border)]">
                 <tr>
-                  <th className="p-4 text-xs font-bold text-[var(--text-secondary)] uppercase tracking-wider">User</th>
-                  <th className="p-4 text-xs font-bold text-[var(--text-secondary)] uppercase tracking-wider">Department</th>
-                  <th className="p-4 text-xs font-bold text-[var(--text-secondary)] uppercase tracking-wider">Role</th>
-                  <th className="p-4 text-xs font-bold text-[var(--text-secondary)] uppercase tracking-wider text-center">This Month (Total / Present / Pending)</th>
-                  <th className="p-4 text-xs font-bold text-[var(--text-secondary)] uppercase tracking-wider text-right">Action</th>
+                  <th className="p-4 text-xs font-bold text-[var(--text-secondary)] uppercase tracking-wider">
+                    User
+                  </th>
+                  <th className="p-4 text-xs font-bold text-[var(--text-secondary)] uppercase tracking-wider">
+                    Department
+                  </th>
+                  <th className="p-4 text-xs font-bold text-[var(--text-secondary)] uppercase tracking-wider">
+                    Role
+                  </th>
+                  <th className="p-4 text-xs font-bold text-[var(--text-secondary)] uppercase tracking-wider text-center">
+                    This Month (Total / Present / Pending)
+                  </th>
+                  <th className="p-4 text-xs font-bold text-[var(--text-secondary)] uppercase tracking-wider text-right">
+                    Action
+                  </th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-[var(--border)]">
                 {loading ? (
                   <tr>
-                    <td colSpan="5" className="text-center p-8 text-[var(--text-secondary)]">
+                    <td
+                      colSpan="5"
+                      className="text-center p-8 text-[var(--text-secondary)]"
+                    >
                       Loading users...
                     </td>
                   </tr>
@@ -345,7 +364,9 @@ export default function SuperAdminAttendance() {
                               <p className="font-bold text-[var(--text-primary)] group-hover:text-indigo-600 transition-colors">
                                 {user.name}
                               </p>
-                              <p className="text-xs text-[var(--text-secondary)]">{user.email}</p>
+                              <p className="text-xs text-[var(--text-secondary)]">
+                                {user.email}
+                              </p>
                             </div>
                           </div>
                         </td>
@@ -361,7 +382,10 @@ export default function SuperAdminAttendance() {
                         </td>
                         <td className="p-4 text-center">
                           <div className="flex items-center justify-center gap-4 text-sm font-bold">
-                            <span className="text-[var(--text-primary)]" title="Total Days">
+                            <span
+                              className="text-[var(--text-primary)]"
+                              title="Total Days"
+                            >
                               {stats.totalDays}
                             </span>
                             <span className="text-green-600" title="Present">
@@ -382,7 +406,10 @@ export default function SuperAdminAttendance() {
                   })
                 ) : (
                   <tr>
-                    <td colSpan="5" className="text-center p-8 text-[var(--text-secondary)]">
+                    <td
+                      colSpan="5"
+                      className="text-center p-8 text-[var(--text-secondary)]"
+                    >
                       No users found
                     </td>
                   </tr>
@@ -395,4 +422,3 @@ export default function SuperAdminAttendance() {
     </div>
   );
 }
-

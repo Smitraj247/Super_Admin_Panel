@@ -3,7 +3,7 @@
 import { useAuth } from "@/context/AuthContext";
 import Sidebar from "@/components/Sidebar";
 import Navbar from "@/components/layout/Navbar";
-import { useRouter } from 'next/router';
+import { useRouter } from "next/router";
 import {
   User,
   Mail,
@@ -18,7 +18,7 @@ import {
   Users,
   MapPin,
   Palette,
-  Folder
+  Folder,
 } from "lucide-react";
 import { useState, useEffect } from "react";
 import { getProfile, updateProfile } from "@/services/userApi";
@@ -29,7 +29,7 @@ export default function ProfilePage() {
   const [loading, setLoading] = useState(false);
   const [fetchLoading, setFetchLoading] = useState(true);
   const [message, setMessage] = useState("");
-  const [activeTab, setActiveTab] = useState('profile');
+  const [activeTab, setActiveTab] = useState("profile");
   const [messageType, setMessageType] = useState("");
   const [profileData, setProfileData] = useState(null);
 
@@ -128,8 +128,8 @@ export default function ProfilePage() {
         maritalStatus: profileData.maritalStatus || "Unmarried",
         marriageAnniversary: profileData.marriageAnniversary
           ? new Date(profileData.marriageAnniversary)
-            .toISOString()
-            .split("T")[0]
+              .toISOString()
+              .split("T")[0]
           : "",
         designation: profileData.designation || "",
         batch: profileData.batch || "",
@@ -280,9 +280,7 @@ export default function ProfilePage() {
 
       <main className="md:pl-64 pt-16 min-h-screen">
         <div className="max-w-6xl mx-auto p-4 md:p-8">
-
           <div className="relative flex flex-col sm:flex-row items-center sm:items-center gap-4 sm:gap-6 rounded-2xl px-4 sm:px-10 py-6 sm:py-8 min-h-[180px] mb-6 shadow-sm bg-gradient-to-t from-white via-gray-50 to-gray-200">
-
             {/* EDIT BUTTON (TOP RIGHT) */}
             <div className="absolute top-4 right-4">
               {!isEditing ? (
@@ -317,13 +315,11 @@ export default function ProfilePage() {
 
             {/* User Info */}
             <div className="flex flex-col items-center sm:items-start gap-2 text-center sm:text-left">
-
               <h1 className="text-xl sm:text-2xl font-bold text-gray-800">
                 {user.name}
               </h1>
 
               <div className="flex flex-col sm:flex-row flex-wrap gap-3 sm:gap-6 items-center sm:items-start">
-
                 <div className="flex gap-2 items-center">
                   <Palette size={18} />
                   <p className="font-medium text-gray-500 text-sm sm:text-base">
@@ -344,28 +340,26 @@ export default function ProfilePage() {
                     {formData.joiningDate}
                   </p>
                 </div>
-
               </div>
-
             </div>
-
           </div>
 
           <div className="flex flex-col sm:flex-row gap-2 h-[44px] mb-10">
-
             {/* PROFILE */}
             <div
               className={`flex items-center p-4 rounded-lg cursor-pointer transition
-              ${activeTab === "profile"
+              ${
+                activeTab === "profile"
                   ? "bg-violet-500 text-white"
                   : "hover:bg-violet-100"
-                }`}
+              }`}
               onClick={() => setActiveTab("profile")}
             >
               <User
                 size={24}
-                className={`mr-3 ${activeTab === "profile" ? "text-white" : "text-indigo-600"
-                  }`}
+                className={`mr-3 ${
+                  activeTab === "profile" ? "text-white" : "text-indigo-600"
+                }`}
               />
               <span className="text-lg font-medium">Profile</span>
             </div>
@@ -373,16 +367,18 @@ export default function ProfilePage() {
             {/* TEAMS */}
             <div
               className={`flex items-center p-4 rounded-lg cursor-pointer transition
-               ${activeTab === "teams"
-                  ? "bg-violet-500 text-white"
-                  : "hover:bg-violet-100"
-                }`}
+               ${
+                 activeTab === "teams"
+                   ? "bg-violet-500 text-white"
+                   : "hover:bg-violet-100"
+               }`}
               onClick={() => setActiveTab("teams")}
             >
               <Users
                 size={24}
-                className={`mr-3 ${activeTab === "teams" ? "text-white" : "text-indigo-600"
-                  }`}
+                className={`mr-3 ${
+                  activeTab === "teams" ? "text-white" : "text-indigo-600"
+                }`}
               />
               <span className="text-lg font-medium">Teams</span>
             </div>
@@ -390,22 +386,22 @@ export default function ProfilePage() {
             {/* PROJECTS */}
             <div
               className={`flex items-center p-4 rounded-lg cursor-pointer transition
-             ${activeTab === "projects"
-                  ? "bg-violet-500 text-white"
-                  : "hover:bg-violet-100"
-                }`}
+             ${
+               activeTab === "projects"
+                 ? "bg-violet-500 text-white"
+                 : "hover:bg-violet-100"
+             }`}
               onClick={() => setActiveTab("projects")}
             >
               <Folder
                 size={24}
-                className={`mr-3 ${activeTab === "projects" ? "text-white" : "text-indigo-600"
-                  }`}
+                className={`mr-3 ${
+                  activeTab === "projects" ? "text-white" : "text-indigo-600"
+                }`}
               />
               <span className="text-lg font-medium">Projects</span>
             </div>
-
           </div>
-
 
           {/* <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-8 gap-4">
             {activeTab === 'profile' && (
@@ -427,24 +423,29 @@ export default function ProfilePage() {
 
           {message && (
             <div
-              className={`mb-6 p-4 rounded-lg font-semibold ${messageType === "success"
-                ? "bg-green-100 text-green-800"
-                : "bg-red-100 text-red-800"
-                }`}
+              className={`mb-6 p-4 rounded-lg font-semibold ${
+                messageType === "success"
+                  ? "bg-green-100 text-green-800"
+                  : "bg-red-100 text-red-800"
+              }`}
             >
               {message}
             </div>
           )}
 
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-
             {/* Right Content - Profile Details */}
             <div className="lg:col-span-2">
-              {activeTab === 'profile' && (
-                isEditing ? (
-                  <form onSubmit={handleSubmit} className="bg-white rounded-lg shadow-sm border border-slate-200">
+              {activeTab === "profile" &&
+                (isEditing ? (
+                  <form
+                    onSubmit={handleSubmit}
+                    className="bg-white rounded-lg shadow-sm border border-slate-200"
+                  >
                     <div className="p-6 border-b border-slate-200">
-                      <h3 className="text-xl font-bold text-slate-900">Edit Profile</h3>
+                      <h3 className="text-xl font-bold text-slate-900">
+                        Edit Profile
+                      </h3>
                     </div>
 
                     <div className="p-6 space-y-6">
@@ -456,7 +457,9 @@ export default function ProfilePage() {
                         </h4>
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                           <div>
-                            <label className="block text-sm font-semibold text-slate-700 mb-2">Full Name</label>
+                            <label className="block text-sm font-semibold text-slate-700 mb-2">
+                              Full Name
+                            </label>
                             <input
                               type="text"
                               name="name"
@@ -467,7 +470,9 @@ export default function ProfilePage() {
                             />
                           </div>
                           <div>
-                            <label className="block text-sm font-semibold text-slate-700 mb-2">Personal Email</label>
+                            <label className="block text-sm font-semibold text-slate-700 mb-2">
+                              Personal Email
+                            </label>
                             <input
                               type="email"
                               name="personalEmail"
@@ -477,7 +482,9 @@ export default function ProfilePage() {
                             />
                           </div>
                           <div>
-                            <label className="block text-sm font-semibold text-slate-700 mb-2">Company Email</label>
+                            <label className="block text-sm font-semibold text-slate-700 mb-2">
+                              Company Email
+                            </label>
                             <input
                               type="email"
                               name="companyEmail"
@@ -487,7 +494,9 @@ export default function ProfilePage() {
                             />
                           </div>
                           <div>
-                            <label className="block text-sm font-semibold text-slate-700 mb-2">Gender</label>
+                            <label className="block text-sm font-semibold text-slate-700 mb-2">
+                              Gender
+                            </label>
                             <select
                               name="gender"
                               value={formData.gender}
@@ -500,7 +509,9 @@ export default function ProfilePage() {
                             </select>
                           </div>
                           <div>
-                            <label className="block text-sm font-semibold text-slate-700 mb-2">Birthday</label>
+                            <label className="block text-sm font-semibold text-slate-700 mb-2">
+                              Birthday
+                            </label>
                             <input
                               type="date"
                               name="birthday"
@@ -510,7 +521,9 @@ export default function ProfilePage() {
                             />
                           </div>
                           <div>
-                            <label className="block text-sm font-semibold text-slate-700 mb-2">Marital Status</label>
+                            <label className="block text-sm font-semibold text-slate-700 mb-2">
+                              Marital Status
+                            </label>
                             <select
                               name="maritalStatus"
                               value={formData.maritalStatus}
@@ -523,7 +536,9 @@ export default function ProfilePage() {
                             </select>
                           </div>
                           <div>
-                            <label className="block text-sm font-semibold text-slate-700 mb-2">Marriage Anniversary</label>
+                            <label className="block text-sm font-semibold text-slate-700 mb-2">
+                              Marriage Anniversary
+                            </label>
                             <input
                               type="date"
                               name="marriageAnniversary"
@@ -533,7 +548,9 @@ export default function ProfilePage() {
                             />
                           </div>
                           <div>
-                            <label className="block text-sm font-semibold text-slate-700 mb-2">Phone</label>
+                            <label className="block text-sm font-semibold text-slate-700 mb-2">
+                              Phone
+                            </label>
                             <input
                               type="tel"
                               name="phone"
@@ -553,7 +570,9 @@ export default function ProfilePage() {
                         </h4>
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                           <div>
-                            <label className="block text-sm font-semibold text-slate-700 mb-2">Designation</label>
+                            <label className="block text-sm font-semibold text-slate-700 mb-2">
+                              Designation
+                            </label>
                             <input
                               type="text"
                               name="designation"
@@ -563,7 +582,9 @@ export default function ProfilePage() {
                             />
                           </div>
                           <div>
-                            <label className="block text-sm font-semibold text-slate-700 mb-2">Batch</label>
+                            <label className="block text-sm font-semibold text-slate-700 mb-2">
+                              Batch
+                            </label>
                             <input
                               type="text"
                               name="batch"
@@ -573,7 +594,9 @@ export default function ProfilePage() {
                             />
                           </div>
                           <div>
-                            <label className="block text-sm font-semibold text-slate-700 mb-2">Joining Date</label>
+                            <label className="block text-sm font-semibold text-slate-700 mb-2">
+                              Joining Date
+                            </label>
                             <input
                               type="date"
                               name="joiningDate"
@@ -583,7 +606,9 @@ export default function ProfilePage() {
                             />
                           </div>
                           <div>
-                            <label className="block text-sm font-semibold text-slate-700 mb-2">Probation End Date</label>
+                            <label className="block text-sm font-semibold text-slate-700 mb-2">
+                              Probation End Date
+                            </label>
                             <input
                               type="date"
                               name="probationEndDate"
@@ -603,7 +628,9 @@ export default function ProfilePage() {
                         </h4>
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                           <div className="md:col-span-2">
-                            <label className="block text-sm font-semibold text-slate-700 mb-2">Street Address</label>
+                            <label className="block text-sm font-semibold text-slate-700 mb-2">
+                              Street Address
+                            </label>
                             <input
                               type="text"
                               name="address.street"
@@ -614,7 +641,9 @@ export default function ProfilePage() {
                             />
                           </div>
                           <div>
-                            <label className="block text-sm font-semibold text-slate-700 mb-2">City</label>
+                            <label className="block text-sm font-semibold text-slate-700 mb-2">
+                              City
+                            </label>
                             <input
                               type="text"
                               name="address.city"
@@ -625,7 +654,9 @@ export default function ProfilePage() {
                             />
                           </div>
                           <div>
-                            <label className="block text-sm font-semibold text-slate-700 mb-2">State</label>
+                            <label className="block text-sm font-semibold text-slate-700 mb-2">
+                              State
+                            </label>
                             <input
                               type="text"
                               name="address.state"
@@ -636,7 +667,9 @@ export default function ProfilePage() {
                             />
                           </div>
                           <div>
-                            <label className="block text-sm font-semibold text-slate-700 mb-2">Country</label>
+                            <label className="block text-sm font-semibold text-slate-700 mb-2">
+                              Country
+                            </label>
                             <input
                               type="text"
                               name="address.country"
@@ -647,7 +680,9 @@ export default function ProfilePage() {
                             />
                           </div>
                           <div>
-                            <label className="block text-sm font-semibold text-slate-700 mb-2">Postal Code</label>
+                            <label className="block text-sm font-semibold text-slate-700 mb-2">
+                              Postal Code
+                            </label>
                             <input
                               type="text"
                               name="address.postalCode"
@@ -681,7 +716,9 @@ export default function ProfilePage() {
                 ) : (
                   <div className="bg-white rounded-lg shadow-sm border border-slate-200">
                     <div className="p-6 border-b border-slate-200">
-                      <h3 className="text-xl font-bold text-slate-900">About</h3>
+                      <h3 className="text-xl font-bold text-slate-900">
+                        About
+                      </h3>
                     </div>
 
                     <div className="p-6 space-y-8">
@@ -699,13 +736,17 @@ export default function ProfilePage() {
                             </p>
                           </div>
                           <div>
-                            <p className="text-sm text-gray-500">Personal Email</p>
+                            <p className="text-sm text-gray-500">
+                              Personal Email
+                            </p>
                             <p className="font-medium text-blue-600">
                               {profileData?.personalEmail || "-"}
                             </p>
                           </div>
                           <div>
-                            <p className="text-sm text-gray-500">Company Email</p>
+                            <p className="text-sm text-gray-500">
+                              Company Email
+                            </p>
                             <p className="font-medium text-gray-900">
                               {profileData?.companyEmail || "-"}
                             </p>
@@ -721,24 +762,28 @@ export default function ProfilePage() {
                             <p className="font-medium text-gray-900">
                               {profileData?.birthday
                                 ? new Date(
-                                  profileData.birthday,
-                                ).toLocaleDateString()
+                                    profileData.birthday,
+                                  ).toLocaleDateString()
                                 : "0000-00-00"}
                             </p>
                           </div>
                           <div>
-                            <p className="text-sm text-gray-500">Marital Status</p>
+                            <p className="text-sm text-gray-500">
+                              Marital Status
+                            </p>
                             <p className="font-medium text-gray-900">
                               {profileData?.maritalStatus}
                             </p>
                           </div>
                           <div>
-                            <p className="text-sm text-gray-500">Marriage Anniversary</p>
+                            <p className="text-sm text-gray-500">
+                              Marriage Anniversary
+                            </p>
                             <p className="font-medium text-gray-900">
                               {profileData?.marriageAnniversary
                                 ? new Date(
-                                  profileData.marriageAnniversary,
-                                ).toLocaleDateString()
+                                    profileData.marriageAnniversary,
+                                  ).toLocaleDateString()
                                 : "-"}
                             </p>
                           </div>
@@ -746,7 +791,8 @@ export default function ProfilePage() {
                             <p className="text-sm text-gray-500">Status</p>
                             <p className="font-medium">
                               <span className="px-3 py-1 bg-green-100 text-green-800 rounded-full text-sm">
-                                ✓ {profileData?.isActive ? "Active" : "Inactive"}
+                                ✓{" "}
+                                {profileData?.isActive ? "Active" : "Inactive"}
                               </span>
                             </p>
                           </div>
@@ -785,27 +831,33 @@ export default function ProfilePage() {
                             </p>
                           </div>
                           <div>
-                            <p className="text-sm text-gray-500">Joining Date</p>
+                            <p className="text-sm text-gray-500">
+                              Joining Date
+                            </p>
                             <p className="font-medium text-gray-900">
                               {profileData?.joiningDate
                                 ? new Date(
-                                  profileData.joiningDate,
-                                ).toLocaleDateString()
+                                    profileData.joiningDate,
+                                  ).toLocaleDateString()
                                 : "-"}
                             </p>
                           </div>
                           <div>
-                            <p className="text-sm text-gray-500">Probation End Date</p>
+                            <p className="text-sm text-gray-500">
+                              Probation End Date
+                            </p>
                             <p className="font-medium text-gray-900">
                               {profileData?.probationEndDate
                                 ? new Date(
-                                  profileData.probationEndDate,
-                                ).toLocaleDateString()
+                                    profileData.probationEndDate,
+                                  ).toLocaleDateString()
                                 : "-"}
                             </p>
                           </div>
                           <div>
-                            <p className="text-sm text-gray-500">Work Duration</p>
+                            <p className="text-sm text-gray-500">
+                              Work Duration
+                            </p>
                             <p className="font-medium text-gray-900">
                               {calculateWorkDuration()}
                             </p>
@@ -843,7 +895,9 @@ export default function ProfilePage() {
                         </h4>
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                           <div className="md:col-span-2">
-                            <p className="text-sm text-gray-500">Street Address</p>
+                            <p className="text-sm text-gray-500">
+                              Street Address
+                            </p>
                             <p className="font-medium text-gray-900">
                               {profileData?.address?.street || "-"}
                             </p>
@@ -876,27 +930,23 @@ export default function ProfilePage() {
                       </div>
                     </div>
                   </div>
-                )
-              )}
-              {activeTab === 'teams' && (
+                ))}
+              {activeTab === "teams" && (
                 <div className="p-6">
                   <h3 className="text-xl font-bold">Teams Overview</h3>
                   <p>Teams content placeholder.</p>
                 </div>
               )}
-              {activeTab === 'projects' && (
+              {activeTab === "projects" && (
                 <div className="p-6">
                   <h3 className="text-xl font-bold">Projects Overview</h3>
                   <p>Projects content placeholder.</p>
                 </div>
               )}
             </div>
-
-
           </div>
         </div>
-      </main >
-    </div >
+      </main>
+    </div>
   );
 }
-

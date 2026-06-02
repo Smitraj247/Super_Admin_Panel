@@ -162,7 +162,10 @@ export default function RolesPage() {
 
                       <tbody className="divide-y">
                         {roles.map((role) => (
-                          <tr key={role._id} className="hover:bg-[var(--bg-elevated)]">
+                          <tr
+                            key={role._id}
+                            className="hover:bg-[var(--bg-elevated)]"
+                          >
                             <td className="p-5 font-semibold text-[var(--text-primary)]">
                               {editingId === role._id ? (
                                 <input
@@ -227,4 +230,3 @@ export default function RolesPage() {
     </ProtectedDashboardRoute>
   );
 }
-

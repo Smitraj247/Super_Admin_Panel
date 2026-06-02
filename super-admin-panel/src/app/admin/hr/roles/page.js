@@ -150,7 +150,9 @@ export default function RolesPage() {
                     <thead className="border-b border-slate-200 bg-green-50">
                       <tr>
                         <th className="p-4 text-left text-green-900">Role</th>
-                        <th className="p-4 text-right text-green-900">Action</th>
+                        <th className="p-4 text-right text-green-900">
+                          Action
+                        </th>
                       </tr>
                     </thead>
 

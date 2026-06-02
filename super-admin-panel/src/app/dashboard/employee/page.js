@@ -10,7 +10,10 @@ export default function EmployeeUserDashboard() {
       requiredRole={ROLES.USER}
       requiredDepartment={DEPARTMENTS.EMPLOYEE.name}
     >
-      <UnifiedDashboard userRole={ROLES.USER} department={DEPARTMENTS.EMPLOYEE.name} />
+      <UnifiedDashboard
+        userRole={ROLES.USER}
+        department={DEPARTMENTS.EMPLOYEE.name}
+      />
     </ProtectedDashboardRoute>
   );
 }

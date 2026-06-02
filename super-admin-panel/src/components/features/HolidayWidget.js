@@ -13,7 +13,7 @@ export default function HolidayWidget() {
       const currentYear = new Date().getFullYear();
       const yearHolidays = res.data
         .filter(
-          (holiday) => new Date(holiday.date).getFullYear() === currentYear
+          (holiday) => new Date(holiday.date).getFullYear() === currentYear,
         )
         .sort((a, b) => new Date(a.date) - new Date(b.date));
 

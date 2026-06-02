@@ -200,10 +200,18 @@ export default function HolidayPage() {
             <table className="w-full text-left">
               <thead className="bg-[var(--bg-elevated)] border-b">
                 <tr>
-                  <th className="p-4 font-bold text-[var(--text-primary)]">TITLE</th>
-                  <th className="p-4 font-bold text-[var(--text-primary)]">DATE</th>
-                  <th className="p-4 font-bold text-[var(--text-primary)]">TYPE</th>
-                  <th className="p-4 font-bold text-[var(--text-primary)]">DESCRIPTION</th>
+                  <th className="p-4 font-bold text-[var(--text-primary)]">
+                    TITLE
+                  </th>
+                  <th className="p-4 font-bold text-[var(--text-primary)]">
+                    DATE
+                  </th>
+                  <th className="p-4 font-bold text-[var(--text-primary)]">
+                    TYPE
+                  </th>
+                  <th className="p-4 font-bold text-[var(--text-primary)]">
+                    DESCRIPTION
+                  </th>
                   <th className="p-4 font-bold text-[var(--text-primary)] text-right">
                     ACTIONS
                   </th>
@@ -259,4 +267,3 @@ export default function HolidayPage() {
     </ProtectedDashboardRoute>
   );
 }
-

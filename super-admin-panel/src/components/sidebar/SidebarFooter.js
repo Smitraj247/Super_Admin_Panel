@@ -1,7 +1,11 @@
 "use client";
 
 import { memo } from "react";
-import { LogOut, ChevronLeft as ChevronLeftIcon, ChevronRight as ChevronRightIcon } from "lucide-react";
+import {
+  LogOut,
+  ChevronLeft as ChevronLeftIcon,
+  ChevronRight as ChevronRightIcon,
+} from "lucide-react";
 
 function SidebarFooter({
   collapsed,
@@ -64,9 +68,7 @@ function SidebarFooter({
         >
           <LogOut size={17} />
 
-          {!collapsed && (
-            <span className="text-sm font-medium">Sign Out</span>
-          )}
+          {!collapsed && <span className="text-sm font-medium">Sign Out</span>}
         </button>
 
         <button

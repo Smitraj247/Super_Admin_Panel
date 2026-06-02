@@ -161,13 +161,7 @@ export default function UsersPage() {
       sidebarPermissions:
         user.sidebarPermissions?.length > 0
           ? user.sidebarPermissions
-          : [
-            "Dashboard",
-            "Profile",
-            "Chats",
-            "Attendance",
-            "Apply Leave",
-          ],
+          : ["Dashboard", "Profile", "Chats", "Attendance", "Apply Leave"],
     });
     window.scrollTo({ top: 0, behavior: "smooth" });
   };
@@ -347,7 +341,9 @@ export default function UsersPage() {
                                 {user.name?.charAt(0)}
                               </div>
                               <div>
-                                <p className="text-[var(--text-primary)]">{user.name}</p>
+                                <p className="text-[var(--text-primary)]">
+                                  {user.name}
+                                </p>
                                 <p className="text-xs text-[var(--text-secondary)]">
                                   {user.email}
                                 </p>
@@ -405,4 +401,3 @@ export default function UsersPage() {
     </ProtectedDashboardRoute>
   );
 }
-

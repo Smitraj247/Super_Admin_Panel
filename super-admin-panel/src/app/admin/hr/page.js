@@ -9,7 +9,10 @@ export default function HRAdminPage() {
       requiredRole={ROLES.ADMIN}
       requiredDepartment={DEPARTMENTS.HR.name}
     >
-      <UnifiedDashboard userRole={ROLES.ADMIN} department={DEPARTMENTS.HR.name} />
+      <UnifiedDashboard
+        userRole={ROLES.ADMIN}
+        department={DEPARTMENTS.HR.name}
+      />
     </ProtectedDashboardRoute>
   );
 }
