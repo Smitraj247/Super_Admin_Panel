@@ -19,7 +19,16 @@ const BAR_MAP = {
   indigo: "bg-[#6366f1]",
 };
 
-export default function StatCard({ title, value, subtitle, icon, trend, trendUp, color = "indigo", sparkline }) {
+export default function StatCard({
+  title,
+  value,
+  subtitle,
+  icon,
+  trend,
+  trendUp,
+  color = "indigo",
+  sparkline,
+}) {
   const iconCls = ICON_MAP[color] ?? ICON_MAP.indigo;
   const barCls = BAR_MAP[color] ?? BAR_MAP.indigo;
 
@@ -29,11 +38,18 @@ export default function StatCard({ title, value, subtitle, icon, trend, trendUp,
       style={{ background: "var(--bg-surface)", boxShadow: "var(--shadow-sm)" }}
     >
       {/* Subtle top glow */}
-      <div className="absolute top-0 left-0 right-0 h-px opacity-60"
-        style={{ background: "linear-gradient(90deg, transparent, rgba(124,111,255,0.4), transparent)" }} />
+      <div
+        className="absolute top-0 left-0 right-0 h-px opacity-60"
+        style={{
+          background:
+            "linear-gradient(90deg, transparent, rgba(124,111,255,0.4), transparent)",
+        }}
+      />
 
       <div className="flex items-start justify-between mb-4">
-        <div className={`p-2.5 rounded-xl border ${iconCls} transition-transform group-hover:scale-110`}>
+        <div
+          className={`p-2.5 rounded-xl border ${iconCls} transition-transform group-hover:scale-110`}
+        >
           {icon}
         </div>
         {sparkline && (
@@ -42,24 +58,37 @@ export default function StatCard({ title, value, subtitle, icon, trend, trendUp,
               <div
                 key={i}
                 className={`w-1.5 rounded-t-sm ${barCls} opacity-100`}
-                style={{ height: `${(val / Math.max(...sparkline)) * 100}%`, minHeight: "4px" }}
+                style={{
+                  height: `${(val / Math.max(...sparkline)) * 100}%`,
+                  minHeight: "4px",
+                }}
               />
             ))}
           </div>
         )}
       </div>
 
-      <p className="text-[11px] font-medium text-[var(--text-muted)] uppercase tracking-wider mb-1">{title}</p>
-      <p className="text-2xl font-bold text-[var(--text-primary)] mb-1 tabular-nums">{value}</p>
-      {subtitle && <p className="text-[12px] text-[var(--text-muted)]">{subtitle}</p>}
+      <p className="text-[11px] font-medium text-[var(--text-muted)] uppercase tracking-wider mb-1">
+        {title}
+      </p>
+      <p className="text-2xl font-bold text-[var(--text-primary)] mb-1 tabular-nums">
+        {value}
+      </p>
+      {subtitle && (
+        <p className="text-[12px] text-[var(--text-muted)]">{subtitle}</p>
+      )}
 
       {trend && (
         <div className="flex items-center gap-1.5 mt-3 pt-3 border-t border-[var(--border)]">
-          <div className={`flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] font-semibold ${trendUp ? "bg-emerald-500/10 text-emerald-400" : "bg-rose-500/10 text-rose-400"}`}>
+          <div
+            className={`flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] font-semibold ${trendUp ? "bg-emerald-500/10 text-emerald-400" : "bg-rose-500/10 text-rose-400"}`}
+          >
             {trendUp ? <TrendingUp size={10} /> : <TrendingDown size={10} />}
             {trend}
           </div>
-          <span className="text-[11px] text-[var(--text-muted)]">vs last month</span>
+          <span className="text-[11px] text-[var(--text-muted)]">
+            vs last month
+          </span>
         </div>
       )}
     </div>

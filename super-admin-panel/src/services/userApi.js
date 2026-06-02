@@ -1,4 +1,4 @@
-import axios from "../utils/axiosInstance";
+import axios from "@/utils/axiosInstance";
 
 export const getUsers = () => axios.get("/users/users");
 

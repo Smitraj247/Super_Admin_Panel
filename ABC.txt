@@ -1,0 +1,11 @@
+1>    leave controller in  lin number  373   fix it =>   link: "/admin/ce/apply-leave",
+
+2> admin page.js in   fix it  
+
+      const userDept = (typeof user?.department === "object" 
+      ? user?.department?.name 
+      : user?.department || "ce").toLowerCase();
+
+
+
+ 3>

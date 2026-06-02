@@ -4,9 +4,9 @@ import { useEffect, useState } from "react";
 import { getUsers } from "@/services/userApi";
 import { getAdminsApi } from "@/services/superAdminApi";
 import { getAllUsersAttendanceApi } from "@/services/attandanceApi";
-import Navbar from "@/components/Navbar";
+import Navbar from "@/components/layout/Navbar";
 import Sidebar from "@/components/Sidebar";
-import AttendanceStats from "@/components/AttendanceStats";
+import AttendanceStats from "@/components/features/AttendanceStats";
 import { User, Search, ChevronRight, Users } from "lucide-react";
 import { useRouter } from "next/navigation";
 

@@ -6,7 +6,7 @@ import {
   getUserLeaveHistoryApi,
   updateSuperAdminLeaveStatusApi 
 } from "@/services/leaveApi";
-import Navbar from "@/components/Navbar";
+import Navbar from "@/components/layout/Navbar";
 import Sidebar from "@/components/Sidebar";
 import { Calendar, Check, X, Download, Filter, Search, ArrowLeft, User as UserIcon, Bell, BellDot } from "lucide-react";
 

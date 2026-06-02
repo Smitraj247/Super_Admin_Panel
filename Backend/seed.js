@@ -32,10 +32,9 @@ const seedData = async () => {
 
     // Create departments
     const departments = [
-      { name: "IT", description: "Information Technology Department" },
+      { name: "Employee", description: "Employee Department" },
       { name: "HR", description: "Human Resources Department" },
       { name: "SALES", description: "Sales Department" },
-      { name: "CE", description: "Customer Experience Department" },
     ];
 
     const deptMap = {};
@@ -51,7 +50,7 @@ const seedData = async () => {
       }
     }
 
-    // 
+
     const superAdminRole = await Role.findOne({ name: "SUPER_ADMIN" });
     const adminRole = await Role.findOne({ name: "ADMIN" });
     const userRole = await Role.findOne({ name: "USER" });
@@ -63,20 +62,6 @@ const seedData = async () => {
         password: "password123",
         role: superAdminRole._id,
         department: null,
-      },
-      {
-        name: "IT Admin",
-        email: "admin@it.com",
-        password: "password123",
-        role: adminRole._id,
-        department: deptMap.IT,
-      },
-      {
-        name: "CE User",
-        email: "user@ce.com",
-        password: "password123",
-        role: userRole._id,
-        department: deptMap.CE,
       },
       {
         name: "HR User",

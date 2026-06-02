@@ -1,4 +1,4 @@
-import axios from "../utils/axiosInstance";
+import axios from "@/utils/axiosInstance";
 
 export const getRoles = () => axios.get("/roles");
 

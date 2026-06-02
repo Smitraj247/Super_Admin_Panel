@@ -1,28 +1,33 @@
-import { Calendar as CalendarIcon, RefreshCw } from "lucide-react";
+"use client";
 
-export default function DashboardHeader({ refreshing, handleRefresh, title = "Attendance System" }) {
+import { memo } from "react";
+import { Calendar as CalendarIcon } from "lucide-react";
+import { formatCurrentDate } from "@/utils/dateUtils";
+
+/**
+ * DashboardHeader Component
+ * Displays the dashboard title and current date
+ */
+const DashboardHeader = memo(() => {
   return (
-    <div className="mb-8 animate-fade-in">
-      <div className="flex items-center justify-between">
-        <div className="flex items-center gap-3">
-          <h2 className="text-2xl font-bold text-[var(--text-primary)]">{title}</h2>
-          <button
-            onClick={handleRefresh}
-            disabled={refreshing}
-            className="p-2 rounded-xl text-[var(--text-muted)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-elevated)] transition-all disabled:opacity-40"
-            title="Refresh"
-          >
-            <RefreshCw size={16} className={refreshing ? "animate-spin text-indigo-400" : ""} />
-          </button>
-        </div>
-
-        <div className="flex items-center gap-2 px-3 py-2 rounded-xl bg-indigo-500/10 border border-indigo-500/20 text-indigo-400">
-          <CalendarIcon size={14} />
-          <span className="text-[12px] font-semibold">
-            {new Date().toLocaleDateString("en-US", { weekday: "long", year: "numeric", month: "long", day: "numeric" })}
-          </span>
-        </div>
+    <div className="flex items-center justify-between">
+      <h2
+        className="text-2xl sm:text-3xl font-semibold tracking-tight
+        bg-gradient-to-r from-indigo-500 via-purple-500 to-pink-500
+        bg-clip-text text-transparent animate-pulse"
+      >
+        Attendance System
+      </h2>
+      <div className="flex items-center gap-2 bg-indigo-500/10 border border-indigo-500/20 px-3 sm:px-4 py-2 rounded-xl text-indigo-400">
+        <CalendarIcon size={14} />
+        <span className="text-xs sm:text-sm font-semibold hidden sm:block">
+          {formatCurrentDate()}
+        </span>
       </div>
     </div>
   );
-}
+});
+
+DashboardHeader.displayName = "DashboardHeader";
+
+export default DashboardHeader;

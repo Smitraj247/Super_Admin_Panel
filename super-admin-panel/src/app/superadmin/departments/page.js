@@ -1,10 +1,10 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import Navbar from "../../../components/Navbar";
-import Sidebar from "../../../components/Sidebar";
+import Navbar from "@/components/layout/Navbar";
+import Sidebar from "@/components/Sidebar";
 import { PlusCircle, Trash2, Edit3, Building2 } from "lucide-react";
-import { ProtectedDashboardRoute } from "@/components/ProtectedDashboardRoute";
+import { ProtectedDashboardRoute } from "@/components/auth/ProtectedDashboardRoute";
 import { ROLES } from "@/utils/constants";
 import {
   getDepartmentsApi,

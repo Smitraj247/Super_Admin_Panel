@@ -1,9 +1,9 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import Sidebar from "../../../components/Sidebar";
-import Navbar from "../../../components/Navbar";
-import { ProtectedDashboardRoute } from "@/components/ProtectedDashboardRoute";
+import Sidebar from "@/components/Sidebar";
+import Navbar from "@/components/layout/Navbar";
+import { ProtectedDashboardRoute } from "@/components/auth/ProtectedDashboardRoute";
 import { ROLES } from "@/utils/constants";
 import {
   getHolidaysApi,

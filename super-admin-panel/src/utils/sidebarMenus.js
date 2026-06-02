@@ -1,24 +1,12 @@
 // Sidebar menu definitions for each department (USER role)
 export const userDeptMenus = {
-  it: [
+  employee: [
     "Dashboard",
     "Profile",
-    "Users",
     "Departments",
     "Roles",
-    "Help Desk",
-    "Network Monitor",
     "Attedance",
-  ],
-  ce: [
-    "Dashboard",
-    "Profile",
-    "Users",
-    "Departments",
-    "Roles",
-    "Projects",
-    "Reports",
-    "Attedance",
+    "Apply Leave"
   ],
   sales: [
     "Dashboard",
@@ -28,40 +16,14 @@ export const userDeptMenus = {
     "Roles",
     "Leads",
     "Targets",
-    "Reports",
     "Attedance",
   ],
-  hr: ["Dashboard", "Profile", "Users", "Departments", "Roles"],
 };
 
 // Get available menu items for a specific department and user role
 export const getAvailableMenus = (department, role = "USER") => {
   if (role === "ADMIN") {
     const adminDeptMenus = {
-      it: [
-        "Dashboard",
-        "Profile",
-        "Users",
-        "Departments",
-        "Roles",
-        "Holidays",
-        "Help Desk",
-        "Asset Management",
-        "Network Monitor",
-        "Attedance",
-      ],
-      ce: [
-        "Dashboard",
-        "Profile",
-        "Users",
-        "Departments",
-        "Roles",
-        "Holidays",
-        "Projects",
-        "Lab Equipment",
-        "Reports",
-        "Attedance",
-      ],
       sales: [
         "Dashboard",
         "Profile",
@@ -69,9 +31,6 @@ export const getAvailableMenus = (department, role = "USER") => {
         "Departments",
         "Roles",
         "Holidays",
-        "Leads",
-        "Targets",
-        "Reports",
         "Attedance",
       ],
       hr: [
@@ -89,4 +48,4 @@ export const getAvailableMenus = (department, role = "USER") => {
   }
 
   return userDeptMenus[department?.toLowerCase()] || [];
-};
+};   

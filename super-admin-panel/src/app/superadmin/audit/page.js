@@ -1,9 +1,9 @@
 "use client";
 
-import Navbar from "../../../components/Navbar";
-import Sidebar from "../../../components/Sidebar";
+import Navbar from "@/components/layout/Navbar";
+import Sidebar from "@/components/Sidebar";
 import { ShieldCheck } from "lucide-react";
-import { ProtectedDashboardRoute } from "@/components/ProtectedDashboardRoute";
+import { ProtectedDashboardRoute } from "@/components/auth/ProtectedDashboardRoute";
 import { ROLES } from "@/utils/constants";
 
 export default function AuditPage() {

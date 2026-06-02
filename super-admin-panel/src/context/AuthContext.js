@@ -27,7 +27,7 @@ const storage = {
   },
 };
 
-// ─── Provider ─────────────────────────────────────────────────────────────────
+// Provider 
 
 export const AuthProvider = ({ children }) => {
   // Always start with null/loading=true so server and client initial render match

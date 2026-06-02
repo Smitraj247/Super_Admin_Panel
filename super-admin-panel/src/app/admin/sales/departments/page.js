@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react";
 import Sidebar from "@/components/Sidebar";
-import Navbar from "@/components/Navbar";
+import Navbar from "@/components/layout/Navbar";
 import { Building2, PlusCircle, Edit3, Trash2 } from "lucide-react";
 import {
   getDepartmentsApi,

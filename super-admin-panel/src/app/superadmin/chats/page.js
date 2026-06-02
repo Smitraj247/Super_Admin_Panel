@@ -2,12 +2,12 @@
 
 import { useEffect, useState } from "react";
 import Sidebar from "@/components/Sidebar";
-import Navbar from "@/components/Navbar";
-import ChatWindow from "@/components/ChatWindow";
+import Navbar from "@/components/layout/Navbar";
+import ChatWindow from "@/components/ui/ChatWindow";
 import { getUserChatsApi, createGroupChatApi } from "@/services/chatApi";
 import { getAdminsApi, getUsersApi } from "@/services/superAdminApi";
 import { useAuth } from "@/context/AuthContext";
-import { ProtectedDashboardRoute } from "@/components/ProtectedDashboardRoute";
+import { ProtectedDashboardRoute } from "@/components/auth/ProtectedDashboardRoute";
 import { ROLES } from "@/utils/constants";
 import {
   MessageCircle,

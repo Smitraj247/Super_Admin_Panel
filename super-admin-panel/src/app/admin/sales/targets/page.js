@@ -1,5 +1,5 @@
 "use client";
-import Navbar from "@/components/Navbar";
+import Navbar from "@/components/layout/Navbar";
 import Sidebar from "@/components/Sidebar";
 import { ClipboardList } from "lucide-react";
 

@@ -1,3 +1,3 @@
-import axios from "../utils/axiosInstance";
+import axios from "@/utils/axiosInstance";
 
 export const getAuditLogs = () => axios.get("/audit");

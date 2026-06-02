@@ -1,12 +1,12 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import Sidebar from "../../../components/Sidebar";
-import Navbar from "../../../components/Navbar";
+import Sidebar from "@/components/Sidebar";
+import Navbar from "@/components/layout/Navbar";
 import API from "@/lib/api";
-import { ProtectedDashboardRoute } from "@/components/ProtectedDashboardRoute";
+import { ProtectedDashboardRoute } from "@/components/auth/ProtectedDashboardRoute";
 import { ROLES } from "@/utils/constants";
-import ChatWindow from "@/components/ChatWindow";
+import ChatWindow from "@/components/ui/ChatWindow";
 import {
   Users,
   UserPlus,

@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import { getUsersApi, getAdminsApi } from "@/services/adminApi";
 import { getAllUsersAttendanceApi } from "@/services/attandanceApi";
-import Navbar from "@/components/Navbar";
+import Navbar from "@/components/layout/Navbar";
 import Sidebar from "@/components/Sidebar";
 
 import {

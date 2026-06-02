@@ -9,7 +9,7 @@ import {
 } from "@/services/attandanceApi";
 import { getUsers } from "@/services/userApi";
 import { getAdminsApi } from "@/services/superAdminApi";
-import Navbar from "@/components/Navbar";
+import Navbar from "@/components/layout/Navbar";
 import Sidebar from "@/components/Sidebar";
 import {
   Calendar,

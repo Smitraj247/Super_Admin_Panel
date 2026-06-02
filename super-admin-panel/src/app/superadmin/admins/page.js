@@ -1,11 +1,11 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import Sidebar from "../../../components/Sidebar";
-import Navbar from "../../../components/Navbar";
-import { ProtectedDashboardRoute } from "@/components/ProtectedDashboardRoute";
+import Sidebar from "@/components/Sidebar";
+import Navbar from "@/components/layout/Navbar";
+import { ProtectedDashboardRoute } from "@/components/auth/ProtectedDashboardRoute";
 import { ROLES } from "@/utils/constants";
-import ChatWindow from "@/components/ChatWindow";
+import ChatWindow from "@/components/ui/ChatWindow";
 import {
   getAdminsApi,
   createAdminApi,
@@ -16,16 +16,10 @@ import {
 import {
   Users,
   UserPlus,
-  Mail,
-  Building2,
   Shield,
   Trash2,
   Edit3,
   Search,
-  MoreVertical,
-  Key,
-  CheckCircle2,
-  XCircle,
   MessageCircle,
 } from "lucide-react";
 
@@ -58,13 +52,6 @@ export default function AdminsPage() {
     "Users",
     "Departments",
     "Roles",
-    "Help Desk",
-    "Asset Management",
-    "Network Monitor",
-    "Projects",
-    "Reports",
-    "Leads",
-    "Targets",
     "Attendance",
     "Apply Leave",
     "Holidays",

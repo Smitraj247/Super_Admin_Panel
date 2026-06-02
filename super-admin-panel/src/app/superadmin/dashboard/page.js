@@ -1,7 +1,7 @@
 "use client";
 
-import SuperAdminDashboard from "@/components/SuperAdminDashboard";
-import { ProtectedDashboardRoute } from "@/components/ProtectedDashboardRoute";
+import SuperAdminDashboard from "@/components/pages/SuperAdminDashboard";
+import { ProtectedDashboardRoute } from "@/components/auth/ProtectedDashboardRoute";
 import { ROLES } from "@/utils/constants";
 
 export default function SuperAdminDashboardPage() {

@@ -17,10 +17,14 @@ export default function DashboardRedirect() {
     }
 
     // Get user's department and redirect to correct dashboard
-    const userRole = (user?.role?.name || user?.role || "").toUpperCase().replace(" ", "_");
-    const userDept = (typeof user?.department === "object" 
-      ? user?.department?.name 
-      : user?.department || "ce").toLowerCase();
+    const userRole = (user?.role?.name || user?.role || "")
+      .toUpperCase()
+      .replace(" ", "_");
+    const userDept = (
+      typeof user?.department === "object"
+        ? user?.department?.name
+        : user?.department || "employee"
+    ).toLowerCase();
 
     if (userRole === "SUPER_ADMIN") {
       router.replace("/superadmin/dashboard");

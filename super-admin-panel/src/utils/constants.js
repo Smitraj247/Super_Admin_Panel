@@ -5,12 +5,6 @@ export const ROLES = {
 };
 
 export const DEPARTMENTS = {
-  IT: {
-    name: "IT",
-    path: "/dashboard/it",
-    adminPath: "/admin/it",
-    color: "from-blue-500 to-blue-600",
-  },
   HR: {
     name: "HR",
     path: "/dashboard/hr",
@@ -23,17 +17,11 @@ export const DEPARTMENTS = {
     adminPath: "/admin/sales",
     color: "from-purple-500 to-purple-600",
   },
-  FINANCE: {
-    name: "FINANCE",
-    path: "/dashboard/finance",
-    adminPath: "/admin/finance",
-    color: "from-yellow-500 to-yellow-600",
-  },
-  CE: {
-    name: "CE",
-    path: "/dashboard/ce",
-    adminPath: "/admin/ce",
-    color: "from-orange-500 to-orange-600",
+  EMPLOYEE: {
+    name: "EMPLOYEE",
+    path: "/dashboard/employee",
+    adminPath: "/admin/employee",
+    color: "from-purple-500 to-purple-600",
   },
 };
 

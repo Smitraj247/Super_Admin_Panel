@@ -1,71 +1,91 @@
+"use client";
+
+import { memo } from "react";
 import { LogIn, Coffee, Play, LogOut } from "lucide-react";
 import ActionButton from "./ActionButton";
 
-export default function AttendanceTracking({
-  userStatus,
+/**
+ * AttendanceTracking Component
+ * Provides buttons for check-in, break, resume, and check-out actions
+ */
+const AttendanceTracking = memo(({
   isCheckedIn,
   isOnBreak,
-  handleCheckIn,
-  handleBreak,
-  handleResume,
-  handleCheckOut,
-}) {
-  const isCheckedOut = userStatus === "CHECKED_OUT";
-  const hasCheckedInToday = isCheckedIn || isCheckedOut;
-  
+  hasCheckedInToday,
+  userStatus,
+  onAction,
+}) => {
+  const handleAction = (actionType) => {
+    onAction?.(actionType);
+  };
+
   return (
-    <div className="lg:col-span-2 bg-white rounded-2xl p-6 shadow-sm border border-slate-200">
-      <div className="flex items-center justify-between mb-6">
+    <div
+      className="rounded-2xl border border-[var(--border)] p-5 sm:p-6"
+      style={{
+        background: "var(--bg-surface)",
+        boxShadow: "var(--shadow-sm)",
+      }}
+    >
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-5">
         <div>
-          <h3 className="text-xl font-bold text-slate-900">
+          <h3 className="text-[20px] font-semibold text-[var(--text-primary)]">
             Attendance Tracking
           </h3>
-          <p className="text-sm text-slate-500">
-            Track your attendance with just one click
+          <p className="text-[12px] text-[var(--text-muted)] mt-1">
+            Track your attendance with one click
           </p>
         </div>
+
         {userStatus === "LATE" && (
-          <div className="bg-orange-100 text-orange-600 px-3 py-1 rounded-full text-sm font-semibold flex items-center gap-2">
-            <div className="w-2 h-2 bg-orange-500 rounded-full animate-pulse"></div>
+          <div className="bg-orange-500/10 border border-orange-500/20 text-orange-400 px-3 py-1 rounded-full text-[12px] font-semibold flex items-center gap-2">
+            <div className="w-1.5 h-1.5 bg-orange-400 rounded-full animate-pulse" />
             Late Check-In
           </div>
         )}
       </div>
 
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
         <ActionButton
-          icon={<LogIn className="w-6 h-6" />}
+          icon={<LogIn className="w-5 h-5 sm:w-6 sm:h-6" />}
           label="Check In"
           subtitle="Start Your Day"
           color="green"
-          onClick={handleCheckIn}
+          onClick={() => handleAction("checkIn")}
           disabled={hasCheckedInToday}
         />
+
         <ActionButton
-          icon={<Coffee className="w-6 h-6" />}
+          icon={<Coffee className="w-5 h-5 sm:w-6 sm:h-6" />}
           label="Break"
           subtitle="Take a Break"
           color="orange"
-          onClick={handleBreak}
+          onClick={() => handleAction("breakIn")}
           disabled={!isCheckedIn || isOnBreak}
         />
+
         <ActionButton
-          icon={<Play className="w-6 h-6" />}
+          icon={<Play className="w-5 h-5 sm:w-6 sm:h-6" />}
           label="Resume"
           subtitle="Back to Work"
           color="blue"
-          onClick={handleResume}
+          onClick={() => handleAction("breakOut")}
           disabled={!isOnBreak}
         />
+
         <ActionButton
-          icon={<LogOut className="w-6 h-6" />}
+          icon={<LogOut className="w-5 h-5 sm:w-6 sm:h-6" />}
           label="Check Out"
           subtitle="End Your Day"
           color="red"
-          onClick={handleCheckOut}
-          disabled={!isCheckedIn || isCheckedOut}
+          onClick={() => handleAction("checkOut")}
+          disabled={!isCheckedIn}
         />
       </div>
     </div>
   );
-}
+});
+
+AttendanceTracking.displayName = "AttendanceTracking";
+
+export default AttendanceTracking;

@@ -1,99 +1,118 @@
-export default function AttendanceHistory({ attendanceHistory }) {
+"use client";
+
+import { memo } from "react";
+import { HISTORY_TABLE_HEADERS } from "@/constants/dashboardConstants";
+
+/**
+ * AttendanceHistory Component
+ * Displays a table of attendance records with filtering options
+ */
+const AttendanceHistory = memo(({ records = [] }) => {
   return (
-    <div className="bg-white rounded-2xl p-6 shadow-sm border border-slate-200">
-      <div className="flex items-center justify-between mb-6">
-        <h3 className="text-xl font-bold text-slate-900">
+    <div
+      className="rounded-2xl border border-[var(--border)] p-4 sm:p-6"
+      style={{
+        background: "var(--bg-surface)",
+        boxShadow: "var(--shadow-sm)",
+      }}
+    >
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-5">
+        <h3 className="text-[18px] font-semibold text-[var(--text-primary)]">
           Attendance History
         </h3>
-        <div className="flex items-center gap-3">
+
+        <div className="flex flex-col sm:flex-row gap-2">
           <input
             type="date"
-            defaultValue={new Date().toISOString().split("T")[0]}
-            className="text-sm border border-slate-300 rounded-lg px-3 py-1.5 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+            className="input-base text-[13px] rounded-xl px-3 py-2 border border-[var(--border)] bg-[var(--bg-elevated)] text-[var(--text-secondary)] focus:outline-none focus:ring-2 focus:ring-indigo-400"
           />
-          <button className="text-sm bg-slate-100 hover:bg-slate-200 px-4 py-1.5 rounded-lg font-medium transition">
+
+          <button className="text-[13px] bg-[var(--bg-elevated)] hover:bg-[var(--border)] text-[var(--text-secondary)] px-4 py-2 rounded-xl font-medium transition-all border border-[var(--border)]">
             Filter
           </button>
         </div>
       </div>
 
-      <div className="overflow-x-auto">
-        <table className="w-full">
+      <div className="overflow-auto max-h-[420px]">
+        <table className="w-full text-sm min-w-[560px]">
           <thead>
-            <tr className="border-b border-slate-200">
-              <th className="text-left py-3 px-4 text-sm font-semibold text-slate-600">
-                Date
-              </th>
-              <th className="text-left py-3 px-4 text-sm font-semibold text-slate-600">
-                Entry Time
-              </th>
-              <th className="text-left py-3 px-4 text-sm font-semibold text-slate-600">
-                Exit Time
-              </th>
-              <th className="text-left py-3 px-4 text-sm font-semibold text-slate-600">
-                Breaks
-              </th>
-              <th className="text-left py-3 px-4 text-sm font-semibold text-slate-600">
-                Total Break Time
-              </th>
-              <th className="text-left py-3 px-4 text-sm font-semibold text-slate-600">
-                Working Hours
-              </th>
-              <th className="text-left py-3 px-4 text-sm font-semibold text-slate-600">
-                Status
-              </th>
-              <th className="text-left py-3 px-4 text-sm font-semibold text-slate-600">
-                User Details
-              </th>
+            <tr className="border-b border-[var(--border)]">
+              {HISTORY_TABLE_HEADERS.map((header) => (
+                <th
+                  key={header}
+                  className="text-left py-3 px-3 text-[11px] font-semibold text-[var(--text-muted)] uppercase tracking-wider whitespace-nowrap"
+                >
+                  {header}
+                </th>
+              ))}
             </tr>
           </thead>
+
           <tbody>
-            {attendanceHistory.map((record, index) => (
-              <tr
-                key={index}
-                className="border-b border-slate-100 hover:bg-slate-50 transition"
-              >
-                <td className="py-4 px-4 text-sm text-slate-700">
-                  {record.date}
-                </td>
-                <td className="py-4 px-4 text-sm text-green-600 font-semibold">
-                  {record.entryTime}
-                </td>
-                <td className="py-4 px-4 text-sm text-slate-500">
-                  {record.exitTime}
-                </td>
-                <td className="py-4 px-4 text-sm text-blue-600">
-                  {record.breaks}
-                </td>
-                <td className="py-4 px-4 text-sm text-slate-700">
-                  {record.totalBreakTime}
-                </td>
-                <td className="py-4 px-4 text-sm text-slate-500">
-                  {record.workingHours}
-                </td>
-                <td className="py-4 px-4">
-                  <span className="inline-flex items-center px-3 py-1 rounded-full text-xs font-semibold bg-green-100 text-green-700">
-                    {record.status}
-                  </span>
-                </td>
-                <td className="py-4 px-4">
-                  <div className="text-sm">
-                    <div className="text-blue-600 font-medium">
-                      {record.userEmail}
-                    </div>
-                    <div className="text-slate-500 text-xs">
-                      {record.userName}
-                    </div>
-                    <div className="text-slate-400 text-xs">
-                      ID: {record.userId}
-                    </div>
-                  </div>
+            {records.length === 0 ? (
+              <tr>
+                <td
+                  colSpan={HISTORY_TABLE_HEADERS.length}
+                  className="text-center py-8 text-[var(--text-muted)] text-sm"
+                >
+                  No records found
                 </td>
               </tr>
-            ))}
+            ) : (
+              records.map((record, index) => (
+                <tr
+                  key={index}
+                  className="border-b border-[var(--border)] hover:bg-[var(--bg-elevated)] transition-colors"
+                >
+                  <td className="py-3 px-3 text-[13px] text-[var(--text-secondary)] whitespace-nowrap">
+                    {record.date}
+                  </td>
+
+                  <td className="py-3 px-3 text-emerald-400 font-semibold text-[13px]">
+                    {record.entryTime}
+                  </td>
+
+                  <td className="py-3 px-3 text-[13px] text-[var(--text-muted)]">
+                    {record.exitTime}
+                  </td>
+
+                  <td className="py-3 px-3 text-blue-400 text-[13px]">
+                    {record.breaks}
+                  </td>
+
+                  <td className="py-3 px-3 text-[13px] text-[var(--text-secondary)]">
+                    {record.totalBreakTime}
+                  </td>
+
+                  <td className="py-3 px-3 text-[13px] text-[var(--text-secondary)]">
+                    {record.workingHours}
+                  </td>
+
+                  <td className="py-3 px-3">
+                    <span className="px-2 py-0.5 rounded-full text-[11px] font-semibold bg-emerald-500/10 text-emerald-400">
+                      {record.status}
+                    </span>
+                  </td>
+
+                  <td className="py-3 px-3">
+                    <p className="text-indigo-400 font-medium text-[13px]">
+                      {record.userEmail}
+                    </p>
+
+                    <p className="text-[11px] text-[var(--text-muted)]">
+                      {record.userName}
+                    </p>
+                  </td>
+                </tr>
+              ))
+            )}
           </tbody>
         </table>
       </div>
     </div>
   );
-}
+});
+
+AttendanceHistory.displayName = "AttendanceHistory";
+
+export default AttendanceHistory;

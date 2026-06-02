@@ -2,8 +2,8 @@
 
 import { useEffect, useState } from "react";
 import Sidebar from "@/components/Sidebar";
-import Navbar from "@/components/Navbar";
-import ChatWindow from "@/components/ChatWindow";
+import Navbar from "@/components/layout/Navbar";
+import ChatWindow from "@/components/ui/ChatWindow";
 import {
   getAdminsApi,
   createAdminApi,

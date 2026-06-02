@@ -42,10 +42,10 @@ export default function Login() {
         const departmentName = typeof department === "object" ? department?.name : department;
         const departmentKey = departmentName?.toUpperCase().replace(/\s+/g, "_");
         const adminPath = DEPARTMENTS[departmentKey]?.adminPath || null;
-        router.replace(adminPath || "/admin/it");
+        router.replace(adminPath || "/admin/Employee");
       } else if (roleName === "USER") {
         const departmentPath = getDepartmentPath(department);
-        router.replace(departmentPath || "/dashboard/ce");
+        router.replace(departmentPath || "/dashboard/Employee");
       } else {
         router.replace("/");
       }
