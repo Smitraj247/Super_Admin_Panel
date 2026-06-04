@@ -1,4 +1,4 @@
-import axiosInstance from "@/utils/axiosInstance";
+import axiosInstance from "../utils/axiosInstance";
 
 export const getAdminStatsApi = () => axiosInstance.get("/admin/stats");
 
@@ -16,7 +16,7 @@ export const updateRoleApi = (id, data) =>
   axiosInstance.put(`/admin/roles/${id}`, data);
 export const deleteRoleApi = (id) => axiosInstance.delete(`/admin/roles/${id}`);
 
-// Admin Management APIs
+// Admin Management APIs1x
 export const getAdminsApi = () => axiosInstance.get("/admin/admins");
 export const createAdminApi = (data) =>
   axiosInstance.post("/admin/admins", data);

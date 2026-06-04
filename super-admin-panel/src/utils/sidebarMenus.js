@@ -6,7 +6,7 @@ export const userDeptMenus = {
     "Departments",
     "Roles",
     "Attedance",
-    "Apply Leave"
+    "Apply Leave",
   ],
   sales: [
     "Dashboard",
@@ -15,6 +15,7 @@ export const userDeptMenus = {
     "Departments",
     "Roles",
     "Leads",
+    "Emails",
     "Targets",
     "Attedance",
   ],
@@ -30,6 +31,8 @@ export const getAvailableMenus = (department, role = "USER") => {
         "Users",
         "Departments",
         "Roles",
+        "Leads",
+        "Emails",
         "Holidays",
         "Attedance",
       ],
@@ -48,4 +51,4 @@ export const getAvailableMenus = (department, role = "USER") => {
   }
 
   return userDeptMenus[department?.toLowerCase()] || [];
-};   
+};

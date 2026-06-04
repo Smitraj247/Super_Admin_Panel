@@ -77,7 +77,7 @@ export default function HolidayPage() {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-purple-100 to-purple-100">
+    <div className="min-h-screen">
       <Sidebar />
       <Navbar />
 

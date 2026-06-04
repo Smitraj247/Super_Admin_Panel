@@ -146,7 +146,7 @@ export default function SuperAdminDashboardOld() {
 
   return (
     <ProtectedDashboardRoute requiredRole={ROLES.SUPER_ADMIN}>
-      <div className="min-h-screen bg-[var(--bg-base)]">
+      <div className="min-h-screen">
         <Sidebar />
         <Navbar />
 

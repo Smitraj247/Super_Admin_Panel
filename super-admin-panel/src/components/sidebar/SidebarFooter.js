@@ -18,7 +18,7 @@ function SidebarFooter({
   onToggleCollapse,
 }) {
   return (
-    <div className="mt-auto p-3 border-t border-white/10 bg-[#181625]">
+    <div className="mt-auto p-3 border-t border-[var(--border)]">
       <button
         onClick={onProfileClick}
         className={`
@@ -26,7 +26,7 @@ function SidebarFooter({
               ${collapsed ? "justify-center" : "gap-3"}
               p-3 rounded-2xl
               bg-white/[0.03]
-              hover:bg-white/[0.06]
+              hover:bg-white/[0.08]
               transition-all
             `}
       >

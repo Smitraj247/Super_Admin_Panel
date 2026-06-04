@@ -58,7 +58,7 @@ export default function Login() {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-[var(--bg-base)] p-4 relative overflow-hidden">
+    <div className="min-h-screen flex items-center justify-center p-4 relative overflow-hidden">
       {/* Background blobs — navy with purple/teal glow */}
       <div className="absolute top-[-15%] left-[-5%] w-[500px] h-[500px] bg-[#7c6fff]/8 rounded-full blur-3xl pointer-events-none" />
       <div className="absolute bottom-[-15%] right-[-5%] w-[500px] h-[500px] bg-[#00d4aa]/6 rounded-full blur-3xl pointer-events-none" />
@@ -106,12 +106,14 @@ export default function Login() {
               <label className="text-[12px] font-semibold text-[var(--text-secondary)] uppercase tracking-wider">
                 Email Address
               </label>
-              <div className="relative">
-                <Mail className="absolute left-3.5 top-1/2 -translate-y-1/2 text-[var(--text-muted)]" size={16} />
+              <div className="relative group">
+                <div className="absolute left-2 top-1/2 -translate-y-1/2 w-8 h-8 rounded-lg bg-[#7c6fff]/10 flex items-center justify-center group-focus-within:bg-[#7c6fff]/20 transition-colors">
+                  <Mail className="text-[#7c6fff]" size={16} />
+                </div>
                 <input
                   type="email"
                   placeholder="name@company.com"
-                  className="input-base w-full pl-10 pr-4 py-3 rounded-xl text-sm"
+                  className="input-base w-full pl-12 pr-4 py-3 rounded-xl text-sm transition-all"
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
                   required
@@ -123,12 +125,14 @@ export default function Login() {
               <label className="text-[12px] font-semibold text-[var(--text-secondary)] uppercase tracking-wider">
                 Password
               </label>
-              <div className="relative">
-                <Lock className="absolute left-3.5 top-1/2 -translate-y-1/2 text-[var(--text-muted)]" size={16} />
+              <div className="relative group">
+                <div className="absolute left-2 top-1/2 -translate-y-1/2 w-8 h-8 rounded-lg bg-[#00d4aa]/10 flex items-center justify-center group-focus-within:bg-[#00d4aa]/20 transition-colors">
+                  <Lock className="text-[#00d4aa]" size={16} />
+                </div>
                 <input
                   type={showPassword ? "text" : "password"}
                   placeholder="••••••••"
-                  className="input-base w-full pl-10 pr-11 py-3 rounded-xl text-sm"
+                  className="input-base w-full pl-12 pr-11 py-3 rounded-xl text-sm transition-all"
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                   required
@@ -136,7 +140,7 @@ export default function Login() {
                 <button
                   type="button"
                   onClick={() => setShowPassword(!showPassword)}
-                  className="absolute right-3.5 top-1/2 -translate-y-1/2 text-[var(--text-muted)] hover:text-[var(--text-secondary)] transition-colors"
+                  className="absolute right-3.5 top-1/2 -translate-y-1/2 w-8 h-8 rounded-lg hover:bg-slate-500/10 flex items-center justify-center text-[var(--text-muted)] hover:text-[var(--text-secondary)] transition-colors"
                 >
                   {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
                 </button>

@@ -32,4 +32,4 @@ export const getUserLeaveHistoryApi = (userId, year, month) => {
   return axiosInstance.get(url);
 };
 
-export const getLeaveTypesapi = () => axiosInstance.get('/leaves types')
+export const getLeaveTypesApi = () => axiosInstance.get('/leaves/types')

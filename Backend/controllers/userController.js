@@ -185,3 +185,68 @@ export const updateUser = async (req, res) => {
     });
   }
 };
+
+export const getUpcomingBirthdays = async (req, res) => {
+  try {
+    // Get all users with birthday field
+    const users = await User.find({ 
+      birthday: { $exists: true, $ne: null },
+      isActive: true 
+    })
+      .populate("department", "name")
+      .select("name birthday department")
+      .lean();
+
+    if (!users || users.length === 0) {
+      return res.json({
+        success: true,
+        data: [],
+      });
+    }
+
+    // Calculate upcoming birthdays within next 30 days
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    
+    const upcomingBirthdays = users
+      .map((user) => {
+        const birthday = new Date(user.birthday);
+        const currentYear = today.getFullYear();
+        
+        // Set birthday to current year
+        const nextBirthday = new Date(
+          currentYear,
+          birthday.getMonth(),
+          birthday.getDate()
+        );
+        
+        // If birthday has passed this year, set to next year
+        if (nextBirthday < today) {
+          nextBirthday.setFullYear(currentYear + 1);
+        }
+        
+        // Calculate days until birthday
+        const diffTime = nextBirthday - today;
+        const daysUntil = Math.round(diffTime / (1000 * 60 * 60 * 24));
+        
+        return {
+          ...user,
+          nextBirthday,
+          daysUntil,
+        };
+      })
+      .filter((user) => user.daysUntil <= 30) // Only next 30 days
+      .sort((a, b) => a.daysUntil - b.daysUntil); // Sort by nearest first
+
+    res.json({
+      success: true,
+      data: upcomingBirthdays,
+    });
+  } catch (error) {
+    console.error("Error fetching upcoming birthdays:", error);
+    res.status(500).json({
+      success: false,
+      message: error.message,
+    });
+  }
+};

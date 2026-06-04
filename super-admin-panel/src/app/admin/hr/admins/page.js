@@ -39,6 +39,7 @@ export default function AdminsPage() {
     password: "",
     role: "ADMIN",
     department: "",
+    birthday: "",
   });
 
   const [editingId, setEditingId] = useState(null);
@@ -136,7 +137,7 @@ export default function AdminsPage() {
   );
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-green-50 to-green-100">
+    <div className="min-h-screen">
       <Sidebar />
       <Navbar />
 

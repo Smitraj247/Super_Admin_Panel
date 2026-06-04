@@ -4,6 +4,7 @@ import {
   updateProfile,
   deleteUser,
   getUser,
+  getUpcomingBirthdays,
 } from "../controllers/userController.js";
 
 import authMiddleware from "../middleware/authMiddleware.js";
@@ -16,6 +17,7 @@ router.get("/profile", authMiddleware, getProfile);
 router.put("/profile", authMiddleware, updateProfile);
 
 router.get("/users", authMiddleware, getUser);
+router.get("/upcoming-birthdays", authMiddleware, getUpcomingBirthdays);
 
 router.delete(
   "/:id",

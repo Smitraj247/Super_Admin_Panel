@@ -38,22 +38,33 @@ function SidebarMenu({ collapsed, groupedItems, pathname, onLinkClick }) {
                           transition-all duration-200
                           ${
                             active
-                              ? "bg-gradient-to-r from-violet-500/20 to-indigo-500/20 text-white border border-violet-500/20"
+                              ? "bg-gradient-to-r from-blue-500/20 to-emerald-500/20 text-white border border-blue-500/30"
                               : "text-slate-400 hover:bg-white/5 hover:text-white"
                           }
                         `}
                     >
-                      <Icon
-                        size={18}
-                        className={`${active ? "text-violet-300" : ""}`}
-                      />
+                      <div
+                        className={`
+                          flex items-center justify-center w-8 h-8 rounded-xl transition-colors
+                          ${active ? "bg-blue-500/25 shadow-inner" : "bg-white/5 group-hover:bg-white/10"}
+                        `}
+                      >
+                        <Icon
+                          size={18}
+                          className={`${
+                            active
+                              ? "text-blue-300"
+                              : "text-slate-400 group-hover:text-white transition-colors"
+                          }`}
+                        />
+                      </div>
 
                       {!collapsed && (
                         <>
                           <span className="text-sm font-medium">{name}</span>
 
                           {active && (
-                            <div className="ml-auto w-2 h-2 rounded-full bg-violet-400" />
+                            <div className="ml-auto w-2 h-2 rounded-full bg-blue-400 shadow-lg shadow-blue-400/50" />
                           )}
                         </>
                       )}
@@ -63,7 +74,7 @@ function SidebarMenu({ collapsed, groupedItems, pathname, onLinkClick }) {
                           className="
                               absolute left-full ml-3
                               px-3 py-2 rounded-xl
-                              bg-[#2a2640]
+                              bg-[var(--bg-elevated)]
                               text-white text-xs
                               opacity-0 invisible
                               group-hover:visible
@@ -71,7 +82,8 @@ function SidebarMenu({ collapsed, groupedItems, pathname, onLinkClick }) {
                               transition-all
                               whitespace-nowrap
                               z-50
-                              border border-white/10
+                              border border-[var(--border)]
+                              shadow-lg
                             "
                         >
                           {name}

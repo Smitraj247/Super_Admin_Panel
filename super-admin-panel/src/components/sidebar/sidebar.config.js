@@ -12,6 +12,11 @@ import {
   Shield,
   Crown,
   Zap,
+  Mail,
+  CalendarCheck,
+  CheckCircle,
+  BarChart3,
+  Target,
 } from "lucide-react";
 
 export const toSlug = (name = "") =>
@@ -23,6 +28,11 @@ export const DEFAULT_PERMISSIONS = [
   "Chats",
   "Attendance",
   "Apply Leave",
+  "Leads",
+  "Emails",
+  "Meetings",
+  "Followups",
+  "Reports",
 ];
 
 export const normalizePermissions = (permissions = []) =>
@@ -203,16 +213,28 @@ export const DEPT_EXTRA = {
     ],
     sales: [
       {
+        name: "Attendance",
+        icon: Calendar,
+      },
+      {
         name: "Leads",
         icon: Zap,
       },
       {
-        name: "Targets",
-        icon: ClipboardList,
+        name: "Emails",
+        icon: Mail,
+      },
+      {
+        name: "Meetings",
+        icon: CalendarCheck,
+      },
+      {
+        name: "Followups",
+        icon: CheckCircle,
       },
       {
         name: "Reports",
-        icon: ClipboardList,
+        icon: BarChart3,
       },
     ],
     hr: [],
@@ -220,6 +242,10 @@ export const DEPT_EXTRA = {
 
   admin: {
     sales: [
+      {
+        name: "Attendance",
+        icon: Calendar,
+      },
       {
         name: "Holidays",
         icon: Calendar,
@@ -229,12 +255,24 @@ export const DEPT_EXTRA = {
         icon: Zap,
       },
       {
+        name: "Emails",
+        icon: Mail,
+      },
+      {
+        name: "Meetings",
+        icon: CalendarCheck,
+      },
+      {
+        name: "Followups",
+        icon: CheckCircle,
+      },
+      {
         name: "Targets",
-        icon: ClipboardList,
+        icon: Target,
       },
       {
         name: "Reports",
-        icon: ClipboardList,
+        icon: BarChart3,
       },
     ],
 
@@ -242,6 +280,10 @@ export const DEPT_EXTRA = {
       {
         name: "Admins",
         icon: ShieldCheck,
+      },
+      {
+        name: "Attendance",
+        icon: Calendar,
       },
       {
         name: "Holidays",

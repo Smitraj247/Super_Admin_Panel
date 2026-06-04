@@ -118,6 +118,34 @@ const MetricBadge = ({ icon: Icon, label, value, colorClass, borderClass }) => (
   </div>
 );
 
+// ─── Status badge helper ──────────────────────────────────────────────────────
+
+const STATUS_STYLES = {
+  CHECKED_IN:     "bg-blue-100 text-blue-700",
+  CHECKED_OUT:    "bg-green-100 text-green-700",
+  LATE:           "bg-orange-100 text-orange-700",
+  ON_BREAK:       "bg-yellow-100 text-yellow-700",
+  BACK_TO_WORK:   "bg-cyan-100 text-cyan-700",
+  ON_LEAVE:       "bg-red-100 text-red-700",
+  HALF_DAY_LEAVE: "bg-yellow-300 text-yellow-900",
+};
+
+const STATUS_LABELS = {
+  CHECKED_IN:     "Checked In",
+  CHECKED_OUT:    "Checked Out",
+  LATE:           "Late",
+  ON_BREAK:       "On Break",
+  BACK_TO_WORK:   "Back to Work",
+  ON_LEAVE:       "On Leave",
+  HALF_DAY_LEAVE: "Half Day",
+};
+
+const StatusBadge = ({ status }) => (
+  <span className={`px-2 py-0.5 rounded text-xs font-semibold ${STATUS_STYLES[status] || "bg-gray-100 text-gray-700"}`}>
+    {STATUS_LABELS[status] || status.replace(/_/g, " ")}
+  </span>
+);
+
 // ─── Main Component
 
 export default function AttendancePage() {
@@ -196,21 +224,12 @@ export default function AttendancePage() {
     () => attendance.filter((r) => r.isLate).length,
     [attendance],
   );
-  const approvedLeaves = useMemo(
-    () => countLeaveDays(leaves, startDate, endDate, { status: "APPROVED" }),
-    [leaves, startDate, endDate],
-  );
   const plLeaves = useMemo(
-    () =>
-      countLeaveDays(leaves, startDate, endDate, {
-        status: "APPROVED",
-        leaveType: "PL",
-      }),
+    () => countLeaveDays(leaves, startDate, endDate, { status: "APPROVED", leaveType: "PL" }),
     [leaves, startDate, endDate],
   );
-  const actualAbsent = summary
-    ? Math.max(0, summary.absent - approvedLeaves)
-    : 0;
+  // Backend already excludes approved leaves from absent count
+  const actualAbsent = summary ? summary.absent : 0;
   const attendanceRate = summary
     ? Math.round((summary.present / summary.totalDays) * 100)
     : 0;
@@ -224,7 +243,7 @@ export default function AttendancePage() {
   // ── Render
 
   return (
-    <div className="flex min-h-screen bg-gray-50">
+    <div className="flex min-h-screen">
       <Sidebar />
       <div className="flex-1 flex flex-col md:ml-64">
         <Navbar />
@@ -431,7 +450,7 @@ export default function AttendancePage() {
                           {workHours(item.checkIn, item.checkOut, item.breaks)}
                         </td>
                         <td className="p-3 text-gray-700">
-                          {item.status.replace(/_/g, " ")}
+                          <StatusBadge status={item.status} />
                         </td>
                       </tr>
                     ))

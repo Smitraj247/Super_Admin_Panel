@@ -9,3 +9,5 @@ export const updateProfile = (data) => axios.put("/users/profile", data);
 export const createUser = (data) => axios.post("/users", data);
 
 export const deleteUser = (id) => axios.delete(`/users/${id}`);
+
+export const getUpcomingBirthdays = () => axios.get("/users/upcoming-birthdays");

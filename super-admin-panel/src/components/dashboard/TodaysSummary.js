@@ -21,18 +21,18 @@ const TodaySummary = memo(({ stats = {} }) => {
 
   return (
     <div
-      className="rounded-2xl border border-[var(--border)] p-5 sm:p-6 overflow-y-auto"
+      className="rounded-xl border border-[var(--border)] p-3 sm:p-4 overflow-y-auto"
       style={{
         background: "var(--bg-surface)",
         boxShadow: "var(--shadow-sm)",
-        maxHeight: "494px",
+        maxHeight: "360px",
       }}
     >
-      <h3 className="text-[18px] font-semibold text-[var(--text-primary)] mb-5">
+      <h3 className="text-[15px] font-semibold text-[var(--text-primary)] mb-3">
         Today's Summary
       </h3>
 
-      <div className="space-y-3">
+      <div className="space-y-2">
         <SummaryItem label="Check In" value={checkInTime} color="green" />
         <SummaryItem label="Check Out" value={checkOutTime} color="red" />
         <SummaryItem
@@ -45,37 +45,37 @@ const TodaySummary = memo(({ stats = {} }) => {
 
       {/* Break Details */}
       {breaks.length > 0 && (
-        <div className="mt-5 pt-4 border-t border-[var(--border)]">
-          <h4 className="text-[12px] font-semibold text-[var(--text-secondary)] mb-3 flex items-center gap-2">
-            <Coffee className="w-3.5 h-3.5 text-orange-400" />
+        <div className="mt-3 pt-2.5 border-t border-[var(--border)]">
+          <h4 className="text-[10px] font-semibold text-[var(--text-secondary)] mb-2 flex items-center gap-1">
+            <Coffee className="w-2.5 h-2.5 text-orange-400" />
             Break Details
           </h4>
 
-          <div className="space-y-2">
+          <div className="space-y-1.5">
             {breaks.map((b) => (
               <div
                 key={b.index}
-                className={`p-3 rounded-xl border text-xs ${
+                className={`p-2 rounded-lg border text-xs ${
                   b.isActive
                     ? "bg-orange-500/10 border-orange-500/20"
                     : "bg-[var(--bg-elevated)] border-[var(--border)]"
                 }`}
               >
-                <div className="flex items-center justify-between mb-1">
-                  <span className="font-semibold text-[var(--text-secondary)]">
+                <div className="flex items-center justify-between mb-0.5">
+                  <span className="font-semibold text-[var(--text-secondary)] text-[10px]">
                     Break #{b.index}
                   </span>
 
                   {b.isActive && (
-                    <span className="bg-orange-500 text-white text-[10px] px-2 py-0.5 rounded-full flex items-center gap-1">
+                    <span className="bg-orange-500 text-white text-[8px] px-1.5 py-0.5 rounded-full flex items-center gap-0.5">
                       <span className="w-1 h-1 bg-white rounded-full animate-pulse" />
                       Active
                     </span>
                   )}
                 </div>
 
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-2">
+                <div className="flex items-center justify-between text-[10px]">
+                  <div className="flex items-center gap-1">
                     <span className="text-emerald-400 font-medium">
                       {b.breakStart}
                     </span>
@@ -102,8 +102,8 @@ const TodaySummary = memo(({ stats = {} }) => {
       )}
 
       {/* Goal Progress */}
-      <div className="mt-5 pt-4 border-t border-[var(--border)]">
-        <div className="flex items-center justify-between mb-2 text-[12px]">
+      <div className="mt-3 pt-2.5 border-t border-[var(--border)]">
+        <div className="flex items-center justify-between mb-1 text-[10px]">
           <span className="text-[var(--text-muted)]">
             {goalProgress}% of {WORK_GOAL_HOURS}h goal
           </span>

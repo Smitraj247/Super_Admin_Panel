@@ -90,7 +90,7 @@ export default function RolesPage() {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-purple-50 to-purple-100">
+    <div className="min-h-screen">
       <Sidebar />
       <Navbar />
 

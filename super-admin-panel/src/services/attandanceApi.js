@@ -39,3 +39,6 @@ export const getAttendanceSummary = (startDate, endDate) => {
     `/attendance/summary?startDate=${startDate}&endDate=${endDate}`,
   );
 };
+
+
+

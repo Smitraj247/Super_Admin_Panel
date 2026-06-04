@@ -42,6 +42,7 @@ import { getAllUsersAttendanceApi } from "@/services/attandanceApi";
 import { getSuperAdminLeavesApi } from "@/services/leaveApi";
 import { getHolidaysApi } from "@/services/holidayApi";
 import { cachedFetch } from "@/lib/cache";
+import UpcomingBirthdays from "@/components/dashboard/UpcomingBirthdays";
 
 // ─── Constants
 const COLORS = ["#10b981", "#f59e0b", "#8b5cf6", "#3b82f6"];
@@ -434,7 +435,7 @@ export default function SuperAdminDashboard() {
   // ── Loading ──
   if (loading) {
     return (
-      <main className="min-h-screen bg-[var(--bg-base)]">
+      <main className="min-h-screen">
         <Navbar />
         <Sidebar />
         <div className="sidebar-aware pt-20 flex items-center justify-center min-h-screen">
@@ -460,7 +461,7 @@ export default function SuperAdminDashboard() {
   ];
 
   return (
-    <main className="min-h-screen bg-[var(--bg-base)]">
+    <main className="min-h-screen">
       <Navbar />
       <Sidebar />
 
@@ -537,7 +538,7 @@ export default function SuperAdminDashboard() {
                 icon: <Briefcase size={18} />,
                 // trend: "0.9%",
                 up: false,
-                color: "orange",
+                color: "orange",  
                 sparkline: [100, 110, 120, stats.onLeaveToday],
               },
               {
@@ -688,7 +689,7 @@ export default function SuperAdminDashboard() {
                       <Tooltip
                         formatter={(v) => [v, "Present"]}
                         labelFormatter={(l) =>
-                          trend.find((d) => d.day === l)?.fullLabel || l
+                          trend.find((d) => d.day === l)?.fullLabel || l            
                         }
                         contentStyle={{
                           borderRadius: 8,
@@ -733,14 +734,7 @@ export default function SuperAdminDashboard() {
 
           {/* Department Summary + Recent Leaves Table */}
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-            <SectionCard
-              title="Department Summary"
-              action={
-                <button className="text-xs text-indigo-400 hover:text-indigo-300 font-medium transition-colors">
-                  View All →
-                </button>
-              }
-            >
+            <SectionCard title="Department Summary">
               <div className="overflow-x-auto">
                 <table className="w-full text-sm">
                   <thead>
@@ -786,19 +780,12 @@ export default function SuperAdminDashboard() {
               </div>
             </SectionCard>
 
-            <SectionCard
-              title="Recent Leaves"
-              action={
-                <button className="text-xs text-indigo-400 hover:text-indigo-300 font-medium transition-colors">
-                  View All →
-                </button>
-              }
-            >
+            <SectionCard title="Recent Leaves">
               <div className="overflow-x-auto">
                 <table className="w-full text-sm">
                   <thead>
                     <tr className="border-b border-[var(--border)]">
-                      {["Employee", "Type", "From", "To", "Status"].map((h) => (
+                      {["Employee", "Typ e", "From", "To", "Status"].map((h) => (
                         <th
                           key={h}
                           className="text-left py-2 px-2 text-[11px] font-semibold text-[var(--text-muted)] uppercase tracking-wider"
@@ -914,6 +901,9 @@ export default function SuperAdminDashboard() {
             </div>
           </SectionCard>
 
+          {/* Upcoming Birthdays */}
+          <UpcomingBirthdays />
+
           {/* Quick Actions */}
           <SectionCard title="Quick Actions">
             <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
@@ -952,3 +942,4 @@ export default function SuperAdminDashboard() {
     </main>
   );
 }
+

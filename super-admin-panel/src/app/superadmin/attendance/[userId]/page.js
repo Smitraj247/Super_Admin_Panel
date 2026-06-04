@@ -205,7 +205,7 @@ export default function UserAttendanceDetail() {
   );
 
   return (
-    <div className="min-h-screen bg-[var(--bg-base)]">
+    <div className="min-h-screen">
       <Sidebar />
       <Navbar />
 

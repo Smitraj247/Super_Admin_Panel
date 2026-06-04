@@ -5,7 +5,7 @@ import { ClipboardList } from "lucide-react";
 
 export default function TargetsPage() {
   return (
-    <main className="min-h-screen bg-[#F8FAFC]">
+    <main className="min-h-screen">
       <Sidebar />
       <Navbar />
 

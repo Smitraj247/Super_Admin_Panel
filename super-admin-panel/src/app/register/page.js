@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { registerApi } from "../../services/authApi";
 import { useRouter } from "next/navigation";
+import GoogleSignupButton from "@/components/auth/GoogleSignupButton";
 import { User, Mail, Lock, UserPlus, Shield, Eye, EyeOff } from "lucide-react";
 
 export default function Register() {
@@ -91,14 +92,13 @@ export default function Register() {
                 Full Name
               </label>
               <div className="relative group">
-                <User
-                  className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-indigo-600 transition-colors"
-                  size={20}
-                />
+                <div className="absolute left-2 top-1/2 -translate-y-1/2 w-9 h-9 rounded-xl bg-indigo-50 flex items-center justify-center group-focus-within:bg-indigo-100 transition-colors">
+                  <User className="text-indigo-500" size={18} />
+                </div>
                 <input
                   type="text"
                   placeholder="John Doe"
-                  className="w-full pl-12 pr-4 py-3 bg-slate-50 border border-slate-200 rounded-2xl focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all font-medium text-slate-700 placeholder:text-slate-400"
+                  className="w-full pl-14 pr-4 py-3 bg-slate-50 border border-slate-200 rounded-2xl focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all font-medium text-slate-700 placeholder:text-slate-400"
                   value={name}
                   onChange={(e) => setName(e.target.value)}
                   required
@@ -111,14 +111,13 @@ export default function Register() {
                 Email Address
               </label>
               <div className="relative group">
-                <Mail
-                  className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-indigo-600 transition-colors"
-                  size={20}
-                />
+                <div className="absolute left-2 top-1/2 -translate-y-1/2 w-9 h-9 rounded-xl bg-indigo-50 flex items-center justify-center group-focus-within:bg-indigo-100 transition-colors">
+                  <Mail className="text-indigo-500" size={18} />
+                </div>
                 <input
                   type="email"
                   placeholder="name@company.com"
-                  className="w-full pl-12 pr-4 py-3 bg-slate-50 border border-slate-200 rounded-2xl focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all font-medium text-slate-700 placeholder:text-slate-400"
+                  className="w-full pl-14 pr-4 py-3 bg-slate-50 border border-slate-200 rounded-2xl focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all font-medium text-slate-700 placeholder:text-slate-400"
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
                   required
@@ -131,14 +130,13 @@ export default function Register() {
                 Password
               </label>
               <div className="relative group">
-                <Lock
-                  className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-indigo-600 transition-colors"
-                  size={20}
-                />
+                <div className="absolute left-2 top-1/2 -translate-y-1/2 w-9 h-9 rounded-xl bg-indigo-50 flex items-center justify-center group-focus-within:bg-indigo-100 transition-colors">
+                  <Lock className="text-indigo-500" size={18} />
+                </div>
                 <input
                   type={showPassword ? "text" : "password"}
                   placeholder="••••••••"
-                  className="w-full pl-12 pr-4 py-3 bg-slate-50 border border-slate-200 rounded-2xl focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all font-medium text-slate-700 placeholder:text-slate-400"
+                  className="w-full pl-14 pr-12 py-3 bg-slate-50 border border-slate-200 rounded-2xl focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all font-medium text-slate-700 placeholder:text-slate-400"
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                   required
@@ -146,7 +144,7 @@ export default function Register() {
                 <button
                   type="button"
                   onClick={() => setShowPassword(!showPassword)}
-                  className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600"
+                  className="absolute right-2 top-1/2 -translate-y-1/2 w-9 h-9 rounded-xl hover:bg-slate-200/50 flex items-center justify-center text-slate-400 hover:text-slate-600 transition-colors"
                 >
                   {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
                 </button>
@@ -158,12 +156,11 @@ export default function Register() {
                 Access Role
               </label>
               <div className="relative group">
-                <Shield
-                  className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-indigo-600 transition-colors"
-                  size={20}
-                />
+                <div className="absolute left-2 top-1/2 -translate-y-1/2 w-9 h-9 rounded-xl bg-indigo-50 flex items-center justify-center group-focus-within:bg-indigo-100 transition-colors">
+                  <Shield className="text-indigo-500" size={18} />
+                </div>
                 <select
-                  className="w-full pl-12 pr-4 py-3 bg-slate-50 border border-slate-200 rounded-2xl focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all font-medium text-slate-700 appearance-none"
+                  className="w-full pl-14 pr-4 py-3 bg-slate-50 border border-slate-200 rounded-2xl focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all font-medium text-slate-700 appearance-none"
                   value={role}
                   onChange={(e) => setRole(e.target.value)}
                 >
@@ -186,6 +183,8 @@ export default function Register() {
               )}
             </button>
           </form>
+
+          < GoogleSignupButton />
 
           <p className="mt-8 text-center text-slate-500 font-medium">
             Already have an account?{" "}

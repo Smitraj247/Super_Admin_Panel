@@ -44,18 +44,44 @@ export default function AdminsPage() {
   // Chat state
   const [chatUser, setChatUser] = useState(null);
 
-  // Available sidebar options for admins
-  const availableSidebarOptions = [
-    "Dashboard",
-    "Profile",
-    "Admins",
-    "Users",
-    "Departments",
-    "Roles",
-    "Attendance",
-    "Apply Leave",
-    "Holidays",
-  ];
+  // Get selected department name
+  const selectedDepartment = departments.find(
+    (dept) => dept._id === form.department,
+  );
+  const deptName = selectedDepartment?.name?.toLowerCase() || "";
+
+  // Available sidebar options for admins (dynamically based on department)
+  const getAvailableSidebarOptions = () => {
+    const baseOptions = [
+      "Dashboard",
+      "Profile",
+      "Admins",
+      "Users",
+      "Departments",
+      "Roles",
+      "Chats",
+      "Attendance",
+      "Apply Leave",
+      "Holidays", 
+    ];
+
+    // Add sales-specific options
+    if (deptName === "sales") {
+      return [
+        ...baseOptions,
+        "Leads",
+        "Emails",
+        "Meetings",
+        "Followups",
+        "Reports",
+        "Targets",
+      ];
+    }
+
+    return baseOptions;
+  };
+
+  const availableSidebarOptions = getAvailableSidebarOptions();
 
   const handlePermissionToggle = (permission) => {
     setForm((prev) => ({
@@ -87,7 +113,37 @@ export default function AdminsPage() {
   }, []);
 
   const handleChange = (e) => {
-    setForm({ ...form, [e.target.name]: e.target.value });
+    const { name, value } = e.target;
+
+    // Auto-select sidebar permissions when sales department is selected
+    if (name === "department") {
+      const selectedDept = departments.find((dept) => dept._id === value);
+      const deptName = selectedDept?.name?.toLowerCase() || "";
+
+      if (deptName === "sales") {
+        setForm({
+          ...form,
+          [name]: value,
+          sidebarPermissions: [
+            "Dashboard",
+            "Profile",
+            "Users",
+            "Leads",
+            "Reports",
+            "Emails",
+            "Meetings",
+            "Targets",
+            "Apply Leave",
+            "Attendance",
+            "Holidays",
+          ],
+        });
+      } else {
+        setForm({ ...form, [name]: value });
+      }
+    } else {
+      setForm({ ...form, [name]: value });
+    }
   };
 
   const handleSubmit = async (e) => {
@@ -159,7 +215,7 @@ export default function AdminsPage() {
 
   return (
     <ProtectedDashboardRoute requiredRole={ROLES.SUPER_ADMIN}>
-      <div className="min-h-screen bg-[var(--bg-base)]">
+      <div className="min-h-screen">
         <Sidebar />
         <Navbar />
 

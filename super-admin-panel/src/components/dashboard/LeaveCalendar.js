@@ -208,11 +208,12 @@ export default function LeaveCalendar({ leaves = [], holidays = [] }) {
         <div
           key={i}
           className={`min-h-[80px] border border-slate-100 p-1.5 transition-all
-            ${isValidDay
-              ? dayHoliday
-                ? `${getHolidayBg(dayHoliday.type)} hover:opacity-90`
-                : "bg-white hover:bg-slate-50"
-              : "bg-slate-50"
+            ${
+              isValidDay
+                ? dayHoliday
+                  ? `${getHolidayBg(dayHoliday.type)} hover:opacity-90`
+                  : "bg-white hover:bg-slate-50"
+                : "bg-slate-50"
             }
             ${isToday ? "ring-2 ring-indigo-300" : ""}
           `}
@@ -232,11 +233,12 @@ export default function LeaveCalendar({ leaves = [], holidays = [] }) {
                 {dayHoliday && (
                   <div
                     className={`text-[8px] px-1 py-0.5 rounded font-semibold
-                      ${dayHoliday.type === "national"
-                        ? "bg-orange-200 text-orange-800"
-                        : dayHoliday.type === "festival"
-                          ? "bg-purple-200 text-purple-800"
-                          : "bg-blue-200 text-blue-800"
+                      ${
+                        dayHoliday.type === "national"
+                          ? "bg-orange-200 text-orange-800"
+                          : dayHoliday.type === "festival"
+                            ? "bg-purple-200 text-purple-800"
+                            : "bg-blue-200 text-blue-800"
                       }
                     `}
                     title={dayHoliday.description || dayHoliday.title}
@@ -254,11 +256,12 @@ export default function LeaveCalendar({ leaves = [], holidays = [] }) {
               {dayHoliday && (
                 <div
                   className={`text-[9px] font-bold mb-1 truncate
-                    ${dayHoliday.type === "national"
-                      ? "text-orange-700"
-                      : dayHoliday.type === "festival"
-                        ? "text-purple-700"
-                        : "text-blue-700"
+                    ${
+                      dayHoliday.type === "national"
+                        ? "text-orange-700"
+                        : dayHoliday.type === "festival"
+                          ? "text-purple-700"
+                          : "text-blue-700"
                     }
                   `}
                 >
@@ -272,12 +275,13 @@ export default function LeaveCalendar({ leaves = [], holidays = [] }) {
                   <div
                     key={index}
                     className={`text-[10px] px-1.5 py-0.5 rounded truncate
-                        ${leave.status === "APPROVED"
-                        ? "bg-green-100 text-green-700"
-                        : leave.status === "PENDING"
-                          ? "bg-yellow-100 text-yellow-700"
-                          : "bg-red-100 text-red-700"
-                      }
+                        ${
+                          leave.status === "APPROVED"
+                            ? "bg-green-100 text-green-700"
+                            : leave.status === "PENDING"
+                              ? "bg-yellow-100 text-yellow-700"
+                              : "bg-red-100 text-red-700"
+                        }
                       `}
                     title={`${leave.name} - ${leave.type}`}
                   >
@@ -324,7 +328,6 @@ export default function LeaveCalendar({ leaves = [], holidays = [] }) {
 
         {/* CONTROLS */}
         <div className="flex flex-wrap items-center gap-2">
-
           <select
             value={selectedYear}
             onChange={handleYearChange}
@@ -332,7 +335,9 @@ export default function LeaveCalendar({ leaves = [], holidays = [] }) {
           bg-white hover:shadow-sm transition-all duration-200"
           >
             {availableYears.map((yr) => (
-              <option key={yr} value={yr}>{yr}</option>
+              <option key={yr} value={yr}>
+                {yr}
+              </option>
             ))}
           </select>
 
@@ -343,7 +348,9 @@ export default function LeaveCalendar({ leaves = [], holidays = [] }) {
           bg-white hover:shadow-sm transition-all duration-200"
           >
             {monthNames.map((name, index) => (
-              <option key={index} value={index}>{name}</option>
+              <option key={index} value={index}>
+                {name}
+              </option>
             ))}
           </select>
 
@@ -357,7 +364,6 @@ export default function LeaveCalendar({ leaves = [], holidays = [] }) {
           </button>
 
           <div className="flex items-center gap-1 bg-white border border-[var(--border)] rounded-xl p-1 shadow-sm">
-
             <button
               onClick={goToPreviousMonth}
               className="p-1.5 rounded-lg hover:bg-indigo-50 hover:scale-110 transition-all"
@@ -388,15 +394,14 @@ export default function LeaveCalendar({ leaves = [], holidays = [] }) {
           ))}
         </div>
 
-        <div className="grid grid-cols-7 gap-2">
-          {renderCalendar()}
-        </div>
+        <div className="grid grid-cols-7 gap-2">{renderCalendar()}</div>
       </div>
 
       {/* LEGEND */}
-      <div className="flex flex-wrap items-center gap-4 px-4 py-3 border-t border-[var(--border)]
-      bg-white/60 backdrop-blur-md">
-
+      <div
+        className="flex flex-wrap items-center gap-4 px-4 py-3 border-t border-[var(--border)]
+      bg-white/60 backdrop-blur-md"
+      >
         <div className="text-xs font-semibold text-[var(--text-secondary)]">
           Status:
         </div>

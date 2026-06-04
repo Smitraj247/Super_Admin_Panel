@@ -16,33 +16,33 @@ const AttendanceTracking = memo(
 
     return (
       <div
-        className="rounded-2xl border border-[var(--border)] p-5 sm:p-6"
+        className="rounded-2xl border border-[var(--border)] p-4"
         style={{
           background: "var(--bg-surface)",
           boxShadow: "var(--shadow-sm)",
         }}
       >
-        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-5">
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-4">
           <div>
-            <h3 className="text-[20px] font-semibold text-[var(--text-primary)]">
+            <h3 className="text-[16px] font-semibold text-[var(--text-primary)]">
               Attendance Tracking
             </h3>
-            <p className="text-[12px] text-[var(--text-muted)] mt-1">
+            <p className="text-[11px] text-[var(--text-muted)] mt-0.5">
               Track your attendance with one click
             </p>
           </div>
 
           {userStatus === "LATE" && (
-            <div className="bg-orange-500/10 border border-orange-500/20 text-orange-400 px-3 py-1 rounded-full text-[12px] font-semibold flex items-center gap-2">
+            <div className="bg-orange-500/10 border border-orange-500/20 text-orange-400 px-2.5 py-1 rounded-full text-[11px] font-semibold flex items-center gap-1.5">
               <div className="w-1.5 h-1.5 bg-orange-400 rounded-full animate-pulse" />
               Late Check-In
             </div>
           )}
         </div>
 
-        <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
           <ActionButton
-            icon={<LogIn className="w-5 h-5 sm:w-6 sm:h-6" />}
+            icon={<LogIn className="w-4 h-4 sm:w-5 sm:h-5" />}
             label="Check In"
             subtitle="Start Your Day"
             color="green"
@@ -51,7 +51,7 @@ const AttendanceTracking = memo(
           />
 
           <ActionButton
-            icon={<Coffee className="w-5 h-5 sm:w-6 sm:h-6" />}
+            icon={<Coffee className="w-4 h-4 sm:w-5 sm:h-5" />}
             label="Break"
             subtitle="Take a Break"
             color="orange"
@@ -60,7 +60,7 @@ const AttendanceTracking = memo(
           />
 
           <ActionButton
-            icon={<Play className="w-5 h-5 sm:w-6 sm:h-6" />}
+            icon={<Play className="w-4 h-4 sm:w-5 sm:h-5" />}
             label="Resume"
             subtitle="Back to Work"
             color="blue"
@@ -69,7 +69,7 @@ const AttendanceTracking = memo(
           />
 
           <ActionButton
-            icon={<LogOut className="w-5 h-5 sm:w-6 sm:h-6" />}
+            icon={<LogOut className="w-4 h-4 sm:w-5 sm:h-5" />}
             label="Check Out"
             subtitle="End Your Day"
             color="red"

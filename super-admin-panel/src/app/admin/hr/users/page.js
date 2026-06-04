@@ -24,6 +24,7 @@ export default function UsersPage() {
     email: "",
     role: "USER",
     department: "",
+    birthday: "",
     sidebarPermissions: [],
   });
   const [editingId, setEditingId] = useState(null);
@@ -32,23 +33,43 @@ export default function UsersPage() {
   // Chat state
   const [chatUser, setChatUser] = useState(null);
 
-  // Available sidebar options for users
-  const availableSidebarOptions = [
-    "Dashboard",
-    "Profile",
-    "Users",
-    "Departments",
-    "Roles",
-    "Help Desk",
-    "Network Monitor",
-    "Projects",
-    "Reports",
-    "Leads",
-    "Targets",
-    "Attendance",
-    "Apply Leave",
-    "Holidays",
-  ];
+  // Get selected department name
+  const selectedDepartment = departments.find(
+    (dept) => dept._id === form.department
+  );
+  const deptName = selectedDepartment?.name?.toLowerCase() || "";
+
+  // Available sidebar options for users (dynamically based on department)
+  const getAvailableSidebarOptions = () => {
+    const baseOptions = [
+      "Dashboard",
+      "Profile",
+      "Chats",
+      "Attendance",
+      "Apply Leave",
+    ];
+
+    // Add sales-specific options
+    if (deptName === "sales") {
+      return [
+        ...baseOptions,
+        "Leads",
+        "Emails",
+        "Meetings",
+        "Followups",
+        "Reports",
+      ];
+    }
+
+    // Add other department options if needed
+    if (deptName === "it") {
+      return [...baseOptions, "Help Desk", "Network Monitor", "Projects"];
+    }
+
+    return baseOptions;
+  };
+
+  const availableSidebarOptions = getAvailableSidebarOptions();
 
   const handlePermissionToggle = (permission) => {
     setForm((prev) => ({
@@ -80,7 +101,58 @@ export default function UsersPage() {
   }, []);
 
   const handleChange = (e) => {
-    setForm({ ...form, [e.target.name]: e.target.value });
+    const { name, value } = e.target;
+    
+    // Auto-select sidebar permissions when department is selected
+    if (name === "department") {
+      const selectedDept = departments.find((dept) => dept._id === value);
+      const deptName = selectedDept?.name?.toLowerCase() || "";
+      
+      if (deptName === "sales") {
+        setForm({
+          ...form,
+          [name]: value,
+          sidebarPermissions: [
+            "Dashboard",
+            "Profile",
+            "Leads",
+            "Reports",
+            "Emails",
+            "Meetings",
+            "Apply Leave",
+            "Attendance",
+          ],
+        });
+      } else if (deptName === "it") {
+        setForm({
+          ...form,
+          [name]: value,
+          sidebarPermissions: [
+            "Dashboard",
+            "Profile",
+            "Help Desk",
+            "Network Monitor",
+            "Projects",
+            "Apply Leave",
+            "Attendance",
+          ],
+        });
+      } else {
+        setForm({
+          ...form,
+          [name]: value,
+          sidebarPermissions: [
+            "Dashboard",
+            "Profile",
+            "Chats",
+            "Apply Leave",
+            "Attendance",
+          ],
+        });
+      }
+    } else {
+      setForm({ ...form, [name]: value });
+    }
   };
 
   const handleSubmit = async (e) => {
@@ -108,6 +180,7 @@ export default function UsersPage() {
         email: "",
         role: "USER",
         department: "",
+        birthday: "",
         sidebarPermissions: [],
       });
     } catch (err) {
@@ -148,7 +221,7 @@ export default function UsersPage() {
   );
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-green-50 to-green-100">
+    <div className="min-h-screen">
       <Sidebar />
       <Navbar />
 

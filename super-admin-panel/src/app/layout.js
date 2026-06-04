@@ -2,6 +2,7 @@ import "./globals.css";
 import { AuthProvider } from "../context/AuthContext";
 import { SidebarProvider } from "../context/SidebarContext";
 import { ThemeProvider } from "@/components/theme-provider";
+import { Toaster } from "react-hot-toast";
 
 export const viewport = {
   width: "device-width",
@@ -19,7 +20,10 @@ export default function RootLayout({ children }) {
           disableTransitionOnChange
         >
           <AuthProvider>
-            <SidebarProvider>{children}</SidebarProvider>
+            <SidebarProvider>
+              {children}
+              <Toaster position="top-right" />
+            </SidebarProvider>
           </AuthProvider>
         </ThemeProvider>
       </body>

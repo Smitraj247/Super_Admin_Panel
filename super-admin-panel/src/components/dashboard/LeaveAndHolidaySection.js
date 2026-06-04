@@ -10,31 +10,24 @@ import HolidayWidget from "@/components/features/HolidayWidget";
  */
 const LeaveAndHolidaySection = memo(({ leaves = [], holidays = [] }) => {
   return (
-    <div className="grid grid-cols-1 xl:grid-cols-[2fr_1fr] gap-6">
-      {/* Recent Leaves Calendar */}
+    <div className="grid grid-cols-1 xl:grid-cols-[2fr_320px] gap-4">
       <div
-        className="rounded-2xl p-6 border border-[var(--border)]"
-        style={{
-          background: "var(--bg-surface)",
-          boxShadow: "var(--shadow-sm)",
-        }}
+        className="
+          rounded-2xl
+          border border-[var(--border)]
+          bg-[var(--bg-surface)]
+          p-4
+          shadow-sm
+        "
       >
-        <h3 className="text-[18px] font-semibold text-[var(--text-primary)] mb-6">
-          Recent Leaves Calendar
+        <h3 className="text-[16px] font-semibold text-[var(--text-primary)] mb-4">
+          Leave Calendar
         </h3>
+
         <LeaveCalendar leaves={leaves} holidays={holidays} />
       </div>
 
-      {/* Holiday Widget */}
-      <div
-        className="rounded-2xl p-6 border border-[var(--border)] h-fit"
-        style={{
-          background: "var(--bg-surface)",
-          boxShadow: "var(--shadow-sm)",
-        }}
-      >
-        <HolidayWidget />
-      </div>
+      <HolidayWidget />
     </div>
   );
 });
@@ -42,3 +35,5 @@ const LeaveAndHolidaySection = memo(({ leaves = [], holidays = [] }) => {
 LeaveAndHolidaySection.displayName = "LeaveAndHolidaySection";
 
 export default LeaveAndHolidaySection;
+
+

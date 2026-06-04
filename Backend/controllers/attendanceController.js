@@ -1,5 +1,7 @@
 import mongoose from "mongoose";
 import Attendance from "../models/Attendance.js";
+import Leave from "../models/Leave.js";
+import Holiday from "../models/Holiday.js";
 const getToday = () => new Date().toISOString().split("T")[0];
 
 export const checkIn = async (req, res) => {
@@ -417,71 +419,141 @@ export const getAttendanceSummary = async (req, res) => {
       return res.status(400).json({ message: "startDate and endDate are required" });
     }
 
-    const records = await Attendance.find({
-      userId,
-      date: { $gte: startDate, $lte: endDate },
+    const [records, approvedHalfDayLeaves, holidays] = await Promise.all([
+      Attendance.find({ userId, date: { $gte: startDate, $lte: endDate } }),
+      Leave.find({
+        user: userId,
+        isHalfDay: true,
+        status: "APPROVED",
+        fromDate: { $lte: new Date(endDate) },
+        toDate:   { $gte: new Date(startDate) },
+      }),
+      Holiday.find({
+        date: { $gte: new Date(startDate), $lte: new Date(endDate) },
+      }),
+    ]);
+
+    // Build set of holiday date strings (YYYY-MM-DD) to exclude from working days
+    const holidayDates = new Set(
+      holidays.map((h) => new Date(h.date).toISOString().split("T")[0])
+    );
+
+    // Generate all working days (Mon–Sat) in the range
+    const workingDays = [];
+    const cursor = new Date(startDate);
+    const end   = new Date(endDate);
+    const today = new Date();
+    today.setHours(23, 59, 59, 999); // don't count future days as absent
+
+    while (cursor <= end && cursor <= today) {
+      const day = cursor.getDay(); // 0=Sun
+      const dateStr = cursor.toISOString().split("T")[0];
+      if (day !== 0 && !holidayDates.has(dateStr)) {
+        workingDays.push(dateStr);
+      }
+      cursor.setDate(cursor.getDate() + 1);
+    }
+
+    // Build lookup of attendance records by date
+    const attendanceByDate = new Map(records.map((r) => [r.date, r]));
+
+    // Dates already covered by a HALF_DAY_LEAVE attendance record
+    const alreadyMarkedDates = new Set(
+      records.filter((r) => r.status === "HALF_DAY_LEAVE").map((r) => r.date)
+    );
+
+    // Approved half-day leaves not yet reflected in attendance records
+    const leaveHalfDayCount = approvedHalfDayLeaves.filter(
+      (l) => !alreadyMarkedDates.has(new Date(l.fromDate).toISOString().split("T")[0])
+    ).length;
+
+    // Build set of approved full-day leave dates so we don't double-count absent
+    const approvedFullLeaveDates = new Set();
+    const approvedFullLeaves = await Leave.find({
+      user: userId,
+      isHalfDay: false,
+      status: "APPROVED",
+      fromDate: { $lte: new Date(endDate) },
+      toDate:   { $gte: new Date(startDate) },
+    });
+    approvedFullLeaves.forEach((l) => {
+      const lCursor = new Date(l.fromDate);
+      const lEnd    = new Date(l.toDate);
+      while (lCursor <= lEnd) {
+        approvedFullLeaveDates.add(lCursor.toISOString().split("T")[0]);
+        lCursor.setDate(lCursor.getDate() + 1);
+      }
     });
 
     const REQUIRED_DAILY_HOURS = 8.5;
     const HALF_DAY_HOURS = 4;
 
-    let totalDays = 0;
+    let totalDays = workingDays.length;
     let present = 0;
     let absent = 0;
     let halfDay = 0;
     let totalWorkMinutes = 0;
     let onLeave = 0;
 
-    records.forEach((r) => {
-      totalDays++;
+    for (const dateStr of workingDays) {
+      const r = attendanceByDate.get(dateStr);
 
-      // Handle leave statuses - count as absent
+      if (!r) {
+        // No attendance record for this working day
+        if (approvedFullLeaveDates.has(dateStr)) {
+          // Approved full-day leave — count as leave, not raw absent
+          onLeave++;
+        } else {
+          absent++;
+        }
+        continue;
+      }
+
       if (r.status === "ON_LEAVE") {
-        absent++;
         onLeave++;
-        return;
+        continue;
       }
 
       if (r.status === "HALF_DAY_LEAVE") {
         halfDay++;
         present++;
         onLeave++;
-        return;
+        continue;
       }
 
       if (!r.checkIn) {
         absent++;
-        return;
+        continue;
       }
 
       present++;
 
-      // Calculate work hours
       if (r.checkOut) {
-        const checkInTime = new Date(r.checkIn);
+        const checkInTime  = new Date(r.checkIn);
         const checkOutTime = new Date(r.checkOut);
         let workMinutes = (checkOutTime - checkInTime) / (1000 * 60);
 
-        // Subtract break time
         r.breaks?.forEach((brk) => {
           if (brk.breakIn && brk.breakOut) {
-            const breakMinutes = (new Date(brk.breakOut) - new Date(brk.breakIn)) / (1000 * 60);
-            workMinutes -= breakMinutes;
+            workMinutes -= (new Date(brk.breakOut) - new Date(brk.breakIn)) / (1000 * 60);
           }
         });
 
         totalWorkMinutes += workMinutes;
 
-        // Check if half day (only for actual work, not leave)
         if (workMinutes / 60 < HALF_DAY_HOURS) {
           halfDay++;
         }
       }
-    });
+    }
 
-    const totalWorkHours = (totalWorkMinutes / 60).toFixed(1);
-    const totalOfficeHours = present * REQUIRED_DAILY_HOURS;
-    const productivity = totalOfficeHours
+    // Add approved half-day leaves not yet in attendance records
+    halfDay  += leaveHalfDayCount;
+    present  += leaveHalfDayCount;
+
+    const totalWorkHours    = (totalWorkMinutes / 60).toFixed(1);
+    const totalOfficeHours  = present * REQUIRED_DAILY_HOURS;
+    const productivity      = totalOfficeHours
       ? ((totalWorkMinutes / 60 / totalOfficeHours) * 100).toFixed(0)
       : 0;
 

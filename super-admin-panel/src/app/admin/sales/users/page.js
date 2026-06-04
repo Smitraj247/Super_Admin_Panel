@@ -26,7 +26,31 @@ export default function UsersPage() {
     name: "",
     email: "",
     password: "",
+    sidebarPermissions: [],
   });
+
+  // Available sidebar options for sales users
+  const availableSidebarOptions = [
+    "Dashboard",
+    "Profile",
+    "Chats",
+    "Attendance",
+    "Apply Leave",
+    "Leads",
+    "Emails",
+    "Meetings",
+    "Followups",
+    "Reports",
+  ];
+
+  const handlePermissionToggle = (permission) => {
+    setForm((prev) => ({
+      ...prev,
+      sidebarPermissions: prev.sidebarPermissions.includes(permission)
+        ? prev.sidebarPermissions.filter((p) => p !== permission)
+        : [...prev.sidebarPermissions, permission],
+    }));
+  };
 
   const [editingId, setEditingId] = useState(null);
 
@@ -63,6 +87,7 @@ export default function UsersPage() {
         const res = await API.put(`/admin/users/${editingId}`, {
           name: form.name,
           email: form.email,
+          sidebarPermissions: form.sidebarPermissions,
         });
         setUsers(users.map((u) => (u._id === editingId ? res.data : u)));
         setEditingId(null);
@@ -71,6 +96,7 @@ export default function UsersPage() {
           name: form.name,
           email: form.email,
           password: form.password || "123456",
+          sidebarPermissions: form.sidebarPermissions,
         });
         setUsers([...users, res.data]);
       }
@@ -78,6 +104,7 @@ export default function UsersPage() {
         name: "",
         email: "",
         password: "",
+        sidebarPermissions: [],
       });
     } catch (err) {
       alert(err.response?.data?.message || "Operation failed");
@@ -100,6 +127,7 @@ export default function UsersPage() {
       name: user.name,
       email: user.email,
       password: "",
+      sidebarPermissions: user.sidebarPermissions || [],
     });
     window.scrollTo({ top: 0, behavior: "smooth" });
   };
@@ -111,7 +139,7 @@ export default function UsersPage() {
   );
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-purple-50 to-purple-100">
+    <div className="min-h-screen">
       <Sidebar />
       <Navbar />
       <main className="md:pl-64 pt-16">
@@ -176,6 +204,34 @@ export default function UsersPage() {
                   </button>
                 </div>
 
+                {/* Sidebar Permissions */}
+                <div className="border border-slate-300 rounded-lg p-4">
+                  <label className="block text-sm font-semibold text-gray-700 mb-3">
+                    Sidebar Permissions
+                  </label>
+                  <div className="space-y-2 max-h-48 overflow-y-auto">
+                    {availableSidebarOptions.map((option) => (
+                      <label
+                        key={option}
+                        className="flex items-center gap-2 cursor-pointer hover:bg-purple-50 p-2 rounded"
+                      >
+                        <input
+                          type="checkbox"
+                          checked={form.sidebarPermissions.includes(option)}
+                          onChange={() => handlePermissionToggle(option)}
+                          className="w-4 h-4 text-purple-600 rounded focus:ring-2 focus:ring-purple-500"
+                        />
+                        <span className="text-sm text-gray-700">{option}</span>
+                      </label>
+                    ))}
+                  </div>
+                  <p className="text-xs text-gray-500 mt-2">
+                    {form.sidebarPermissions.length === 0
+                      ? "No permissions selected - user will see all options"
+                      : `${form.sidebarPermissions.length} permission(s) selected`}
+                  </p>
+                </div>
+
                 <button
                   type="submit"
                   className="w-full bg-purple-600 text-white py-2 rounded hover:bg-purple-700"
@@ -192,6 +248,7 @@ export default function UsersPage() {
                         name: "",
                         email: "",
                         password: "",
+                        sidebarPermissions: [],
                       });
                     }}
                     className="w-full text-sm text-gray-500 hover:text-gray-700"

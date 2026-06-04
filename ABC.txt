@@ -8,4 +8,47 @@
 
 
 
- 3>
+//////////////////////////////////////////
+
+...  googleauth signup workflow below mentioned 
+  
+
+
+  User clicks Google Login
+          │
+          ▼
+Google Popup Opens
+          │
+          ▼
+User selects account
+          │
+          ▼
+Google returns credential token
+          │
+          ▼
+Frontend sends token to backend
+          │
+          ▼
+Backend verifies token with Google
+          │
+          ▼
+Find user by email
+          │
+     ┌────┴────┐
+     │         │
+Exists?      No
+     │         │
+     │    Create User
+     │         │
+     └────┬────┘
+          ▼
+Generate JWT
+          │
+          ▼
+Return token + user
+          │
+          ▼
+Frontend stores token
+          │
+          ▼
+User logged in

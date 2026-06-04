@@ -317,7 +317,7 @@ export default function HRUserAttendanceDetail() {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-green-50 to-green-100">
+    <div className="min-h-screen">
       <Navbar />
       <Sidebar />
 
@@ -412,28 +412,31 @@ export default function HRUserAttendanceDetail() {
         {/* SUMMARY */}
 
         {summary && (
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
+          <div className="grid grid-cols-1 md:grid-cols-5 gap-4 mb-6">
             <SummaryCard
               title="Total Days"
               value={summary.totalDays}
               icon={<Calendar />}
               color="from-blue-500 to-cyan-500"
             />
-
             <SummaryCard
               title="Present"
               value={summary.present}
               icon={<CheckCircle />}
               color="from-green-500 to-emerald-500"
             />
-
+            <SummaryCard
+              title="Half Day"
+              value={summary.halfDay ?? 0}
+              icon={<Clock />}
+              color="from-purple-500 to-violet-500"
+            />
             <SummaryCard
               title="Absent"
               value={summary.absent}
               icon={<XCircle />}
               color="from-red-500 to-orange-500"
             />
-
             <SummaryCard
               title="Work Hours"
               value={`${summary.totalWorkHours}h`}
@@ -687,20 +690,28 @@ function TableHead({ icon, title }) {
 
 function StatusBadge({ status }) {
   const statusStyles = {
-    [STATUS.CHECKED_OUT]: "bg-green-100 text-green-700",
+    CHECKED_OUT:     "bg-green-100 text-green-700",
+    CHECKED_IN:      "bg-blue-100 text-blue-700",
+    LATE:            "bg-orange-100 text-orange-700",
+    ON_BREAK:        "bg-yellow-100 text-yellow-700",
+    BACK_TO_WORK:    "bg-blue-100 text-blue-700",
+    ON_LEAVE:        "bg-red-100 text-red-700",
+    HALF_DAY_LEAVE:  "bg-purple-100 text-purple-700",
+  };
 
-    [STATUS.ON_BREAK]: "bg-yellow-100 text-yellow-700",
-
-    [STATUS.BACK_TO_WORK]: "bg-blue-100 text-blue-700",
+  const labels = {
+    CHECKED_OUT:    "Checked Out",
+    CHECKED_IN:     "Checked In",
+    LATE:           "Late",
+    ON_BREAK:       "On Break",
+    BACK_TO_WORK:   "Back to Work",
+    ON_LEAVE:       "On Leave",
+    HALF_DAY_LEAVE: "Half Day Leave",
   };
 
   return (
-    <span
-      className={`px-3 py-1 rounded-full text-xs font-semibold ${
-        statusStyles[status] || "bg-gray-100 text-gray-700"
-      }`}
-    >
-      {status}
+    <span className={`px-3 py-1 rounded-full text-xs font-semibold ${statusStyles[status] || "bg-gray-100 text-gray-700"}`}>
+      {labels[status] || status}
     </span>
   );
 }

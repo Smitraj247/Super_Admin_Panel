@@ -10,8 +10,6 @@ import {
 import { useAuth } from "@/context/AuthContext";
 import Navbar from "@/components/layout/Navbar";
 import Sidebar from "@/components/Sidebar";
-import HolidayWidget from "@/components/features/HolidayWidget";
-import LeaveCalendar from "@/components/dashboard/LeaveCalendar";
 import LoadingScreen from "@/components/common/LoadingScreen";
 
 // Import refactored components
@@ -19,7 +17,7 @@ import DashboardHeader from "@/components/dashboard/DashboardHeader";
 import StatCard from "@/components/dashboard/StatCard";
 import AttendanceTracking from "@/components/dashboard/AttendanceTracking";
 import AttendanceHistory from "@/components/dashboard/AttendanceHistory";
-import TodaySummary from "@/components/dashboard/TodaysSummary";
+import UpcomingBirthdays from "@/components/dashboard/UpcomingBirthdays";
 import LeaveAndHolidaySection from "@/components/dashboard/LeaveAndHolidaySection";
 
 // Import custom hooks
@@ -27,17 +25,13 @@ import { useUnifiedDashboardData } from "@/hooks/useUnifiedDashboardData";
 import { useAttendanceStats } from "@/hooks/useAttendanceStats";
 import { useAttendanceAction } from "@/hooks/useAttendanceAction";
 
-// Import utilities and constants
-import { ACTIVE_STATUSES } from "@/constants/dashboardConstants";
-import { getDisplayValue } from "@/utils/dashboardUtils";
-
 /**
  * Unified Dashboard Component
  * Main dashboard for attendance tracking, leaves, and statistics
  * Refactored for scalability and maintainability
  */
 
-export default function UnifiedDashboard() {
+export default function UnifiedDashboard()    {
   const { user } = useAuth();
 
   // Data fetching hook
@@ -72,7 +66,7 @@ export default function UnifiedDashboard() {
 
   if (loading) {
     return (
-      <main className="min-h-screen bg-[var(--bg-base)]">
+      <main className="min-h-screen">
         <Navbar />
         <Sidebar />
         <LoadingScreen />
@@ -81,7 +75,7 @@ export default function UnifiedDashboard() {
   }
 
   return (
-    <main className="min-h-screen bg-[var(--bg-base)]">
+    <main className="min-h-screen">
       <Navbar />
       <Sidebar />
 
@@ -109,7 +103,7 @@ export default function UnifiedDashboard() {
               color="orange"
               value={lateCount}
               icon={<Clock className="w-5 h-5" />}
-            />
+              />
             <StatCard
               title="Days Absent"
               color="red"
@@ -141,7 +135,7 @@ export default function UnifiedDashboard() {
 
             {/* Right Column */}
             <div className="space-y-6">
-              <TodaySummary stats={stats} />
+              <UpcomingBirthdays />
             </div>
           </div>
 

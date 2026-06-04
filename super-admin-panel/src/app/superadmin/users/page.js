@@ -42,6 +42,7 @@ export default function UsersPage() {
       "Profile",
       "Chats",
       "Attendance",
+      "Meetings",
       "Apply Leave",
     ],
   });
@@ -51,14 +52,36 @@ export default function UsersPage() {
   // Chat state
   const [chatUser, setChatUser] = useState(null);
 
-  // Available sidebar options for users
-  const availableSidebarOptions = [
-    "Dashboard",
-    "Profile",
-    "Chats",
-    "Attendance",
-    "Apply Leave",
-  ];
+  // Get selected department name
+  const selectedDepartment = departments.find(
+    (dept) => dept._id === form.department,
+  );
+  const deptName = selectedDepartment?.name?.toLowerCase() || "";
+
+  // Available sidebar options for users (dynamically based on department)
+  const getAvailableSidebarOptions = () => {
+    const baseOptions = [
+      "Dashboard",
+      "Profile",
+      "Chats",
+      "Attendance",
+      "Meetings",
+      "Apply Leave",
+      "Leads",
+      "Emails",
+      "Followups",
+      "Reports",
+    ];
+
+    // Add sales-specific options - must match exactly with sidebar.config.js
+    if (deptName === "sales") {
+      return [...baseOptions, "Leads", "Emails", "Followups", "Reports"];
+    }
+
+    return baseOptions;
+  };
+
+  const availableSidebarOptions = getAvailableSidebarOptions();
 
   const handlePermissionToggle = (permission) => {
     setForm((prev) => ({
@@ -91,7 +114,37 @@ export default function UsersPage() {
   }, []);
 
   const handleChange = (e) => {
-    setForm({ ...form, [e.target.name]: e.target.value });
+    const { name, value } = e.target;
+
+    // Auto-select sidebar permissions when sales department is selected
+    if (name === "department") {
+      const selectedDept = departments.find((dept) => dept._id === value);
+      const deptName = selectedDept?.name?.toLowerCase() || "";
+
+      if (deptName === "sales") {
+        // Must match exactly with DEPT_EXTRA.user.sales in sidebar.config.js
+        setForm({
+          ...form,
+          [name]: value,
+          sidebarPermissions: [
+            "Dashboard",
+            "Profile",
+            "Chats",
+            "Attendance",
+            "Meetings",
+            "Leads",
+            "Emails",
+            "Followups",
+            "Reports",
+            "Apply Leave",
+          ],
+        });
+      } else {
+        setForm({ ...form, [name]: value });
+      }
+    } else {
+      setForm({ ...form, [name]: value });
+    }
   };
 
   const handleSubmit = async (e) => {
@@ -132,6 +185,7 @@ export default function UsersPage() {
           "Profile",
           "Chats",
           "Attendance",
+          "Meetings",
           "Apply Leave",
         ],
       });
@@ -161,7 +215,14 @@ export default function UsersPage() {
       sidebarPermissions:
         user.sidebarPermissions?.length > 0
           ? user.sidebarPermissions
-          : ["Dashboard", "Profile", "Chats", "Attendance", "Apply Leave"],
+          : [
+              "Dashboard",
+              "Profile",
+              "Chats",
+              "Attendance",
+              "Meetings",
+              "Apply Leave",
+            ],
     });
     window.scrollTo({ top: 0, behavior: "smooth" });
   };
@@ -177,7 +238,7 @@ export default function UsersPage() {
 
   return (
     <ProtectedDashboardRoute requiredRole={ROLES.SUPER_ADMIN}>
-      <div className="min-h-screen bg-[var(--bg-base)]">
+      <div className="min-h-screen">
         <Sidebar />
         <Navbar />
         <main className=" md:pl-64 pt-12 ">

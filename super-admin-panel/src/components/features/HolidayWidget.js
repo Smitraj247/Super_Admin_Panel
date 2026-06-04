@@ -25,38 +25,51 @@ export default function HolidayWidget() {
 
   return (
     <div
-      className="rounded-2xl border border-[var(--border)] p-5 
-      bg-gradient-to-b from-white/60 to-white/20 
-      backdrop-blur-md shadow-sm"
+      className="
+      rounded-2xl
+      border border-[var(--border)]
+      bg-[var(--bg-surface)]
+      p-5
+      shadow-sm
+      h-full
+    "
     >
-      {/* Header */}
-      <h3 className="text-lg font-bold mb-4 text-[var(--text-primary)] flex items-center gap-2">
-        <span className="w-2 h-2 rounded-full bg-indigo-500 animate-pulse"></span>
-        Upcoming Holidays
-      </h3>
+      <div className="flex items-center gap-2 mb-4">
+        <div className="w-2 h-2 rounded-full bg-indigo-500" />
+        <h3 className="text-lg font-semibold text-[var(--text-primary)]">
+          Upcoming Holidays
+        </h3>
+      </div>
 
-      {/* List */}
-      <div className="space-y-2 max-h-[650px] ">
+      <div className="space-y-3 max-h-[420px] overflow-y-auto pr-1">
         {holidays.map((h) => (
           <div
             key={h._id}
-            className="flex items-center justify-between p-2 rounded-xl
-            hover:bg-indigo-50 transition-all duration-200 cursor-default"
+            className="
+            flex items-center justify-between
+            rounded-xl
+            border border-[var(--border)]
+            px-3 py-3
+            hover:bg-[var(--bg-elevated)]
+            transition-colors
+          "
           >
-            {/* Title */}
-            <span className="text-sm font-medium text-[var(--text-primary)]">
-              {h.title}
-            </span>
+            <div>
+              <p className="text-sm font-medium text-[var(--text-primary)]">
+                {h.title}
+              </p>
 
-            {/* Date badge */}
-            <span
-              className="text-xs px-2 py-1 rounded-full 
-              bg-indigo-100 text-indigo-600 font-medium"
-            >
-              {new Date(h.date).toLocaleDateString("en-GB", {
-                day: "2-digit",
-                month: "short",
-              })}
+              <p className="text-xs text-[var(--text-muted)]">
+                {new Date(h.date).toLocaleDateString("en-GB", {
+                  weekday: "short",
+                  day: "2-digit",
+                  month: "short",
+                })}
+              </p>
+            </div>
+
+            <span className="rounded-full bg-indigo-500/10 px-2 py-1 text-xs font-medium text-indigo-500">
+              Holiday
             </span>
           </div>
         ))}

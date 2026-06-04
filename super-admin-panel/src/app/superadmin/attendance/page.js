@@ -12,6 +12,7 @@ import { useRouter } from "next/navigation";
 
 export default function SuperAdminAttendance() {
   const [users, setUsers] = useState([]);
+  const [dateStr, setDateStr] = useState("");
   const [filteredUsers, setFilteredUsers] = useState([]);
   const [loading, setLoading] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
@@ -27,8 +28,16 @@ export default function SuperAdminAttendance() {
   });
   const router = useRouter();
 
+  const getDateStr = () =>
+    new Date().toLocaleDateString("en-US", {
+      weekday: "short",
+      month: "short",
+      day: "numeric",
+    });
+
   useEffect(() => {
     fetchUsers();
+    setDateStr(getDateStr());
   }, []);
 
   const fetchUsers = async () => {
@@ -172,28 +181,28 @@ export default function SuperAdminAttendance() {
   };
 
   return (
-    <div className="min-h-screen bg-[var(--bg-base)]">
+    <div className="min-h-screen">
       <Sidebar />
       <Navbar />
 
       <div className="md:ml-64 pt-20 p-6">
         <div className="mb-6 flex items-center justify-between">
           <div>
-            <h1 className="text-3xl font-bold text-[var(--text-primary)]">
+            <h1 className="text-xl sm:text-3xl font-bold bg-gradient-to-r from-cyan-600 via-blue-600 to-purple-600 bg-clip-text text-transparent">
               Attendance System
             </h1>
           </div>
-          <div className="text-sm text-indigo-600 font-medium">
-            Tuesday, May 19, 2026 📅
+
+          <div className="text-sm px-3 py-2 bg-indigo-100 rounded-xl font-medium">
+            {dateStr} 📅
           </div>
         </div>
-
         {/* Attendance Stats Cards */}
         <AttendanceStats stats={attendanceSummary} />
 
         <div className="mb-6">
-          <h2 className="text-2xl font-bold text-[var(--text-primary)] flex items-center gap-3">
-            <Users className="text-indigo-600" />
+          <h2 className="text-xl sm:text-3xl font-bold bg-gradient-to-r from-cyan-600 via-blue-600 to-purple-600 bg-clip-text text-transparent flex items-center gap-3">
+            <Users className="text-blue-600" />
             All Users & Admins Attendance Management
           </h2>
           <p className="text-[var(--text-secondary)] mt-2">

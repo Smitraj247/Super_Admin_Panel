@@ -34,10 +34,10 @@ const userSchema = new mongoose.Schema(
     joiningDate: { type: Date },
     probationEndDate: { type: Date },
     leaveBalance: {
-      PL: { type: Number, default: 1 }, // Privilege Leave - 1 per month (auto-refill)
+      PL: { type: Number, default: 1 }, 
       CL: { type: Number },
       SL: { type: Number, default: 1 },
-      DL: { type: Number, default: 0 }, // Duty Leave - Not used
+      DL: { type: Number, default: 0 }, 
     },
     lastLeaveRefill: { type: Date, default: Date.now }, // Track last monthly refill
     // Profile Information

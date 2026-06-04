@@ -143,8 +143,8 @@ export default function Sidebar() {
       <button
         onClick={() => setOpen(true)}
         className="fixed top-4 left-4 z-50 lg:hidden
-        p-2.5 rounded-xl bg-[#1f1b2e]
-        border border-white/10 text-white"
+        p-2.5 rounded-xl bg-[var(--bg-surface)]
+        border border-[var(--border)] text-white shadow-lg"
       >
         <Menu size={20} />
       </button>
@@ -165,18 +165,20 @@ export default function Sidebar() {
           fixed top-0 left-0 z-50
           h-screen
           transition-all duration-300
-          border-r border-white/10
-          bg-[#1e1b2e]
+          border-r border-[var(--border)]
           flex flex-col
           shadow-2xl
           ${collapsed ? "w-20" : "w-62"}
           ${open ? "translate-x-0" : "-translate-x-full"}
           lg:translate-x-0
         `}
+        style={{
+          background: 'linear-gradient(135deg, #0f172a 0%, #1e293b 50%, #334155 100%)',
+        }}
       >
-        {/* GLOW */}
+        {/* MODERN GLOW */}
 
-        <div className="absolute top-0 left-0 w-full h-40 bg-gradient-to-b from-violet-500/10 to-transparent pointer-events-none" />
+        <div className="absolute top-0 left-0 w-full h-40 bg-gradient-to-b from-blue-500/10 to-transparent pointer-events-none" />
 
         <SidebarHeader
           collapsed={collapsed}

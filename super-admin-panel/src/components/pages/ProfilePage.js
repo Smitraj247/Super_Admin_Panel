@@ -260,7 +260,7 @@ export default function ProfilePage() {
 
   if (fetchLoading) {
     return (
-      <div className="min-h-screen bg-gray-50">
+      <div className="min-h-screen">
         <Sidebar />
         <Navbar />
         <main className="md:pl-64 pt-16 flex items-center justify-center">
@@ -274,7 +274,7 @@ export default function ProfilePage() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen">
       <Sidebar />
       <Navbar />
 
