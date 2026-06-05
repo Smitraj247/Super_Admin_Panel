@@ -1,7 +1,3 @@
-
-
-
-
 "use client";
 
 import UnifiedDashboard from "@/components/pages/UnifiedDashboard";
@@ -21,4 +17,3 @@ export default function SalesUserDashboard() {
     </ProtectedDashboardRoute>
   );
 }
-ad
