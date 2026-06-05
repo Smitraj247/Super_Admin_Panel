@@ -1,4 +1,6 @@
 import express from "express";
+import { createServer } from "http";
+import { Server } from "socket.io";
 import dotenv from "dotenv";
 import connectDB from "./config/db.js";
 import cors from "cors";
@@ -22,13 +24,45 @@ dotenv.config();
 await connectDB();
 
 const app = express();
+const httpServer = createServer(app);
+
+const allowedOrigins = [
+  "http://localhost:5173",
+  "http://localhost:3000",
+  "https://super-admin-panel-gray.vercel.app",
+];
+
+export const io = new Server(httpServer, {
+  cors: {
+    origin: allowedOrigins,
+    credentials: true,
+    methods: ["GET", "POST"],
+  },
+});
+
+// Socket.io connection handling
+io.on("connection", (socket) => {
+  // Join a personal room using userId so we can target messages
+  socket.on("join", (userId) => {
+    socket.join(userId);
+  });
+
+  // Join a specific chat room
+  socket.on("joinChat", (chatId) => {
+    socket.join(chatId);
+  });
+
+  // Leave a chat room
+  socket.on("leaveChat", (chatId) => {
+    socket.leave(chatId);
+  });
+
+  socket.on("disconnect", () => {});
+});
+
 app.use(
   cors({
-    origin: [
-      "http://localhost:5173",
-      "http://localhost:3000",
-      "https://super-admin-panel-gray.vercel.app",
-    ],
+    origin: allowedOrigins,
     credentials: true,
     methods: ["GET", "POST", "PUT", "DELETE"],
     allowedHeaders: ["Content-Type", "Authorization"],
@@ -59,7 +93,7 @@ app.use(errorHandler);
 
 const PORT = process.env.PORT || 5000;
 
-app.listen(PORT, () => {
+httpServer.listen(PORT, () => {
   console.log(`Server is running on port ${PORT}`);
 });
 

@@ -9,6 +9,7 @@ import {
   leaveGroupChatApi,
 } from "@/services/chatApi";
 import { useAuth } from "@/context/AuthContext";
+import { useSocket } from "@/context/SocketContext";
 import {
   X,
   Send,
@@ -26,6 +27,7 @@ import {
 
 export default function ChatWindow({ user, chat: initialChat, onClose, onUpdate }) {
   const { user: currentUser } = useAuth();
+  const { socket } = useSocket();
   const [chat, setChat] = useState(initialChat || null);
   const [message, setMessage] = useState("");
   const [loading, setLoading] = useState(!initialChat);
@@ -45,6 +47,28 @@ export default function ChatWindow({ user, chat: initialChat, onClose, onUpdate 
       loadChat();
     }
   }, [user]);
+
+  // Join/leave the socket chat room when chat changes
+  useEffect(() => {
+    if (!socket || !chat?._id) return;
+    socket.emit("joinChat", chat._id);
+    return () => socket.emit("leaveChat", chat._id);
+  }, [socket, chat?._id]);
+
+  // Listen for incoming messages in this chat
+  useEffect(() => {
+    if (!socket) return;
+    const handleNewMessage = (updatedChat) => {
+      if (updatedChat._id === chat?._id) {
+        setChat(updatedChat);
+        // Mark as read since the window is open
+        markAsReadApi(updatedChat._id).catch(() => {});
+        if (onUpdate) onUpdate(updatedChat);
+      }
+    };
+    socket.on("newMessage", handleNewMessage);
+    return () => socket.off("newMessage", handleNewMessage);
+  }, [socket, chat?._id, onUpdate]);
 
   useEffect(() => {
     scrollToBottom();

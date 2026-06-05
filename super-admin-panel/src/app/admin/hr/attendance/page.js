@@ -369,7 +369,7 @@ export default function SuperAdminAttendance() {
                               <User className="text-indigo-600" size={20} />
                             </div>
                             <div>
-                              <p className="font-bold text-[var(--text-primary)] group-hover:text-indigo-600 transition-colors">
+                              <p className="text-[var(--text-primary)] group-hover:text-indigo-600 transition-colors">
                                 {user.name}
                               </p>
                               <p className="text-xs text-[var(--text-secondary)]">
@@ -378,18 +378,18 @@ export default function SuperAdminAttendance() {
                             </div>
                           </div>
                         </td>
-                        <td className="p-4 text-sm font-semibold text-[var(--text-primary)]">
+                        <td className="p-4 text-sm  text-[var(--text-primary)]">
                           {typeof user.department === "object"
                             ? user.department?.name
                             : user.department || "N/A"}
                         </td>
-                        <td className="p-4 text-sm font-semibold text-[var(--text-primary)]">
+                        <td className="p-4 text-sm  text-[var(--text-primary)]">
                           {typeof user.role === "object"
                             ? user.role?.name
                             : user.role || "N/A"}
                         </td>
                         <td className="p-4 text-center">
-                          <div className="flex items-center justify-center gap-4 text-sm font-bold">
+                          <div className="flex items-center justify-center gap-4 text-sm ">
                             <span
                               className="text-[var(--text-primary)]"
                               title="Total Days"

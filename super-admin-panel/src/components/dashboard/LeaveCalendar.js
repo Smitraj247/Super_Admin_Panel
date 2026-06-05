@@ -268,7 +268,7 @@ export default function LeaveCalendar({ leaves = [], holidays = [] }) {
                   {dayHoliday.title}
                 </div>
               )}
-
+           
               {/* Leaves */}
               <div className="space-y-0.5">
                 {dayLeaves.slice(0, dayHoliday ? 1 : 2).map((leave, index) => (

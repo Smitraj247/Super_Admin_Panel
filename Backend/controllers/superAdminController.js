@@ -38,15 +38,15 @@ export const getAdmins = async (req, res) => {
 
 export const createAdmin = async (req, res) => {
   try {
-    const { 
-      name, 
-      email, 
-      password, 
+    const {
+      name,
+      email,
+      password,
       department,
       joiningDate,
       probationEndDate,
       leaveBalance,
-      sidebarPermissions 
+      sidebarPermissions,
     } = req.body;
 
     console.log("👤 Creating admin:", { name, email, department });
@@ -88,28 +88,26 @@ export const createAdmin = async (req, res) => {
 export const updateAdmin = async (req, res) => {
   try {
     const { id } = req.params;
-    const { 
-      name, 
-      email, 
+    const {
+      name,
+      email,
       department,
       joiningDate,
       probationEndDate,
       leaveBalance,
-      sidebarPermissions 
+      sidebarPermissions,
     } = req.body;
 
     const updateData = { name, email, department };
-    
-    if (joiningDate !== undefined) updateData.joiningDate = joiningDate;
-    if (probationEndDate !== undefined) updateData.probationEndDate = probationEndDate;
-    if (leaveBalance !== undefined) updateData.leaveBalance = leaveBalance;
-    if (sidebarPermissions !== undefined) updateData.sidebarPermissions = sidebarPermissions;
 
-    const admin = await User.findByIdAndUpdate(
-      id,
-      updateData,
-      { new: true },
-    )
+    if (joiningDate !== undefined) updateData.joiningDate = joiningDate;
+    if (probationEndDate !== undefined)
+      updateData.probationEndDate = probationEndDate;
+    if (leaveBalance !== undefined) updateData.leaveBalance = leaveBalance;
+    if (sidebarPermissions !== undefined)
+      updateData.sidebarPermissions = sidebarPermissions;
+
+    const admin = await User.findByIdAndUpdate(id, updateData, { new: true })
       .populate("role", "name")
       .populate("department", "name")
       .select("-password");
@@ -269,15 +267,15 @@ export const getUser = async (req, res) => {
 
 export const createUser = async (req, res) => {
   try {
-    const { 
-      name, 
-      email, 
-      password, 
-      department, 
+    const {
+      name,
+      email,
+      password,
+      department,
       sidebarPermissions,
       joiningDate,
       probationEndDate,
-      leaveBalance 
+      leaveBalance,
     } = req.body;
 
     console.log("👤 Creating user:", {
@@ -314,7 +312,7 @@ export const createUser = async (req, res) => {
       sidebarPermissions: sidebarPermissions || [],
       joiningDate: joiningDate || new Date(),
       probationEndDate: probationEndDate,
-      leaveBalance: leaveBalance || { PL: 0, CL: 0, SL: 0, DL: 0 },
+      leaveBalance: leaveBalance,N
     });
 
     const createdUser = await User.findById(user._id)
@@ -336,28 +334,26 @@ export const createUser = async (req, res) => {
 export const updateUser = async (req, res) => {
   try {
     const { id } = req.params;
-    const { 
-      name, 
-      email, 
-      department, 
-      joiningDate, 
-      probationEndDate, 
+    const {
+      name,
+      email,
+      department,
+      joiningDate,
+      probationEndDate,
       leaveBalance,
-      sidebarPermissions 
+      sidebarPermissions,
     } = req.body;
 
     const updateData = { name, email, department };
-    
-    if (joiningDate !== undefined) updateData.joiningDate = joiningDate;
-    if (probationEndDate !== undefined) updateData.probationEndDate = probationEndDate;
-    if (leaveBalance !== undefined) updateData.leaveBalance = leaveBalance;
-    if (sidebarPermissions !== undefined) updateData.sidebarPermissions = sidebarPermissions;
 
-    const user = await User.findByIdAndUpdate(
-      id,
-      updateData,
-      { new: true },
-    )
+    if (joiningDate !== undefined) updateData.joiningDate = joiningDate;
+    if (probationEndDate !== undefined)
+      updateData.probationEndDate = probationEndDate;
+    if (leaveBalance !== undefined) updateData.leaveBalance = leaveBalance;
+    if (sidebarPermissions !== undefined)
+      updateData.sidebarPermissions = sidebarPermissions;
+
+    const user = await User.findByIdAndUpdate(id, updateData, { new: true })
       .populate("role", "name")
       .populate("department", "name")
       .select("-password");
@@ -480,12 +476,12 @@ export const getAllUsersWithLeaves = async (req, res) => {
           user: user._id,
           status: "PENDING",
         });
-        
+
         return {
           ...user.toObject(),
           pendingLeaveCount: pendingCount,
         };
-      })
+      }),
     );
 
     res.json({

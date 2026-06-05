@@ -132,7 +132,7 @@ export default function UnifiedDashboard()    {
               />
               <AttendanceHistory records={history} />
             </div>
-
+    
             {/* Right Column */}
             <div className="space-y-6">
               <UpcomingBirthdays />

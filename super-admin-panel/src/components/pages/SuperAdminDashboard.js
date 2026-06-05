@@ -538,7 +538,7 @@ export default function SuperAdminDashboard() {
                 icon: <Briefcase size={18} />,
                 // trend: "0.9%",
                 up: false,
-                color: "orange",  
+                color: "orange",
                 sparkline: [100, 110, 120, stats.onLeaveToday],
               },
               {
@@ -567,16 +567,7 @@ export default function SuperAdminDashboard() {
           {/* Attendance Overview + Trend */}
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
             {/* Donut */}
-            <SectionCard
-              title="Attendance Overview"
-              action={
-                <select className="text-xs border border-[var(--border-strong)] bg-[var(--bg-elevated)] text-[var(--text-secondary)] rounded-lg px-2 py-1 focus:outline-none focus:ring-2 focus:ring-indigo-400">
-                  <option>This Week</option>
-                  <option>Last Week</option>
-                  <option>This Month</option>
-                </select>
-              }
-            >
+            <SectionCard title="Attendance Overview">
               <div className="flex justify-center mb-5">
                 <div className="relative w-44 h-44">
                   {mounted && (
@@ -633,103 +624,9 @@ export default function SuperAdminDashboard() {
               </div>
             </SectionCard>
 
-            {/* Area Chart */}
-            <SectionCard
-              title="Attendance Trend"
-              className="lg:col-span-2"
-              action={
-                ~(
-                  <select className="text-xs border border-[var(--border-strong)] bg-[var(--bg-elevated)] text-[var(--text-secondary)] rounded-lg px-2 py-1 focus:outline-none focus:ring-2 focus:ring-indigo-400">
-                    <option>This Month</option>
-                    <option>Last Month</option>
-                  </select>
-                )
-              }
-            >
-              <p className="text-xs text-[var(--text-muted)] -mt-3 mb-4">
-                Daily attendance for the past 7 days
-              </p>
-              <div className="h-56">
-                {mounted && (
-                  <ResponsiveContainer width="100%" height="100%">
-                    <AreaChart data={trend}>
-                      <defs>
-                        <linearGradient
-                          id="gPresent"
-                          x1="0"
-                          y1="0"
-                          x2="0"
-                          y2="1"
-                        >
-                          <stop
-                            offset="5%"
-                            stopColor="#3b82f6"
-                            stopOpacity={0.3}
-                          />
-                          <stop
-                            offset="95%"
-                            stopColor="#3b82f6"
-                            stopOpacity={0}
-                          />
-                        </linearGradient>
-                      </defs>
-                      <CartesianGrid
-                        strokeDasharray="3 3"
-                        stroke="var(--border)"
-                      />
-                      <XAxis
-                        dataKey="day"
-                        stroke="var(--text-muted)"
-                        tick={{ fontSize: 11, fill: "var(--text-muted)" }}
-                      />
-                      <YAxis
-                        stroke="var(--text-muted)"
-                        tick={{ fontSize: 11, fill: "var(--text-muted)" }}
-                      />
-                      <Tooltip
-                        formatter={(v) => [v, "Present"]}
-                        labelFormatter={(l) =>
-                          trend.find((d) => d.day === l)?.fullLabel || l            
-                        }
-                        contentStyle={{
-                          borderRadius: 8,
-                          border: "1px solid var(--border)",
-                          background: "var(--bg-surface)",
-                          color: "var(--text-primary)",
-                          fontSize: 12,
-                        }}
-                      />
-                      <Area
-                        type="monotone"
-                        dataKey="present"
-                        stroke="#3b82f6"
-                        strokeWidth={2}
-                        fill="url(#gPresent)"
-                        fillOpacity={1}
-                      />
-                    </AreaChart>
-                  </ResponsiveContainer>
-                )}
-              </div>
-              <div className="grid grid-cols-3 gap-4 mt-4 pt-4 border-t border-[var(--border)] text-center text-xs">
-                <div>
-                  <p className="text-[var(--text-muted)] mb-1">Best Day</p>
-                  <p className="font-bold text-emerald-400">May 15</p>
-                  <p className="text-[var(--text-muted)]">96.8%</p>
-                </div>
-                <div>
-                  <p className="text-[var(--text-muted)] mb-1">Lowest Day</p>
-                  <p className="font-bold text-rose-400">May 7</p>
-                  <p className="text-[var(--text-muted)]">85.2%</p>
-                </div>
-                <div>
-                  <p className="text-[var(--text-muted)] mb-1">Monthly Avg</p>
-                  <p className="font-bold text-blue-400">
-                    {stats.attendanceRate}%
-                  </p>
-                </div>
-              </div>
-            </SectionCard>
+           
+            {/* Upcoming Birthdays */}
+            <UpcomingBirthdays />
           </div>
 
           {/* Department Summary + Recent Leaves Table */}
@@ -785,14 +682,16 @@ export default function SuperAdminDashboard() {
                 <table className="w-full text-sm">
                   <thead>
                     <tr className="border-b border-[var(--border)]">
-                      {["Employee", "Typ e", "From", "To", "Status"].map((h) => (
-                        <th
-                          key={h}
-                          className="text-left py-2 px-2 text-[11px] font-semibold text-[var(--text-muted)] uppercase tracking-wider"
-                        >
-                          {h}
-                        </th>
-                      ))}
+                      {["Employee", "Typ e", "From", "To", "Status"].map(
+                        (h) => (
+                          <th
+                            key={h}
+                            className="text-left py-2 px-2 text-[11px] font-semibold text-[var(--text-muted)] uppercase tracking-wider"
+                          >
+                            {h}
+                          </th>
+                        ),
+                      )}
                     </tr>
                   </thead>
                   <tbody>
@@ -901,9 +800,6 @@ export default function SuperAdminDashboard() {
             </div>
           </SectionCard>
 
-          {/* Upcoming Birthdays */}
-          <UpcomingBirthdays />
-
           {/* Quick Actions */}
           <SectionCard title="Quick Actions">
             <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
@@ -942,4 +838,3 @@ export default function SuperAdminDashboard() {
     </main>
   );
 }
-

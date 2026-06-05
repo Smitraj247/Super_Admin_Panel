@@ -10,7 +10,7 @@ export default function AttendanceStats({ stats }) {
       change: "Live data",
       changeType: "positive",
       icon: Users,
-      iconBg: "bg-green-100",
+          iconBg: "bg-green-100",
       iconColor: "text-green-600",
       trend: [20, 22, 19, 23, 21, stats?.presentToday ?? 0],
     },

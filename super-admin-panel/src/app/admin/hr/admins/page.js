@@ -145,8 +145,8 @@ export default function AdminsPage() {
         <div className="p-8">
           <div className="flex flex-col md:flex-row md:justify-between md:items-center mb-8 py-3 gap-4 overflow-hidden">
             <div>
-              <h1 className="text-2xl font-bold flex items-center gap-2">
-                <Shield className="text-green-600" size={26} />
+              <h1 className="text-2xl font-bold flex items-center gap-2 bg-gradient-to-r from-cyan-600 via-blue-600 to-purple-600 bg-clip-text text-transparent">
+                <Shield className="text-cyan-600" size={26} />
                 Admin Management
               </h1>
               <p className="text-gray-500 text-sm">
@@ -166,7 +166,7 @@ export default function AdminsPage() {
             </div>
           ) : (
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-              <div className="bg-white/70 backdrop-blur-xl rounded-3xl border border-white/40 p-6 shadow-lg h-fit">
+              <div className="bg-white/70 backdrop-blur-xl rounded-3xl border border-blue-200 p-6 shadow-lg h-fit">
                 <h3 className="font-semibold mb-4 flex items-center gap-2">
                   {editingId ? <Edit3 size={18} /> : <UserPlus size={18} />}
                   {editingId ? "Edit Admin" : "Add New Admin"}
@@ -241,7 +241,7 @@ export default function AdminsPage() {
 
                   <button
                     type="submit"
-                    className="w-full bg-green-600 text-white py-2 rounded-lg hover:bg-green-700 font-medium transition"
+                    className="w-full bg-blue- 400 text-white py-2 rounded-lg hover:bg-green-700 font-medium transition"
                   >
                     {editingId ? "Update Admin" : "Create Admin"}
                   </button>
@@ -279,7 +279,7 @@ export default function AdminsPage() {
                 </div>
 
                 <div className="bg-white border border-slate-200 rounded-2xl overflow-hidden">
-                  <div className="overflow-auto h-[500px]">
+                  <div className="overflow-auto ">
                     <table className="w-full text-sm md:text-md min-w-[600px]">
                       <thead className="border-b border-slate-300 bg-slate-50 sticky top-0 z-10">
                         <tr>

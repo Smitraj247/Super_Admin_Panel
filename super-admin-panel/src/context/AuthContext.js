@@ -13,7 +13,7 @@ import { getProfile } from "@/services/userApi";
 
 const AuthContext = createContext();
 
-// ─── Storage helpers ──────────────────────────────────────────────────────────
+// Storage helpers
 
 const storage = {
   getItem: (key) => sessionStorage.getItem(key) ?? localStorage.getItem(key),
@@ -138,3 +138,4 @@ export const useAuth = () => {
   if (!ctx) throw new Error("useAuth must be used within AuthProvider");
   return ctx;
 };
+

@@ -1,5 +1,6 @@
 import Chat from "../models/Chat.js";
 import User from "../models/User.models.js";
+import { io } from "../server.js";
 
 // Get or create a chat between two users
 export const getOrCreateChat = async (req, res) => {
@@ -105,6 +106,14 @@ export const sendMessage = async (req, res) => {
     const updatedChat = await Chat.findById(chatId)
       .populate("participants", "name email role department")
       .populate("messages.sender", "name email");
+
+    // Emit real-time event to all participants in the chat room
+    io.to(chatId).emit("newMessage", updatedChat);
+
+    // Also notify each participant's personal room (for chat list updates)
+    updatedChat.participants.forEach((participant) => {
+      io.to(participant._id.toString()).emit("chatUpdated", updatedChat);
+    });
 
     res.json({
       success: true,

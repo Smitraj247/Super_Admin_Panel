@@ -1,12 +1,13 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback } from "react";
 import Sidebar from "@/components/Sidebar";
 import Navbar from "@/components/layout/Navbar";
 import ChatWindow from "@/components/ui/ChatWindow";
 import { getUserChatsApi } from "@/services/chatApi";
 import { getAdminsApi, getUsersApi } from "@/services/adminApi";
 import { useAuth } from "@/context/AuthContext";
+import { useSocket } from "@/context/SocketContext";
 import {
   MessageCircle,
   User as UserIcon,
@@ -18,6 +19,7 @@ import {
 
 export default function ChatsPage() {
   const { user: currentUser } = useAuth();
+  const { socket } = useSocket();
   const [chats, setChats] = useState([]);
   const [filteredChats, setFilteredChats] = useState([]);
   const [selectedUser, setSelectedUser] = useState(null);
@@ -33,6 +35,24 @@ export default function ChatsPage() {
   useEffect(() => {
     loadChats();
   }, []);
+
+  // Real-time: update chat list when a message arrives in any of our chats
+  useEffect(() => {
+    if (!socket) return;
+    const handleChatUpdated = (updatedChat) => {
+      setChats((prev) => {
+        const exists = prev.find((c) => c._id === updatedChat._id);
+        if (exists) {
+          return prev
+            .map((c) => (c._id === updatedChat._id ? updatedChat : c))
+            .sort((a, b) => new Date(b.lastMessageAt) - new Date(a.lastMessageAt));
+        }
+        return [updatedChat, ...prev];
+      });
+    };
+    socket.on("chatUpdated", handleChatUpdated);
+    return () => socket.off("chatUpdated", handleChatUpdated);
+  }, [socket]);
 
   useEffect(() => {
     if (searchQuery) {
@@ -359,6 +379,17 @@ export default function ChatsPage() {
           onClose={() => {
             setSelectedUser(null);
             loadChats(); // Refresh chats when closing
+          }}
+          onUpdate={(updatedChat) => {
+            if (updatedChat) {
+              setChats((prev) =>
+                prev
+                  .map((c) => (c._id === updatedChat._id ? updatedChat : c))
+                  .sort((a, b) => new Date(b.lastMessageAt) - new Date(a.lastMessageAt))
+              );
+            } else {
+              loadChats();
+            }
           }}
         />
       )}

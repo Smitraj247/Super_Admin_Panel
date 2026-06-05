@@ -1,6 +1,7 @@
 import "./globals.css";
 import { AuthProvider } from "../context/AuthContext";
 import { SidebarProvider } from "../context/SidebarContext";
+import { SocketProvider } from "../context/SocketContext";
 import { ThemeProvider } from "@/components/theme-provider";
 import { Toaster } from "react-hot-toast";
 
@@ -20,10 +21,12 @@ export default function RootLayout({ children }) {
           disableTransitionOnChange
         >
           <AuthProvider>
-            <SidebarProvider>
-              {children}
-              <Toaster position="top-right" />
-            </SidebarProvider>
+            <SocketProvider>
+              <SidebarProvider>
+                {children}
+                <Toaster position="top-right" />
+              </SidebarProvider>
+            </SocketProvider>
           </AuthProvider>
         </ThemeProvider>
       </body>
