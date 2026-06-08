@@ -4,6 +4,7 @@ import { SidebarProvider } from "../context/SidebarContext";
 import { SocketProvider } from "../context/SocketContext";
 import { ThemeProvider } from "@/components/theme-provider";
 import { Toaster } from "react-hot-toast";
+import { Analytics } from "@vercel/analytics/next";
 
 export const viewport = {
   width: "device-width",
@@ -29,6 +30,7 @@ export default function RootLayout({ children }) {
             </SocketProvider>
           </AuthProvider>
         </ThemeProvider>
+        <Analytics />
       </body>
     </html>
   );
