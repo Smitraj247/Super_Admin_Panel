@@ -1,6 +1,5 @@
 import axiosInstance from "../utils/axiosInstance";
 
-export const getAdminStatsApi = () => axiosInstance.get("/admin/stats");
 
 export const getDepartmentsApi = () => axiosInstance.get("/admin/departments");
 export const createDepartmentApi = (data) =>

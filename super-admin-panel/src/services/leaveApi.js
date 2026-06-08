@@ -1,12 +1,11 @@
 import axiosInstance from "@/utils/axiosInstance";
 
 export const getLeavesApi = () => axiosInstance.get("/leaves");
-export const getAllLeavesApi = () => axiosInstance.get("/leaves/all");
+
 export const getUserLeavesApi = () => axiosInstance.get("/leaves/user/own");
 export const getUserLeaveBalanceApi = () =>
   axiosInstance.get("/leaves/user/balance");
-export const checkLeaveAvailabilityApi = (year, month) =>
-  axiosInstance.get(`/leaves/user/availability?year=${year}&month=${month}`);
+
 export const applyLeaveApi = (data) =>
   axiosInstance.post("/leaves/apply", data);
 export const updateLeaveStatusApi = (id, status) =>

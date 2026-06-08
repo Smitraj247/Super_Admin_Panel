@@ -1,3 +1,5 @@
+import AdminGuard from "@/components/auth/AdminGuard";
+
 export const metadata = {
   title: "Admin Dashboard - HR, IT & Sales Management",
   description:
@@ -10,7 +12,7 @@ export const metadata = {
 };
 
 export default function AdminLayout({ children }) {
-  return <>{children}</>;
+  return <AdminGuard>{children}</AdminGuard>;
 }
 
 

@@ -31,8 +31,13 @@ import { useAttendanceAction } from "@/hooks/useAttendanceAction";
  * Refactored for scalability and maintainability
  */
 
-export default function UnifiedDashboard()    {
-  const { user } = useAuth();
+export default function UnifiedDashboard() {
+  const { user, isAuthenticated } = useAuth();
+
+  if (!user || !isAuthenticated()) {
+    return null;
+  }
+  // const { user } = useAuth();
 
   // Data fetching hook
   const {
@@ -103,7 +108,7 @@ export default function UnifiedDashboard()    {
               color="orange"
               value={lateCount}
               icon={<Clock className="w-5 h-5" />}
-              />
+            />
             <StatCard
               title="Days Absent"
               color="red"
@@ -132,7 +137,7 @@ export default function UnifiedDashboard()    {
               />
               <AttendanceHistory records={history} />
             </div>
-    
+
             {/* Right Column */}
             <div className="space-y-6">
               <UpcomingBirthdays />

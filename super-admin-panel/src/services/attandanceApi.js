@@ -15,7 +15,6 @@ export const getMonthlyAttendanceApi = (startDate, endDate) => {
   return API.get(`/attendance?startDate=${startDate}&endDate=${endDate}`);
 };
 
-export const getTodayStatusApi = () => API.get("/attendance/status");
 
 export const getAllUsersAttendanceApi = (startDate, endDate) => {
   if (startDate && endDate) {
@@ -27,8 +26,6 @@ export const getAllUsersAttendanceApi = (startDate, endDate) => {
 export const updateAttendanceApi = (id, data) =>
   API.put(`/attendance/${id}`, data);
 
-export const completeBreakOutApi = (id, data) =>
-  API.put(`/attendance/${id}/complete-break`, data);
 
 export const getAttendanceSummary = (startDate, endDate) => {
   if (!startDate || !endDate) {

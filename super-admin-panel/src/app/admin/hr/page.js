@@ -1,7 +1,7 @@
 "use client";
 import UnifiedDashboard from "@/components/pages/UnifiedDashboard";
 import { ProtectedDashboardRoute } from "@/components/auth/ProtectedDashboardRoute";
-import { ROLES, DEPARTMENTS } from "@/utils/constants";
+import { ROLES,  DEPARTMENTS } from "@/utils/constants";
 
 export default function HRAdminPage() {
   return (

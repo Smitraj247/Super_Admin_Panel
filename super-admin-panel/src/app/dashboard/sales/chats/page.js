@@ -4,7 +4,7 @@ import { useEffect, useState } from "react";
 import Sidebar from "@/components/Sidebar";
 import Navbar from "@/components/layout/Navbar";
 import ChatWindow from "@/components/ui/ChatWindow";
-import { getUserChatsApi } from "@/services/chatApi";
+import { getUserChatsApi, deleteChatApi } from "@/services/chatApi";
 import { useAuth } from "@/context/AuthContext";
 import { MessageCircle, User as UserIcon, Search, Loader2 } from "lucide-react";
 
@@ -13,6 +13,7 @@ export default function UserChatsPage() {
   const [chats, setChats] = useState([]);
   const [filteredChats, setFilteredChats] = useState([]);
   const [selectedUser, setSelectedUser] = useState(null);
+  const [selectedChat, setSelectedChat] = useState(null);
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState("");
 
@@ -29,6 +30,26 @@ export default function UserChatsPage() {
     }
   };
 
+  const handleDeleteChat = async (chatId) => {
+    const confirmed = window.confirm(
+      "Are you sure you want to delete this conversation?",
+    );
+
+    if (!confirmed) return;
+
+    try {
+      await deleteChatApi(chatId);
+
+      setChats((prev) => prev.filter((chat) => chat._id !== chatId));
+      setFilteredChats((prev) => prev.filter((chat) => chat._id !== chatId));
+
+      if (selectedChat?.chatId === chatId) {
+        setSelectedChat(null);
+      }
+    } catch (error) {
+      console.error("Delete chat error:", error);
+    }
+  };
   useEffect(() => {
     loadChats();
   }, []);
@@ -134,7 +155,12 @@ export default function UserChatsPage() {
                   return (
                     <div
                       key={chat._id}
-                      onClick={() => setSelectedUser(otherUser)}
+                      onClick={() =>
+                        setSelectedChat({
+                          chatId: chat._id,
+                          user: otherUser,
+                        })
+                      }
                       className="p-4 hover:bg-slate-50 cursor-pointer transition"
                     >
                       <div className="flex items-center gap-4">
@@ -142,43 +168,27 @@ export default function UserChatsPage() {
                           <UserIcon className="text-indigo-600" size={24} />
                         </div>
 
-                        <div className="flex-1 min-w-0">
-                          <div className="flex items-center justify-between mb-1">
+                        <div className="flex items-center justify-between mb-1">
+                          <div>
                             <h3 className="font-semibold text-slate-900 truncate">
                               {otherUser?.name}
                             </h3>
+                          </div>
+
+                          <div className="flex items-center gap-3">
                             <span className="text-xs text-slate-500">
                               {formatTime(chat.lastMessageAt)}
                             </span>
-                          </div>
-
-                          <div className="flex items-center justify-between">
-                            <p className="text-sm text-slate-600 truncate">
-                              {chat.lastMessage || "No messages yet"}
-                            </p>
-                            {unreadCount > 0 && (
-                              <span className="bg-indigo-600 text-white text-xs px-2 py-1 rounded-full ml-2">
-                                {unreadCount}
-                              </span>
-                            )}
-                          </div>
-
-                          <div className="flex items-center gap-2 mt-1">
-                            <span className="text-xs text-slate-500">
-                              {otherUser?.role?.name || "Admin"}
-                            </span>
-                            {otherUser?.department && (
-                              <>
-                                <span className="text-xs text-slate-400">
-                                  •
-                                </span>
-                                <span className="text-xs text-slate-500">
-                                  {typeof otherUser.department === "object"
-                                    ? otherUser.department.name
-                                    : otherUser.department}
-                                </span>
-                              </>
-                            )}
+ 
+                            <button
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                handleDeleteChat(chat._id);
+                              }}
+                              className="text-red-600 font-semibolds hover:text-red-800 text-xs font-semibold"
+                            >
+                              DELETE
+                            </button>
                           </div>
                         </div>
                       </div>
@@ -200,11 +210,11 @@ export default function UserChatsPage() {
       </main>
 
       {/* Chat Window */}
-      {selectedUser && (
+      {selectedChat && (
         <ChatWindow
-          user={selectedUser}
+          user={selectedChat.user}
           onClose={() => {
-            setSelectedUser(null);
+            setSelectedChat(null);
             loadChats();
           }}
         />

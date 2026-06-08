@@ -50,6 +50,7 @@ export default function AdminsPage() {
   const fetchData = async () => {
     setLoading(true);
     try {
+      
       const [adminsRes, deptsRes] = await Promise.all([
         getAdminsApi(),
         getDepartmentsApi(),

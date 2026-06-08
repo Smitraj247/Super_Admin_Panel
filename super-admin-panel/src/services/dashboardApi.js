@@ -5,7 +5,6 @@ export const getDashboardStatsApi = () =>
 
 export const getWeeklyAttendanceApi = () => API.get("/attendance/weekly-stats");
 
-export const getTodayStatusApi = () => API.get("/attendance/status");
 
 export const getAttendanceHistoryApi = (
   startDate,
