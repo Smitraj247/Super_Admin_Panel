@@ -5,7 +5,19 @@ import { loginApi } from "../../services/authApi";
 import { useRouter } from "next/navigation";
 import { useAuth } from "../../context/AuthContext";
 import { ROLES, DEPARTMENTS } from "../../utils/constants";
-import { Mail, Lock, ArrowRight, Eye, EyeOff, Sparkles } from "lucide-react";
+import {
+  Mail,
+  Lock,
+  ArrowRight,
+  Eye,
+  EyeOff,
+  Sparkles,
+  Shield,
+  BarChart3,
+  Users,
+  BarChart4,
+  UserCog,
+} from "lucide-react";
 
 export default function Login() {
   const router = useRouter();
@@ -18,7 +30,8 @@ export default function Login() {
 
   const getDepartmentPath = (departmentData) => {
     if (!departmentData) return null;
-    const departmentName = typeof departmentData === "object" ? departmentData.name : departmentData;
+    const departmentName =
+      typeof departmentData === "object" ? departmentData.name : departmentData;
     if (!departmentName) return null;
     const departmentKey = departmentName.toUpperCase().replace(/\s+/g, "_");
     return DEPARTMENTS[departmentKey]?.path || null;
@@ -39,8 +52,11 @@ export default function Login() {
       if (roleName === "SUPER_ADMIN") {
         router.replace("/superadmin/dashboard");
       } else if (roleName === "ADMIN") {
-        const departmentName = typeof department === "object" ? department?.name : department;
-        const departmentKey = departmentName?.toUpperCase().replace(/\s+/g, "_");
+        const departmentName =
+          typeof department === "object" ? department?.name : department;
+        const departmentKey = departmentName
+          ?.toUpperCase()
+          .replace(/\s+/g, "_");
         const adminPath = DEPARTMENTS[departmentKey]?.adminPath || null;
         router.replace(adminPath || "/admin/Employee");
       } else if (roleName === "USER") {
@@ -59,76 +75,156 @@ export default function Login() {
 
   return (
     <div className="min-h-screen flex items-center justify-center p-4 relative overflow-hidden">
-      {/* Background blobs — navy with purple/teal glow */}
-      <div className="absolute top-[-15%] left-[-5%] w-[500px] h-[500px] bg-[#7c6fff]/8 rounded-full blur-3xl pointer-events-none" />
-      <div className="absolute bottom-[-15%] right-[-5%] w-[500px] h-[500px] bg-[#00d4aa]/6 rounded-full blur-3xl pointer-events-none" />
-      <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[800px] h-[400px] bg-[#7c6fff]/4 rounded-full blur-3xl pointer-events-none" />
-
-      <div className="relative w-full max-w-[960px] flex overflow-hidden rounded-3xl border border-[var(--border)] animate-scale-in"
-        style={{ boxShadow: "var(--shadow-lg)" }}
+      <div
+        className="relative w-full max-w-[1100px] w-full flex overflow-hidden rounded-3xl bg-white shadow-2xl"
+        style={{
+          boxShadow:
+            "0 25px 80px rgba(15,23,42,0.12), 0 8px 24px rgba(15,23,42,0.08)",
+        }}
       >
-        {/* Left panel */}
-        <div className="hidden lg:flex w-1/2 relative bg-gradient-to-br from-[#7c6fff] via-[#4f46e5] to-[#00d4aa] overflow-hidden">
-          <img src="/images/login.jpg" alt="Login" className="object-cover w-full h-full opacity-30 mix-blend-overlay" />
-          <div className="absolute inset-0 flex flex-col justify-between p-10">
-            <div className="flex items-center gap-2">
-              <div className="w-8 h-8 rounded-xl bg-white/20 flex items-center justify-center">
-                <Sparkles size={16} className="text-white" />
+        <div className="hidden lg:flex w-1/2 relative overflow-hidden bg-gradient-to-br from-[#14D8B4] via-[#0891B2] to-[#0F4CDE]">
+          {/* Glow */}
+          <div className="absolute bottom-[-100px] left-[-100px] w-[300px] h-[300px] rounded-full bg-white/5 blur-3xl" />
+
+          <div className="absolute top-24 right-16 grid grid-cols-5 gap-2 opacity-20">
+            {Array.from({ length: 25 }).map((_, i) => (
+              <div key={i} className="w-2 h-2 rounded-full bg-white" />
+            ))}
+          </div>
+
+          {/* Content */}
+          <div className="relative z-10 flex flex-col h-full p-10 pb-72">
+            {/* Logo */}
+            <div className="flex items-center gap-3">
+              <div className="w-12 h-12 rounded-xl bg-white/20 backdrop-blur-md flex items-center justify-center">
+                <UserCog className="text-white" size={22} />
               </div>
-              <span className="text-white font-semibold text-sm">HRMS Platform</span>
+
+              <div>
+                <h3 className="text-white font-bold text-2xl">Super Admin</h3>
+                <p className="text-white/70 text-sm">Management System</p>
+              </div>
             </div>
-            <div>
-              <h1 className="text-3xl font-bold text-white leading-tight mb-3">
-                Manage your team<br />with confidence
+
+            {/* Main Text */}
+            <div className=" flex flex-col  justify-center">
+              <h1 className="text-4xl font-bold text-white mt-5">
+                Welcome Back!
               </h1>
-              <p className="text-indigo-200 text-sm leading-relaxed">
-                A unified platform for HR, attendance, leaves, and team management — all in one place.
+
+              <p className="mt-10 text-white/90 text-xl max-w-md leading-relaxed">
+                Sign in to continue managing your organization and access
+                powerful tools.
               </p>
+
+              {/* Features */}
+              <div className="mt-12 space-y-8">
+                <div className="flex items-center gap-4">
+                  <div className="w-14 h-14 rounded-full bg-white flex items-center justify-center">
+                    <Shield size={24} className="text-emerald-500" />
+                  </div>
+
+                  <div>
+                    <h4 className="text-white font-semibold text-lg">
+                      Secure & Reliable
+                    </h4>
+                    <p className="text-white/75">Enterprise-grade security</p>
+                  </div>
+                </div>
+
+                <div className="flex items-center gap-4">
+                  <div className="w-14 h-14 rounded-full bg-white flex items-center justify-center">
+                    <BarChart3 size={24} className="text-emerald-500" />
+                  </div>
+
+                  <div>
+                    <h4 className="text-white font-semibold text-lg">
+                      Powerful Analytics
+                    </h4>
+                    <p className="text-white/75">
+                      Real-time insights and reports
+                    </p>
+                  </div>
+                </div>
+
+                <div className="flex items-center gap-4">
+                  <div className="w-14 h-14 rounded-full bg-white flex items-center justify-center">
+                    <Users size={24} className="text-emerald-500" />
+                  </div>
+
+                  <div>
+                    <h4 className="text-white font-semibold text-lg">
+                      Team Management
+                    </h4>
+                    <p className="text-white/75">
+                      Manage users and permissions
+                    </p>
+                  </div>
+                </div>
+              </div>
             </div>
+          </div>
+
+          {/* Dashboard Image */}
+          <div className="absolute bottom-0 left-1/2 -translate-x-1/2 w-[100%] ">
+            <img
+              src="/images/image.png"
+              alt="Dashboard"
+              className="w-full h-auto object-contain drop-shadow-[0_25px_50px_rgba(0,0,0,0.35)]"
+            />
           </div>
         </div>
 
         {/* Right panel */}
-        <div className="flex-1 bg-[var(--bg-surface)] p-8 lg:p-12 flex flex-col justify-center">
-          <div className="mb-8">
-            <div className="flex items-center gap-2 mb-6 lg:hidden">
+        <div className="flex-1 px-10 lg:px-14 flex flex-col justify-center">
+          <div className="max-w-md mx-auto w-full">
+            <div className="flex items-center gap-2 mb-2 lg:hidden">
               <div className="w-7 h-7 rounded-lg bg-gradient-to-br from-indigo-500 to-violet-600 flex items-center justify-center">
                 <Sparkles size={14} className="text-white" />
               </div>
-              <span className="text-[var(--text-primary)] font-semibold text-sm">HRMS Platform</span>
+              <span className="font-semibold text-sm">HRMS Platform</span>
             </div>
-            <h2 className="text-2xl font-bold text-[var(--text-primary)] mb-1.5">Welcome back</h2>
-            <p className="text-[var(--text-muted)] text-sm">Sign in to your account to continue</p>
+            <div className="mb-8">
+              <h2 className="text-4xl font-bold ">Sign in to your account</h2>
+
+              <p className="mt-2 text-slate-500">
+                Enter your credentials to access your dashboard
+              </p>
+            </div>
           </div>
 
           <form onSubmit={handleSubmit} className="space-y-5">
-            <div className="space-y-1.5">
-              <label className="text-[12px] font-semibold text-[var(--text-secondary)] uppercase tracking-wider">
+            <div className="space-y-2">
+              <label className="block text-sm font-semibold text-slate-900">
                 Email Address
               </label>
-              <div className="relative group">
-                <div className="absolute left-2 top-1/2 -translate-y-1/2 w-8 h-8 rounded-lg bg-[#7c6fff]/10 flex items-center justify-center group-focus-within:bg-[#7c6fff]/20 transition-colors">
-                  <Mail className="text-[#7c6fff]" size={16} />
-                </div>
+
+              <div className="relative">
+                <Mail
+                  size={18}
+                  className="absolute left-4 top-1/2 -translate-y-1/2 text-[#7c6fff]"
+                />
+
                 <input
                   type="email"
                   placeholder="name@company.com"
-                  className="input-base w-full pl-12 pr-4 py-3 rounded-xl text-sm transition-all"
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
                   required
+                  className=" w-full h-14 pl-12 pr-4 rounded-xl border border-slate-300 bg-white text-slate-900 placeholder:text-slate-400 outline-none transition-all focus:border-[#7c6fff] focus:ring-4 focus:ring-[#7c6fff]/10"
                 />
               </div>
             </div>
 
             <div className="space-y-1.5">
-              <label className="text-[12px] font-semibold text-[var(--text-secondary)] uppercase tracking-wider">
+              <label className="block text-sm font-semibold text-slate-900">
                 Password
               </label>
-              <div className="relative group">
-                <div className="absolute left-2 top-1/2 -translate-y-1/2 w-8 h-8 rounded-lg bg-[#00d4aa]/10 flex items-center justify-center group-focus-within:bg-[#00d4aa]/20 transition-colors">
-                  <Lock className="text-[#00d4aa]" size={16} />
-                </div>
+              <div className="relative">
+                <Lock
+                  className="absolute left-4 top-1/2 -translate-y-1/2 text-[#00d4aa]"
+                  size={16}
+                />
                 <input
                   type={showPassword ? "text" : "password"}
                   placeholder="••••••••"
@@ -153,15 +249,27 @@ export default function Login() {
               className="w-full bg-gradient-to-r from-[#7c6fff] to-[#00d4aa] hover:from-[#6b5fff] hover:to-[#00bfa0]
                 text-white py-3 rounded-xl font-semibold text-sm transition-all duration-200
                 flex items-center justify-center gap-2 shadow-lg shadow-[#7c6fff]/25
-                hover:shadow-[#7c6fff]/40 hover:-translate-y-0.5 disabled:opacity-60 disabled:cursor-not-allowed disabled:translate-y-0"
+                hover:-translate-y-0.5 disabled:opacity-60 disabled:cursor-not-allowed"
             >
               {loading ? (
                 <div className="h-4 w-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
               ) : (
-                <>Sign In <ArrowRight size={16} /></>
+                <>
+                  Sign In <ArrowRight size={16} />
+                </>
               )}
             </button>
           </form>
+
+          <div className="flex items-center my-8 mt-10  ">
+            <div className="flex-1 border-t border-slate-200"></div>
+
+            <span className="px-5 text-sm font-medium text-slate-500 bg-white">
+              Or continue with
+            </span>
+
+            <div className="flex-1 border-t border-slate-200"></div>
+          </div>
 
           <p className="mt-6 text-center text-[13px] text-[var(--text-muted)]">
             Don&apos;t have an account?{" "}
