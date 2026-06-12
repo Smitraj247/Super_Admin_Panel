@@ -353,7 +353,7 @@ export default function ProfilePage() {
               <div className="relative group">
                 <div className="w-32 h-32 rounded-3xl overflow-hidden border-4 border-white shadow-xl bg-gray-100">
                   <img
-                    src={preview || user?.profileImage || null}
+                    src={preview || user?.profileImage || "/default-img.png"}
                     alt="Profile"
                     className="w-full h-full object-cover"
                   />
