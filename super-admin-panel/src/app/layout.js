@@ -18,7 +18,7 @@ export default function RootLayout({ children }) {
       <body suppressHydrationWarning>
         <ThemeProvider
           attribute="class"
-          defaultTheme="dark"
+          defaultTheme="light"
           enableSystem={false}
           disableTransitionOnChange
         >
@@ -27,7 +27,15 @@ export default function RootLayout({ children }) {
               <SidebarProvider>
                 {children}
                 <Toaster position="top-right" />
-                <ToastContainer position="top-right" autoClose={3000} hideProgressBar={false} newestOnTop closeOnClick pauseOnHover theme="colored" />
+                <ToastContainer
+                  position="top-right"
+                  autoClose={3000}
+                  hideProgressBar={false}
+                  newestOnTop
+                  closeOnClick
+                  pauseOnHover
+                  theme="colored"
+                />
               </SidebarProvider>
             </SocketProvider>
           </AuthProvider>

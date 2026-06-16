@@ -5,7 +5,7 @@ import AuditLogs from "../models/AuditLogs.models.js";
 import Leave from "../models/Leave.js";
 import { createUser, deleteUserById } from "./userService.js";
 
-// ─── Admin CRUD ───────────────────────────────────────────────────────────────
+// ─── Admin CRUD 
 
 export const listAdmins = async () => {
   const adminRole = await Role.findOne({ name: "ADMIN" });
@@ -37,7 +37,7 @@ export const editAdmin = async (id, body) => {
 
 export const removeAdmin = (id) => deleteUserById(id);
 
-// ─── Department CRUD ──────────────────────────────────────────────────────────
+// ─── Department CRUD 
 
 export const listDepartments = () => Department.find();
 
@@ -58,8 +58,7 @@ export const removeDepartment = async (id) => {
   if (!dept) throw Object.assign(new Error("Department not found"), { status: 404 });
 };
 
-// ─── User CRUD ────────────────────────────────────────────────────────────────
-
+// ─── User CRUD 
 export const listUsers = async ({ page = 1, limit = 50 } = {}, requestingUser) => {
   const userRole = await Role.findOne({ name: "USER" });
   if (!userRole) throw Object.assign(new Error("USER role not found"), { status: 400 });
@@ -116,7 +115,7 @@ export const editUser = async (id, body) => {
 
 export const removeUser = (id) => deleteUserById(id);
 
-// ─── Dashboard stats ──────────────────────────────────────────────────────────
+// ─── Dashboard stats 
 
 export const getDashboardStats = async () => {
   const [userRole, adminRole] = await Promise.all([
@@ -164,8 +163,7 @@ export const getDashboardStats = async () => {
   };
 };
 
-// ─── Users with leaves ────────────────────────────────────────────────────────
-
+// ─── Users with leaves
 export const listUsersWithLeaves = async () => {
   const users = await User.find().populate("role", "name").populate("department", "name").select("-password").sort({ name: 1 });
   return Promise.all(

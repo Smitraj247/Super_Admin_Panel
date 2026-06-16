@@ -100,7 +100,7 @@ body {
   }
 }
 
-/* ─── Scrollbar ─────────────────────────────────────────────────────────────── */
+/* ─── Scrollbar */
 .no-scrollbar::-webkit-scrollbar {
   display: none;
 }
@@ -177,7 +177,7 @@ body {
   box-shadow: var(--shadow-glow);
 }
 
-/* ─── Animations ────────────────────────────────────────────────────────────── */
+/* ─── Animations*/
 @keyframes fadeIn {
   from {
     opacity: 0;
@@ -250,7 +250,7 @@ body {
   animation: scaleIn 0.2s ease forwards;
 }
 
-/* ─── Skeleton ──────────────────────────────────────────────────────────────── */
+/* ─── Skeleton  */
 .skeleton {
   background: linear-gradient(90deg, #f8fafc 25%, var(--border) 50%, #f8fafc 75%);
   background-size: 200% 100%;

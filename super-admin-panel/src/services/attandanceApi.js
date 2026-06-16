@@ -35,3 +35,11 @@ export const getAllUsersSummaryApi = (year, month) =>
 // Returns computeSummary result for a specific user (admin use)
 export const getUserSummaryByIdApi = (userId, year, month) =>
   API.get(`/attendance/user/${userId}/summary?year=${year}&month=${month}`);
+
+// Admin: Add breaks to an existing attendance record
+export const addBreaksToRecordApi = (recordId, breaks) =>
+  API.post(`/attendance/${recordId}/breaks`, { breaks });
+
+// Admin: Create a new break entry for any user (optionally creates attendance record)
+export const adminCreateBreakEntryApi = (userId, date, breaks) =>
+  API.post(`/attendance/user/${userId}/create-break`, { userId, date, breaks });

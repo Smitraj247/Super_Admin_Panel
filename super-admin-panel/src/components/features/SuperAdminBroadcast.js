@@ -3,7 +3,15 @@
 import { useState, useEffect } from "react";
 import { broadcastToAllApi } from "@/services/notificationApi";
 import API from "@/lib/api";
-import { MessageSquare, Send, X, AlertCircle, CheckCircle, Users, Building2 } from "lucide-react";
+import {
+  MessageSquare,
+  Send,
+  X,
+  AlertCircle,
+  CheckCircle,
+  Users,
+  Building2,
+} from "lucide-react";
 
 export default function SuperAdminBroadcast() {
   const [isOpen, setIsOpen] = useState(false);
@@ -42,7 +50,7 @@ export default function SuperAdminBroadcast() {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    
+
     if (!form.title.trim() || !form.message.trim()) {
       setError("Title and message are required");
       return;
@@ -67,7 +75,7 @@ export default function SuperAdminBroadcast() {
       const response = await broadcastToAllApi(payload);
       setSuccess(true);
       setForm({ title: "", message: "", type: "info", targetDepartment: "" });
-      
+
       // Show success message and close after 2 seconds
       setTimeout(() => {
         setIsOpen(false);
@@ -84,7 +92,7 @@ export default function SuperAdminBroadcast() {
     if (!form.targetDepartment) {
       return "All Users (All Departments)";
     }
-    const dept = departments.find(d => d._id === form.targetDepartment);
+    const dept = departments.find((d) => d._id === form.targetDepartment);
     return dept ? `${dept.name} Department` : "Selected Department";
   };
 
@@ -225,13 +233,17 @@ export default function SuperAdminBroadcast() {
               {/* Info Note */}
               <div className="bg-purple-50 border border-purple-200 rounded-lg p-3">
                 <div className="flex items-start gap-2">
-                  <Users size={16} className="text-purple-600 mt-0.5 flex-shrink-0" />
+                  <Users
+                    size={16}
+                    className="text-purple-600 mt-0.5 flex-shrink-0"
+                  />
                   <div>
                     <p className="text-sm font-medium text-purple-900">
                       Target: {getTargetLabel()}
                     </p>
                     <p className="text-xs text-purple-700 mt-1">
-                      This message will be sent as a notification to all selected users.
+                      This message will be sent as a notification to all
+                      selected users.
                     </p>
                   </div>
                 </div>

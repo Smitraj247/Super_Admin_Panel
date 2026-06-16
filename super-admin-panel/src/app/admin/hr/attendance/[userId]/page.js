@@ -10,6 +10,7 @@ import {
   getUserAttendanceByIdApi,
   updateAttendanceApi,
   getUserSummaryByIdApi,
+  adminCreateBreakEntryApi,
 } from "@/services/attandanceApi";
 
 import { getUsersApi, getAdminsApi } from "@/services/adminApi";
@@ -28,6 +29,7 @@ import {
   User,
   XCircle,
   Briefcase,
+  Plus,
 } from "lucide-react";
 import { toast } from "react-toastify";
 
@@ -62,7 +64,7 @@ const toDateStr = (d) =>
 
 const getMonthRange = (month, year) => ({
   firstDay: `${year}-${String(month).padStart(2, "0")}-01`,
-  lastDay:  toDateStr(new Date(year, month, 0)),
+  lastDay: toDateStr(new Date(year, month, 0)),
 });
 
 const formatDateTimeLocal = (dateString) => {
@@ -124,6 +126,12 @@ const calculateWorkingHours = (checkIn, checkOut, breaks = []) => {
   return `${hours}h ${mins}m`;
 };
 
+const getTodayStr = () => {
+  return new Intl.DateTimeFormat("en-CA", { timeZone: "Asia/Kolkata" }).format(
+    new Date(),
+  );
+};
+
 // MAIN COMPONENT
 
 export default function HRUserAttendanceDetail() {
@@ -151,6 +159,13 @@ export default function HRUserAttendanceDetail() {
   const [showEditModal, setShowEditModal] = useState(false);
 
   const [editingRecord, setEditingRecord] = useState(null);
+
+  const [showAddBreakModal, setShowAddBreakModal] = useState(false);
+  const [addBreakForm, setAddBreakForm] = useState({
+    date: getTodayStr(),
+    breakIn: "",
+    breakOut: "",
+  });
 
   const years = useMemo(() => {
     return Array.from({ length: 5 }, (_, i) => new Date().getFullYear() - i);
@@ -183,19 +198,21 @@ export default function HRUserAttendanceDetail() {
     setLoading(true);
 
     try {
-      const year  = parseInt(selectedYear);
+      const year = parseInt(selectedYear);
       const month = parseInt(selectedMonth);
 
       const [attendanceRes, summaryRes] = await Promise.all([
-        getUserAttendanceByIdApi(userId,
+        getUserAttendanceByIdApi(
+          userId,
           getMonthRange(month, year).firstDay,
           getMonthRange(month, year).lastDay,
         ),
         getUserSummaryByIdApi(userId, year, month),
       ]);
 
-      const records = (attendanceRes.data?.data || [])
-        .sort((a, b) => new Date(b.date) - new Date(a.date));
+      const records = (attendanceRes.data?.data || []).sort(
+        (a, b) => new Date(b.date) - new Date(a.date),
+      );
 
       setAttendance(records);
       setSummary(summaryRes.data);
@@ -277,6 +294,83 @@ export default function HRUserAttendanceDetail() {
     } catch (error) {
       console.error(error);
       toast.error("Failed to update attendance");
+    }
+  };
+
+  // ADD BREAK HANDLERS
+  const openAddBreakModal = () => {
+    setAddBreakForm({
+      date: getTodayStr(),
+      breakIn: "",
+      breakOut: "",
+    });
+    setShowAddBreakModal(true);
+  };
+
+  const handleAddBreak = async () => {
+    try {
+      if (!addBreakForm.breakIn) {
+        toast.error("Break In time is required");
+        return;
+      }
+      if (!addBreakForm.date) {
+        toast.error("Date is required");
+        return;
+      }
+
+      const breaks = [
+        {
+          breakIn: new Date(addBreakForm.breakIn).toISOString(),
+        },
+      ];
+
+      if (addBreakForm.breakOut) {
+        const breakOutDate = new Date(addBreakForm.breakOut);
+        const breakInDate = new Date(addBreakForm.breakIn);
+        if (breakOutDate <= breakInDate) {
+          toast.error("Break Out must be after Break In");
+          return;
+        }
+        breaks[0].breakOut = breakOutDate.toISOString();
+      }
+
+      const response = await adminCreateBreakEntryApi(
+        userId,
+        addBreakForm.date,
+        breaks,
+      );
+
+      if (response.data?.record?.breaks && editingRecord) {
+        setEditingRecord((prev) => ({
+          ...prev,
+          form: {
+            ...prev.form,
+            breaks: response.data.record.breaks.map((brk) => ({
+              breakIn: formatDateTimeLocal(brk.breakIn),
+              breakOut: formatDateTimeLocal(brk.breakOut),
+            })),
+          },
+        }));
+      }
+
+      console.log("Break API Response:", response.data);
+
+      await fetchAttendance();
+
+      console.log("Updated attendance:", attendance);
+
+      toast.success("Break entry created successfully");
+      setShowAddBreakModal(false);
+      setAddBreakForm({
+        date: getTodayStr(),
+        breakIn: "",
+        breakOut: "",
+      });
+    } catch (error) {
+      console.error(error);
+      toast.error(
+        error.response?.data?.message || "Failed to create break entry",
+      );
     }
   };
 
@@ -380,7 +474,7 @@ export default function HRUserAttendanceDetail() {
 
         {/* FILTER */}
 
-        <div className="bg-white rounded-2xl p-5 shadow mb-6">
+        <div className="bg-white border border-blue-100 rounded-2xl p-5 shadow mb-6">
           <div className="flex items-center gap-2 mb-4">
             <Filter size={18} />
             <h2 className="font-semibold">Filter Attendance</h2>
@@ -390,7 +484,7 @@ export default function HRUserAttendanceDetail() {
             <select
               value={selectedMonth}
               onChange={(e) => setSelectedMonth(e.target.value)}
-              className="border p-3 rounded-xl"
+              className="border border-blue-300 p-3 rounded-xl"
             >
               {MONTHS.map((month) => (
                 <option key={month.value} value={month.value}>
@@ -402,7 +496,7 @@ export default function HRUserAttendanceDetail() {
             <select
               value={selectedYear}
               onChange={(e) => setSelectedYear(e.target.value)}
-              className="border p-3 rounded-xl"
+              className="border border-blue-300 p-3 rounded-xl"
             >
               {years.map((year) => (
                 <option key={year}>{year}</option>
@@ -414,12 +508,18 @@ export default function HRUserAttendanceDetail() {
         {/* SUMMARY */}
 
         {summary && (
-          <div className="grid grid-cols-1 md:grid-cols-5 gap-4 mb-6">
+          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4 mb-6">
             <SummaryCard
               title="Total Days"
               value={summary.totalDays}
               icon={<Calendar />}
               color="from-blue-500 to-cyan-500"
+            />
+            <SummaryCard
+              title="Expected"
+              value={summary.expectedWorkingDays ?? summary.totalDays}
+              icon={<Calendar />}
+              color="from-indigo-500 to-purple-500"
             />
             <SummaryCard
               title="Present"
@@ -450,7 +550,7 @@ export default function HRUserAttendanceDetail() {
 
         {/* TABLE */}
 
-        <div className="bg-white rounded-2xl shadow overflow-hidden">
+        <div className="bg-white border border-blue-200 rounded-2xl shadow overflow-hidden">
           <div className="p-5 border-b">
             <h2 className="text-xl font-bold">Attendance Records</h2>
           </div>
@@ -580,7 +680,17 @@ export default function HRUserAttendanceDetail() {
                 {/* BREAKS */}
 
                 <div>
-                  <label className="block mb-3 font-medium">Breaks</label>
+                  <div className="flex items-center justify-between">
+                    <label className="font-medium">Breaks</label>
+
+                    <button
+                      onClick={openAddBreakModal}
+                      className="flex items-center gap-2 px-3 py-2 rounded-xl bg-gradient-to-r from-purple-500 to-indigo-600 text-white hover:from-purple-600 hover:to-indigo-700 transition-all duration-200 shadow-md hover:shadow-lg"
+                    >
+                      <Plus size={18} />
+                      Add Break
+                    </button>
+                  </div>
 
                   <div className="space-y-4">
                     {editingRecord.form.breaks.map((brk, idx) => (
@@ -654,6 +764,101 @@ export default function HRUserAttendanceDetail() {
                     Cancel
                   </button>
                 </div>
+
+                {showAddBreakModal && (
+                  <div className="fixed inset-0 bg-black/40 flex justify-center items-center z-50 p-4">
+                    <div className="bg-white rounded-3xl w-full max-w-lg p-6">
+                      <h2 className="text-2xl font-bold mb-6">
+                        Add Break for {user?.name || "Employee"}
+                      </h2>
+
+                      <div className="space-y-5">
+                        {/* DATE */}
+
+                        <div>
+                          <label className="block mb-2 font-medium">Date</label>
+                          <input
+                            type="date"
+                            value={addBreakForm.date}
+                            onChange={(e) =>
+                              setAddBreakForm((prev) => ({
+                                ...prev,
+                                date: e.target.value,
+                              }))
+                            }
+                            className="w-full border p-3 rounded-xl"
+                          />
+                        </div>
+
+                        {/* BREAK IN */}
+
+                        <div>
+                          <label className="block mb-2 font-medium">
+                            Break In <span className="text-red-500">*</span>
+                          </label>
+                          <input
+                            type="datetime-local"
+                            value={addBreakForm.breakIn}
+                            onChange={(e) =>
+                              setAddBreakForm((prev) => ({
+                                ...prev,
+                                breakIn: e.target.value,
+                              }))
+                            }
+                            className="w-full border p-3 rounded-xl"
+                          />
+                        </div>
+
+                        {/* BREAK OUT */}
+
+                        <div>
+                          <label className="block mb-2 font-medium">
+                            Break Out
+                          </label>
+                          <input
+                            type="datetime-local"
+                            value={addBreakForm.breakOut}
+                            onChange={(e) =>
+                              setAddBreakForm((prev) => ({
+                                ...prev,
+                                breakOut: e.target.value,
+                              }))
+                            }
+                            className="w-full border p-3 rounded-xl"
+                          />
+                          <p className="text-xs text-gray-500 mt-1">
+                            Optional. Leave empty if break is ongoing.
+                          </p>
+                        </div>
+
+                        {/* ACTIONS */}
+
+                        <div className="flex gap-3 pt-4">
+                          <button
+                            onClick={handleAddBreak}
+                            className="flex-1 bg-purple-600 text-white py-3 rounded-xl hover:bg-purple-700"
+                          >
+                            Add Break
+                          </button>
+
+                          <button
+                            onClick={() => {
+                              setShowAddBreakModal(false);
+                              setAddBreakForm({
+                                date: getTodayStr(),
+                                breakIn: "",
+                                breakOut: "",
+                              });
+                            }}
+                            className="flex-1 bg-gray-200 py-3 rounded-xl"
+                          >
+                            Cancel
+                          </button>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                )}
               </div>
             </div>
           </div>
@@ -668,7 +873,7 @@ export default function HRUserAttendanceDetail() {
 function SummaryCard({ title, value, icon, color }) {
   return (
     <div
-      className={`bg-gradient-to-r ${color} text-white rounded-2xl p-5 shadow`}
+      className={`bg-gradient-to-r ${color} text-white rounded-xl p-3  shadow-sm`}
     >
       <div className="flex justify-between items-center mb-3">{icon}</div>
 
@@ -692,27 +897,29 @@ function TableHead({ icon, title }) {
 
 function StatusBadge({ status }) {
   const statusStyles = {
-    CHECKED_OUT:     "bg-green-100 text-green-700",
-    CHECKED_IN:      "bg-blue-100 text-blue-700",
-    LATE:            "bg-orange-100 text-orange-700",
-    ON_BREAK:        "bg-yellow-100 text-yellow-700",
-    BACK_TO_WORK:    "bg-blue-100 text-blue-700",
-    ON_LEAVE:        "bg-red-100 text-red-700",
-    HALF_DAY_LEAVE:  "bg-purple-100 text-purple-700",
+    CHECKED_OUT: "bg-green-100 text-green-700",
+    CHECKED_IN: "bg-blue-100 text-blue-700",
+    LATE: "bg-orange-100 text-orange-700",
+    ON_BREAK: "bg-yellow-100 text-yellow-700",
+    BACK_TO_WORK: "bg-blue-100 text-blue-700",
+    ON_LEAVE: "bg-red-100 text-red-700",
+    HALF_DAY_LEAVE: "bg-purple-100 text-purple-700",
   };
 
   const labels = {
-    CHECKED_OUT:    "Checked Out",
-    CHECKED_IN:     "Checked In",
-    LATE:           "Late",
-    ON_BREAK:       "On Break",
-    BACK_TO_WORK:   "Back to Work",
-    ON_LEAVE:       "On Leave",
+    CHECKED_OUT: "Checked Out",
+    CHECKED_IN: "Checked In",
+    LATE: "Late",
+    ON_BREAK: "On Break",
+    BACK_TO_WORK: "Back to Work",
+    ON_LEAVE: "On Leave",
     HALF_DAY_LEAVE: "Half Day Leave",
   };
 
   return (
-    <span className={`px-3 py-1 rounded-full text-xs font-semibold ${statusStyles[status] || "bg-gray-100 text-gray-700"}`}>
+    <span
+      className={`px-3 py-1 rounded-full text-xs font-semibold ${statusStyles[status] || "bg-gray-100 text-gray-700"}`}
+    >
       {labels[status] || status}
     </span>
   );

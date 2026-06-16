@@ -22,7 +22,7 @@ import { toast } from "react-toastify";
 const ITEMS_PER_PAGE = 5;
 const MAX_VISIBLE_PAGES = 5;
 
-// ─── Helpers
+// Helpers
 
 const monthBounds = () => {
   const parts = new Intl.DateTimeFormat("en-CA", {
@@ -129,8 +129,8 @@ const StatusBadge = ({ status }) => (
     {STATUS_LABELS[status] || status.replace(/_/g, " ")}
   </span>
 );
-
-// ─── Main Component
+ 
+//  Main Component 
 
 export default function AttendancePage() {
   const [attendance, setAttendance] = useState([]);
@@ -236,7 +236,7 @@ export default function AttendancePage() {
                   <MetricBadge
                     icon={Target}
                     label="Attendance Rate"
-                    value={`${attendanceRate}%`}
+                    value={`${summary.productivity}%`}
                     colorClass="bg-gradient-to-br from-cyan-50 to-blue-50"
                     borderClass="border-cyan-200"
                   />
@@ -308,7 +308,7 @@ export default function AttendancePage() {
                 bg="bg-pink-400"
                 border="border-pink-500"
                 label="Days"
-                value={summary.totalDays}
+                value={summary.present}
               />
               <StatTile
                 bg="bg-orange-500"

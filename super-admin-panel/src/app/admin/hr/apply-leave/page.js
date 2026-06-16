@@ -526,9 +526,12 @@ export default function HRLeaveDashboard() {
                                   </button>
                                 </>
                               ) : (
-                                <span className="text-gray-500 text-sm">
-                                  No Action
-                                </span>
+                                <button
+                                  className="bg-red-600 rounded p-1 text-white gap-6"
+                                  onClick={() => handleDelete(leave._id)}
+                                >
+                                  Delete
+                                </button>
                               )}
                             </td>
                           </tr>

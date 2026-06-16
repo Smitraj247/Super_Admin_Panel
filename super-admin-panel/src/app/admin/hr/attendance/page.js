@@ -210,7 +210,7 @@ export default function HRAttendance() {
                     "User",
                     "Department",
                     "Role",
-                    "This Month (Total / Present / Pending)",
+                    "This Month (Total / Expected / Present / Pending)",
                     "Action",
                   ].map((h, i) => (
                     <th
@@ -223,80 +223,84 @@ export default function HRAttendance() {
                 </tr>
               </thead>
               <tbody className="divide-y divide-[var(--border)]">
-                {loading ? (
-                  <tr>
-                    <td
-                      colSpan="5"
-                      className="text-center p-8 text-[var(--text-secondary)]"
-                    >
-                      Loading users...
-                    </td>
-                  </tr>
-                ) : filteredUsers.length > 0 ? (
-                  filteredUsers.map((user) => {
-                    const stats = attendanceStats[user._id] || {
-                      totalDays: 0,
-                      present: 0,
-                      pending: 0,
-                    };
-                    return (
-                      <tr
-                        key={user._id}
-                        onClick={() =>
-                          router.push(`/admin/hr/attendance/${user._id}`)
-                        }
-                        className="hover:bg-[var(--bg-elevated)] transition cursor-pointer group"
+                  {loading ? (
+                    <tr>
+                      <td
+                        colSpan="6"
+                        className="text-center p-8 text-[var(--text-secondary)]"
                       >
-                        <td className="p-4">
-                          <div className="flex items-center gap-3">
-                            <div className="w-10 h-10 bg-indigo-100 rounded-full flex items-center justify-center group-hover:bg-indigo-200 transition-colors">
-                              <User className="text-indigo-600" size={20} />
+                        Loading users...
+                      </td>
+                    </tr>
+                  ) : filteredUsers.length > 0 ? (
+                    filteredUsers.map((user) => {
+                      const stats = attendanceStats[user._id] || {
+                        totalDays: 0,
+                        present: 0,
+                        pending: 0,
+                        expectedWorkingDays: 0,
+                      };
+                      return (
+                        <tr
+                          key={user._id}
+                          onClick={() =>
+                            router.push(`/admin/hr/attendance/${user._id}`)
+                          }
+                          className="hover:bg-[var(--bg-elevated)] transition cursor-pointer group"
+                        >
+                          <td className="p-4">
+                            <div className="flex items-center gap-3">
+                              <div className="w-10 h-10 bg-indigo-100 rounded-full flex items-center justify-center group-hover:bg-indigo-200 transition-colors">
+                                <User className="text-indigo-600" size={20} />
+                              </div>
+                              <div>
+                                <p className="text-[var(--text-primary)] group-hover:text-indigo-600 transition-colors">
+                                  {user.name}
+                                </p>
+                                <p className="text-xs text-[var(--text-secondary)]">
+                                  {user.email}
+                                </p>
+                              </div>
                             </div>
-                            <div>
-                              <p className="text-[var(--text-primary)] group-hover:text-indigo-600 transition-colors">
-                                {user.name}
-                              </p>
-                              <p className="text-xs text-[var(--text-secondary)]">
-                                {user.email}
-                              </p>
+                          </td>
+                          <td className="p-4 text-sm text-[var(--text-primary)]">
+                            {(typeof user.department === "object"
+                              ? user.department?.name
+                              : user.department) || "N/A"}
+                          </td>
+                          <td className="p-4 text-sm text-[var(--text-primary)]">
+                            {(typeof user.role === "object"
+                              ? user.role?.name
+                              : user.role) || "N/A"}
+                          </td>
+                          <td className="p-4 text-center">
+                            <div className="flex items-center justify-center gap-4 text-sm">
+                              <span
+                                className="text-[var(--text-primary)]"
+                                title="Total Working Days"
+                              >
+                                {stats.totalDays}
+                              </span>
+                              <span className="text-indigo-600 font-semibold" title="Expected Working Days (excl. leaves)">
+                                {stats.expectedWorkingDays || stats.totalDays}
+                              </span>
+                              <span className="text-green-600" title="Present">
+                                {stats.present}
+                              </span>
+                              <span className="text-yellow-600" title="Pending">
+                                {stats.pending}
+                              </span>
                             </div>
-                          </div>
-                        </td>
-                        <td className="p-4 text-sm text-[var(--text-primary)]">
-                          {(typeof user.department === "object"
-                            ? user.department?.name
-                            : user.department) || "N/A"}
-                        </td>
-                        <td className="p-4 text-sm text-[var(--text-primary)]">
-                          {(typeof user.role === "object"
-                            ? user.role?.name
-                            : user.role) || "N/A"}
-                        </td>
-                        <td className="p-4 text-center">
-                          <div className="flex items-center justify-center gap-4 text-sm">
-                            <span
-                              className="text-[var(--text-primary)]"
-                              title="Working Days"
-                            >
-                              {stats.totalDays}
-                            </span>
-                            <span className="text-green-600" title="Present">
-                              {stats.present}
-                            </span>
-                            <span className="text-yellow-600" title="Pending">
-                              {stats.pending}
-                            </span>
-                          </div>
-                        </td>
-                        <td className="p-4 text-right">
-                          <button className="p-2 text-[var(--text-secondary)] group-hover:text-indigo-600 group-hover:bg-indigo-50 rounded-lg transition-colors">
-                            <ChevronRight size={18} />
-                          </button>
-                        </td>
-                      </tr>
-                    );
-                  })
-                ) : (
+                          </td>
+                          <td className="p-4 text-right">
+                            <button className="p-2 text-[var(--text-secondary)] group-hover:text-indigo-600 group-hover:bg-indigo-50 rounded-lg transition-colors">
+                              <ChevronRight size={18} />
+                            </button>
+                          </td>
+                        </tr>
+                      );
+                    })
+                  ) : (
                   <tr>
                     <td
                       colSpan="5"

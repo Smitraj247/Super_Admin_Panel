@@ -64,7 +64,7 @@ export default function HRAttendance() {
         totalWorkHours: todayStats.totalWorkHours,
         absentToday: Math.max(0, allUsers.length - todayStats.presentToday),
       });
-
+                                    
       setAttendanceStats(userStats);
     } catch (err) {
       console.error("Error fetching attendance:", err);

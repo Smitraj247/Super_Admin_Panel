@@ -7,7 +7,7 @@ import {
   calculateBreakMinutes,
   minutesToHM,
   calculateWorkingHours,
-  countLeaveDays,
+  countLeaveDaysOnWorkingDays,
 } from "./dateUtils";
 
 /**
@@ -30,11 +30,12 @@ export const transformHistoryData = (rawData) =>
   }));
 
 /**
- * Calculate actual days absent (excluding approved leaves)
+ * Calculate actual days absent (excluding approved leaves that fall on working days)
  */
 export const calculateActualAbsent = (summary, leaves, startDate, endDate) => {
   if (!summary) return 0;
-  const approvedLeaveDays = countLeaveDays(leaves, startDate, endDate);
+  // Only count leave days that fall on working days (Mon-Fri + last Saturday, minus holidays)
+  const approvedLeaveDays = countLeaveDaysOnWorkingDays(leaves, startDate, endDate);
   return Math.max(0, summary.absent - approvedLeaveDays);
 };
 

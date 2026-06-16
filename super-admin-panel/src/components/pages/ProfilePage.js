@@ -163,6 +163,7 @@ export default function ProfilePage() {
       setPreview(""); // revert preview on failure
     }
   };
+  
   const handleEdit = () => {
     setIsEditing(true);
     setMessage("");
