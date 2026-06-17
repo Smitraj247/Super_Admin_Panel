@@ -11,11 +11,7 @@ import { formatCurrentDate } from "@/utils/dateUtils";
 const DashboardHeader = memo(() => {
   return (
     <div className="flex items-center justify-between">
-      <h2
-        className="text-3xl font-semibold tracking-tight
-        bg-gradient-to-r from-indigo-500 via-purple-500 to-pink-500
-        bg-clip-text text-transparent animate-pulse"
-      >
+      <h2 className=" text-3xl font-bold bg-gradient-to-r from-cyan-600 via-blue-600 to-purple-600 bg-clip-text text-transparent ">
         Attendance System
       </h2>
       <div className="flex items-center gap-1.5 bg-indigo-500/10 border border-indigo-500/20 px-2.5 sm:px-3 py-1.5 rounded-lg text-indigo-400">

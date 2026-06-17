@@ -24,12 +24,9 @@ const AttendanceTracking = memo(
       >
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-4">
           <div>
-            <h3 className="text-[16px] font-semibold text-[var(--text-primary)]">
+            <h3 className="text-[16px] font-semibold text-cyan-600">
               Attendance Tracking
             </h3>
-            <p className="text-[11px] text-[var(--text-muted)] mt-0.5">
-              Track your attendance with one click
-            </p>
           </div>
 
           {userStatus === "LATE" && (

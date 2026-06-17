@@ -96,7 +96,7 @@ const MetricBadge = ({ icon: Icon, label, value, colorClass, borderClass }) => (
         <p className="text-xs text-slate-600 uppercase tracking-wider font-semibold">
           {label}
         </p>
-        <p className="text-lg font-bold text-slate-900">{value}</p>
+        <p className="text-lg font-bold text-slate-600">{value}</p>
       </div>
     </div>
   </div>
@@ -129,8 +129,8 @@ const StatusBadge = ({ status }) => (
     {STATUS_LABELS[status] || status.replace(/_/g, " ")}
   </span>
 );
- 
-//  Main Component 
+
+//  Main Component
 
 export default function AttendancePage() {
   const [attendance, setAttendance] = useState([]);
@@ -237,7 +237,7 @@ export default function AttendancePage() {
                     icon={Target}
                     label="Attendance Rate"
                     value={`${summary.productivity}%`}
-                    colorClass="bg-gradient-to-br from-cyan-50 to-blue-50"
+                    colorClass="bg-gradient-to-br from-cyan-50 to-blue-50 "
                     borderClass="border-cyan-200"
                   />
                   <MetricBadge
@@ -358,7 +358,7 @@ export default function AttendancePage() {
           {/* Table */}
           <div className="bg-white border border-gray-300 rounded overflow-hidden">
             <div className="bg-gray-100 px-4 py-3 border-b border-gray-300">
-              <h2 className="font-medium text-gray-900">Attendance Records</h2>
+              <h2 className="font-medium ">Attendance Records</h2>
             </div>
 
             <div className="overflow-x-auto">
@@ -375,7 +375,7 @@ export default function AttendancePage() {
                     ].map((h) => (
                       <th
                         key={h}
-                        className="p-3 text-left font-medium text-gray-700 whitespace-nowrap"
+                        className="p-3 text-left font-medium  whitespace-nowrap"
                       >
                         {h}
                       </th>
@@ -385,36 +385,29 @@ export default function AttendancePage() {
                 <tbody className="divide-y divide-gray-200">
                   {loading ? (
                     <tr>
-                      <td colSpan={6} className="text-center p-8 text-gray-500">
+                      <td colSpan={6} className="text-center p-8 ">
                         Loading…
                       </td>
                     </tr>
                   ) : pageRecords.length > 0 ? (
                     pageRecords.map((item) => (
-                      <tr
-                        key={item._id}
-                        className="hover:bg-gray-50 transition-colors"
-                      >
-                        <td className="p-3 text-gray-900 whitespace-nowrap">
+                      <tr key={item._id} className=" transition-colors">
+                        <td className="p-3  whitespace-nowrap">
                           {new Date(item.date).toLocaleDateString("en-GB", {
                             day: "2-digit",
                             month: "short",
                             year: "numeric",
                           })}
                         </td>
-                        <td className="p-3 text-gray-900">
-                          {formatTime(item.checkIn)}
-                        </td>
-                        <td className="p-3 text-gray-900">
-                          {formatTime(item.checkOut)}
-                        </td>
-                        <td className="p-3 text-gray-900">
+                        <td className="p-3 ">{formatTime(item.checkIn)}</td>
+                        <td className="p-3 ">{formatTime(item.checkOut)}</td>
+                        <td className="p-3 ">
                           {minsToHM(breakMinutes(item.breaks))}
                         </td>
-                        <td className="p-3 text-gray-900">
+                        <td className="p-3 ">
                           {workHours(item.checkIn, item.checkOut, item.breaks)}
                         </td>
-                        <td className="p-3 text-gray-700">
+                        <td className="p-3 ">
                           <StatusBadge status={item.status} />
                         </td>
                       </tr>

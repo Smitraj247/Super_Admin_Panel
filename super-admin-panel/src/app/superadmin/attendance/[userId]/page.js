@@ -474,39 +474,6 @@ export default function HRUserAttendanceDetail() {
           </div>
         </div>
 
-        {/* FILTER */}
-
-        <div className="bg-white border  border-blue-200 rounded-2xl p-5 shadow mb-6">
-          <div className="flex items-center gap-2 mb-4">
-            <Filter size={18} />
-            <h2 className="font-semibold">Filter Attendance</h2>
-          </div>
-
-          <div className="grid md:grid-cols-2 gap-4">
-            <select
-              value={selectedMonth}
-              onChange={(e) => setSelectedMonth(e.target.value)}
-              className="border p-3 rounded-xl"
-            >
-              {MONTHS.map((month) => (
-                <option key={month.value} value={month.value}>
-                  {month.label}
-                </option>
-              ))}
-            </select>
-
-            <select
-              value={selectedYear}
-              onChange={(e) => setSelectedYear(e.target.value)}
-              className="border p-3 rounded-xl"
-            >
-              {years.map((year) => (
-                <option key={year}>{year}</option>
-              ))}
-            </select>
-          </div>
-        </div>
-
         {/* SUMMARY */}
 
         {summary && (
@@ -547,8 +514,34 @@ export default function HRUserAttendanceDetail() {
         {/* TABLE */}
 
         <div className="bg-white border  border-blue-200 rounded-2xl shadow overflow-hidden">
-          <div className="p-5 border-b">
+          <div className="flex items-center justify-between p-5 border-b">
+            {/* Left Side */}
             <h2 className="text-xl font-bold">Attendance Records</h2>
+
+            {/* Right Side */}
+            <div className="flex gap-4">
+              <select
+                value={selectedMonth}
+                onChange={(e) => setSelectedMonth(e.target.value)}
+                className="border p-3 rounded-xl"
+              >
+                {MONTHS.map((month) => (
+                  <option key={month.value} value={month.value}>
+                    {month.label}
+                  </option>
+                ))}
+              </select>
+
+              <select
+                value={selectedYear}
+                onChange={(e) => setSelectedYear(e.target.value)}
+                className="border p-3 rounded-xl"
+              >
+                {years.map((year) => (
+                  <option key={year}>{year}</option>
+                ))}
+              </select>
+            </div>
           </div>
 
           <div className="overflow-x-auto">

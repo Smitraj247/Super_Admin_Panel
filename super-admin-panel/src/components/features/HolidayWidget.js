@@ -36,7 +36,7 @@ export default function HolidayWidget() {
     >
       <div className="flex items-center gap-2 mb-4">
         <div className="w-2 h-2 rounded-full bg-indigo-500" />
-        <h3 className="text-lg font-semibold text-[var(--text-primary)]">
+        <h3 className="text-lg font-semibold text-indigo-700">
           Upcoming Holidays
         </h3>
       </div>
@@ -59,7 +59,7 @@ export default function HolidayWidget() {
                 {h.title}
               </p>
 
-              <p className="text-xs text-[var(--text-muted)]">
+              <p className="text-xs text-indigo-500">
                 {new Date(h.date).toLocaleDateString("en-GB", {
                   weekday: "short",
                   day: "2-digit",

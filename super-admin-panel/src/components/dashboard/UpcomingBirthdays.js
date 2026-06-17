@@ -82,7 +82,7 @@ const UpcomingBirthdays = memo(() => {
           maxHeight: "360px",
         }}
       >
-        <h3 className="text-[15px] font-semibold text-[var(--text-primary)] mb-3">
+        <h3 className="text-[15px] font-semibold text-cyan-600 mb-3">
           Upcoming Birthdays
         </h3>
         <div className="flex items-center justify-center py-8">
@@ -98,12 +98,12 @@ const UpcomingBirthdays = memo(() => {
       style={{
         background: "var(--bg-surface)",
         boxShadow: "var(--shadow-sm)",
-        maxHeight: "360px",
+        height: "373px",
       }}
     >
       <div className="flex items-center gap-2 mb-3">
-        <Cake className="w-4 h-4 text-pink-500" />
-        <h3 className="text-[15px] font-semibold text-[var(--text-primary)]">
+        <Cake className="w-4 h-4 text-pink-700" />
+        <h3 className="text-[15px] font-semibold text-pink-500">
           Upcoming Birthdays
         </h3>
       </div>

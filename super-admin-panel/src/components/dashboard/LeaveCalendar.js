@@ -41,16 +41,6 @@ export default function LeaveCalendar({
     setCurrentDate(new Date(selectedYear, selectedMonth, 1));
   }, [selectedYear, selectedMonth]);
 
-  // Filter users based on search
-  const filteredUsers = useMemo(() => {
-    if (!userSearchQuery) return allUsers;
-    const q = userSearchQuery.toLowerCase();
-    return allUsers.filter(
-      (u) =>
-        u.name?.toLowerCase().includes(q) || u.email?.toLowerCase().includes(q),
-    );
-  }, [allUsers, userSearchQuery]);
-
   // Calendar Info
   const { year, month, daysInMonth, firstDayOfMonth, monthName } =
     useMemo(() => {
@@ -264,8 +254,8 @@ export default function LeaveCalendar({
               isValidDay
                 ? dayHoliday
                   ? `${getHolidayBg(dayHoliday.type)} hover:opacity-90`
-                  : "bg-white hover:bg-slate-50"
-                : "bg-slate-50"
+                  : " hover:bg-slate-50"
+                : ""
             }
             ${isToday ? "ring-2 ring-indigo-300" : ""}
           `}
@@ -276,7 +266,7 @@ export default function LeaveCalendar({
               <div className="flex items-center justify-between mb-1">
                 <div
                   className={`text-xs font-semibold
-                    ${isToday ? "text-indigo-600" : "text-slate-700"}
+                    ${isToday ? "text-indigo-600" : ""}
                   `}
                 >
                   {dayNumber}
@@ -420,249 +410,20 @@ export default function LeaveCalendar({
   return (
     <div className="space-y-4">
       {/* Employee Filter Section */}
-      <div className="bg-gradient-to-r from-indigo-50/60 to-purple-50/60 rounded-2xl border border-indigo-200/60 p-4 backdrop-blur-sm">
-        <div className="flex items-center gap-2 mb-3">
-          <Users size={16} className="text-indigo-500" />
-          <span className="text-sm font-bold text-indigo-800">
-            Filter Employee Calendar
-          </span>
-        </div>
-        <div className="flex flex-col sm:flex-row gap-3">
-          <div className="relative flex-1">
-            <Search
-              className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400"
-              size={16}
-            />
-            <input
-              type="text"
-              value={userSearchQuery}
-              onChange={(e) => onSearchChange(e.target.value)}
-              placeholder="Search employee by name or email..."
-              className="w-full pl-10 pr-4 py-2.5 rounded-xl border border-[var(--border)] bg-white dark:bg-[var(--bg-surface)] text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500/50"
-            />
-          </div>
-          <select
-            value={selectedUserId}
-            onChange={(e) => {
-              onUserSelect(e.target.value);
-              onSearchChange("");
-            }}
-            className="flex-1 px-4 py-2.5 rounded-xl border border-[var(--border)] bg-white dark:bg-[var(--bg-surface)] text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500/50"
-          >
-            <option value="">-- Select an employee --</option>
-            {filteredUsers.map((u) => (
-              <option key={u._id} value={u._id}>
-                {u.name} ({u.email})
-              </option>
-            ))}
-          </select>
-          {selectedUserId && (
-            <button
-              onClick={onClear}
-              className="px-4 py-2.5 rounded-xl bg-red-100 text-red-600 hover:bg-red-200 text-sm font-medium transition-colors flex items-center gap-2"
-            >
-              <X size={16} />
-              Clear
-            </button>
-          )}
-        </div>
-
-        {/* Selected User Today Attendance Summary */}
-        {selectedUserId && (
-          <div className="mt-4 p-4 rounded-xl border border-indigo-200 bg-white/70 backdrop-blur-sm">
-            {selectedUserLoading ? (
-              <div className="flex items-center gap-2 text-sm text-indigo-600">
-                <div className="w-4 h-4 border-2 border-indigo-300 border-t-indigo-600 rounded-full animate-spin" />
-                Loading attendance...
-              </div>
-            ) : selectedUserTodayAtt ? (
-              <div className="space-y-3">
-                {/* User Info & Status */}
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-3">
-                    <div className="p-2 rounded-full bg-indigo-100">
-                      <UserCheck size={18} className="text-indigo-600" />
-                    </div>
-                    <div>
-                      <p className="text-sm font-bold text-indigo-900">
-                        {selectedUserData?.name || "Selected Employee"}
-                      </p>
-                      <p className="text-xs text-indigo-600/70">
-                        {selectedUserData?.email || ""}
-                      </p>
-                    </div>
-                  </div>
-                  <div
-                    className={`px-3 py-1.5 rounded-full text-xs font-bold ${
-                      selectedUserTodayAtt.status === "CHECKED_IN" ||
-                      selectedUserTodayAtt.status === "BACK_TO_WORK"
-                        ? "bg-green-100 text-green-700"
-                        : selectedUserTodayAtt.status === "LATE"
-                          ? "bg-yellow-100 text-yellow-700"
-                          : selectedUserTodayAtt.status === "ON_BREAK"
-                            ? "bg-blue-100 text-blue-700"
-                            : selectedUserTodayAtt.checkOut
-                              ? "bg-purple-100 text-purple-700"
-                              : "bg-red-100 text-red-700"
-                    }`}
-                  >
-                    {selectedUserTodayAtt.status ||
-                      (selectedUserTodayAtt.checkOut
-                        ? "CHECKED_OUT"
-                        : "ABSENT")}
-                  </div>
-                </div>
-
-                {/* Attendance Timeline Grid */}
-                <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-                  <div className="flex items-center gap-2 p-2.5 rounded-lg bg-white/70 border border-green-200">
-                    <div className="w-8 h-8 rounded-full bg-green-100 flex items-center justify-center shrink-0">
-                      <UserCheck size={14} className="text-green-600" />
-                    </div>
-                    <div className="min-w-0">
-                      <p className="text-[10px] text-green-600 font-semibold">
-                        CHECK-IN
-                      </p>
-                      <p className="text-xs font-bold text-green-800 truncate">
-                        {selectedUserTodayAtt.checkIn
-                          ? new Date(
-                              selectedUserTodayAtt.checkIn,
-                            ).toLocaleTimeString("en-US", {
-                              hour: "2-digit",
-                              minute: "2-digit",
-                              hour12: true,
-                            })
-                          : "---"}
-                      </p>
-                    </div>
-                  </div>
-
-                  <div className="flex items-center gap-2 p-2.5 rounded-lg bg-white/70 border border-purple-200">
-                    <div className="w-8 h-8 rounded-full bg-purple-100 flex items-center justify-center shrink-0">
-                      <Briefcase size={14} className="text-purple-600" />
-                    </div>
-                    <div className="min-w-0">
-                      <p className="text-[10px] text-purple-600 font-semibold">
-                        CHECK-OUT
-                      </p>
-                      <p className="text-xs font-bold text-purple-800 truncate">
-                        {selectedUserTodayAtt.checkOut
-                          ? new Date(
-                              selectedUserTodayAtt.checkOut,
-                            ).toLocaleTimeString("en-US", {
-                              hour: "2-digit",
-                              minute: "2-digit",
-                              hour12: true,
-                            })
-                          : "---"}
-                      </p>
-                    </div>
-                  </div>
-
-                  <div className="flex items-center gap-2 p-2.5 rounded-lg bg-white/70 border border-blue-200">
-                    <div className="w-8 h-8 rounded-full bg-blue-100 flex items-center justify-center shrink-0">
-                      <Clock size={14} className="text-blue-600" />
-                    </div>
-                    <div className="min-w-0">
-                      <p className="text-[10px] text-blue-600 font-semibold">
-                        WORKING HOURS
-                      </p>
-                      <p className="text-xs font-bold text-blue-800 truncate">
-                        {calculateWorkingHours(selectedUserTodayAtt)}
-                      </p>
-                    </div>
-                  </div>
-
-                  <div className="flex items-center gap-2 p-2.5 rounded-lg bg-white/70 border border-amber-200">
-                    <div className="w-8 h-8 rounded-full bg-amber-100 flex items-center justify-center shrink-0">
-                      <Clock size={14} className="text-amber-600" />
-                    </div>
-                    <div className="min-w-0">
-                      <p className="text-[10px] text-amber-600 font-semibold">
-                        BREAKS
-                      </p>
-                      <p className="text-xs font-bold text-amber-800 truncate">
-                        {selectedUserTodayAtt.breaks?.length || 0} break
-                        {(selectedUserTodayAtt.breaks?.length || 0) !== 1
-                          ? "s"
-                          : ""}
-                      </p>
-                    </div>
-                  </div>
-                </div>
-
-                {/* Break Details */}
-                {selectedUserTodayAtt.breaks?.length > 0 && (
-                  <div>
-                    <p className="text-[11px] font-semibold text-indigo-700 mb-2">
-                      Break Details
-                    </p>
-                    <div className="space-y-1.5">
-                      {selectedUserTodayAtt.breaks.map((b, bi) => (
-                        <div
-                          key={bi}
-                          className="flex items-center gap-3 text-xs bg-white/50 rounded-lg px-3 py-2 border border-slate-200"
-                        >
-                          <span className="w-6 h-6 rounded-full bg-amber-100 flex items-center justify-center text-amber-700 font-bold text-[10px] shrink-0">
-                            B{bi + 1}
-                          </span>
-                          <div className="flex items-center gap-4 flex-wrap">
-                            <span className="text-green-700 font-medium">
-                              In:{" "}
-                              {new Date(b.breakIn).toLocaleTimeString("en-US", {
-                                hour: "2-digit",
-                                minute: "2-digit",
-                                hour12: true,
-                              })}
-                            </span>
-                            <span className="text-blue-700 font-medium">
-                              Out:{" "}
-                              {b.breakOut
-                                ? new Date(b.breakOut).toLocaleTimeString(
-                                    "en-US",
-                                    {
-                                      hour: "2-digit",
-                                      minute: "2-digit",
-                                      hour12: true,
-                                    },
-                                  )
-                                : "---"}
-                            </span>
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                )}
-              </div>
-            ) : (
-              <div className="flex items-center gap-3 text-sm text-slate-500">
-                <Clock size={16} />
-                <span>No attendance record found for today</span>
-              </div>
-            )}
-          </div>
-        )}
-      </div>
 
       {/* Calendar */}
-      <div
-        className="rounded-2xl border border-[var(--border)] overflow-hidden
-      bg-white/70 backdrop-blur-xl shadow-sm
-      transition-all duration-300"
-      >
+      <div className="rounded-2xl border border-[var(--border)] overflow-hidden shadow-sm transition-all duration-300">
         {/* HEADER */}
         <div
           className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 p-4
-        border-b border-[var(--border)]
-        bg-gradient-to-r from-indigo-50/40 to-white/60 backdrop-blur-md"
+        border-b border-[var(--border)]"
         >
           <div className="flex items-center gap-3">
             <div className="p-2 rounded-xl bg-indigo-100 shadow-sm">
               <Calendar size={18} className="text-indigo-500" />
             </div>
 
-            <h3 className="text-[15px] font-bold text-[var(--text-primary)]">
+            <h3 className="text-[15px] font-bold text-indigo-500">
               {monthName} {year}
             </h3>
           </div>
@@ -726,10 +487,7 @@ export default function LeaveCalendar({
         <div className="p-4">
           <div className="grid grid-cols-7 gap-2 mb-2">
             {["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"].map((d) => (
-              <div
-                key={d}
-                className="text-center text-[11px] font-semibold text-[var(--text-muted)]"
-              >
+              <div key={d} className="text-center text-[11px] font-semibold ">
                 {d}
               </div>
             ))}
@@ -741,7 +499,7 @@ export default function LeaveCalendar({
         {/* LEGEND */}
         <div
           className="flex flex-wrap items-center gap-4 px-4 py-3 border-t border-[var(--border)]
-        bg-white/60 backdrop-blur-md"
+        "
         >
           <div className="text-xs font-semibold text-[var(--text-secondary)]">
             Status:

@@ -11,6 +11,7 @@ import {
   updateHolidayApi,
   deleteHolidayApi,
 } from "../../../services/holidayApi";
+import { Calendar } from "lucide-react";
 
 export default function HolidayPage() {
   const [holidays, setHolidays] = useState([]);
@@ -80,9 +81,12 @@ export default function HolidayPage() {
         <Sidebar />
         <Navbar />
 
-        <main className="md:ml-64 pt-20 p-8">
-          <h1 className="text-3xl font-bold mb-6 bg-gradient-to-r from-cyan-600 via-blue-600 to-purple-600 bg-clip-text text-transparent">
-            Holiday Management
+        <main className="md:ml-64 pt-25 p-8">
+          <h1 className="text-xl sm:text-3xl font-bold flex items-center gap-3 mb-6">
+            <Calendar className="text-[var(--accent)]" />
+            <span className="bg-gradient-to-r from-cyan-600 via-blue-600 to-purple-600 dark:from-cyan-400 dark:via-blue-400 dark:to-purple-400 bg-clip-text text-transparent">
+              Holiday Management
+            </span>
           </h1>
 
           <form

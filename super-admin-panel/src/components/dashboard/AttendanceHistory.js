@@ -4,23 +4,23 @@ import { memo } from "react";
 import { HISTORY_TABLE_HEADERS } from "@/constants/dashboardConstants";
 
 const STATUS_STYLES = {
-  CHECKED_IN:      "bg-blue-500/10 text-blue-400",
-  CHECKED_OUT:     "bg-emerald-500/10 text-emerald-400",
-  LATE:            "bg-orange-500/10 text-orange-400",
-  ON_BREAK:        "bg-yellow-500/10 text-yellow-400",
-  BACK_TO_WORK:    "bg-cyan-500/10 text-cyan-400",
-  ON_LEAVE:        "bg-red-500/10 text-red-400",
-  HALF_DAY_LEAVE:  "bg-purple-500/10 text-purple-400",
+  CHECKED_IN: "bg-blue-500/10 text-blue-400",
+  CHECKED_OUT: "bg-emerald-500/10 text-emerald-400",
+  LATE: "bg-orange-500/10 text-orange-400",
+  ON_BREAK: "bg-yellow-500/10 text-yellow-400",
+  BACK_TO_WORK: "bg-cyan-500/10 text-cyan-400",
+  ON_LEAVE: "bg-red-500/10 text-red-400",
+  HALF_DAY_LEAVE: "bg-purple-500/10 text-purple-400",
 };
 
 const STATUS_LABELS = {
-  CHECKED_IN:      "Checked In",
-  CHECKED_OUT:     "Checked Out",
-  LATE:            "Late",
-  ON_BREAK:        "On Break",
-  BACK_TO_WORK:    "Back to Work",
-  ON_LEAVE:        "On Leave",
-  HALF_DAY_LEAVE:  "Half Day",
+  CHECKED_IN: "Checked In",
+  CHECKED_OUT: "Checked Out",
+  LATE: "Late",
+  ON_BREAK: "On Break",
+  BACK_TO_WORK: "Back to Work",
+  ON_LEAVE: "On Leave",
+  HALF_DAY_LEAVE: "Half Day",
 };
 
 /**
@@ -37,7 +37,7 @@ const AttendanceHistory = memo(({ records = [] }) => {
       }}
     >
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 mb-3">
-        <h3 className="text-[15px] font-semibold text-[var(--text-primary)]">
+        <h3 className="text-[15px] font-semibold text-cyan-600">
           Attendance History
         </h3>
       </div>
@@ -100,7 +100,8 @@ const AttendanceHistory = memo(({ records = [] }) => {
                   <td className="py-2 px-2">
                     <span
                       className={`px-1.5 py-0.5 rounded-full text-[10px] font-semibold ${
-                        STATUS_STYLES[record.status] || "bg-gray-500/10 text-gray-400"
+                        STATUS_STYLES[record.status] ||
+                        "bg-gray-500/10 text-gray-400"
                       }`}
                     >
                       {STATUS_LABELS[record.status] || record.status}

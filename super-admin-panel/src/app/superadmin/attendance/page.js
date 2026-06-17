@@ -64,7 +64,7 @@ export default function HRAttendance() {
         totalWorkHours: todayStats.totalWorkHours,
         absentToday: Math.max(0, allUsers.length - todayStats.presentToday),
       });
-                                    
+
       setAttendanceStats(userStats);
     } catch (err) {
       console.error("Error fetching attendance:", err);
@@ -133,33 +133,28 @@ export default function HRAttendance() {
         {/* Table card with integrated filter toolbar */}
         <div className="bg-[var(--bg-surface)] rounded-xl shadow-sm overflow-hidden border border-[var(--border)]">
           <div className="p-6 border-b border-[var(--border)]">
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-              <div>
-                <label className="block text-sm font-semibold text-[var(--text-primary)] mb-2">
-                  Search User
-                </label>
-                <div className="relative">
-                  <Search
-                    className="absolute left-3 top-2.5 text-slate-400"
-                    size={18}
-                  />
-                  <input
-                    type="text"
-                    value={searchQuery}
-                    onChange={(e) => setSearchQuery(e.target.value)}
-                    placeholder="Search by name or email"
-                    className="w-full border-2 border-[var(--border-strong)] p-2 pl-10 rounded-lg focus:outline-none focus:border-indigo-500"
-                  />
-                </div>
+            <div className="flex flex-col lg:flex-row justify-between gap-4">
+              {/* Search */}
+              <div className="relative">
+                <Search
+                  size={18}
+                  className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400"
+                />
+                <input
+                  type="text"
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  placeholder="Search by name or email"
+                  className="w-72 border p-2 pl-10 rounded-lg"
+                />
               </div>
-              <div>
-                <label className="block text-sm font-semibold text-[var(--text-primary)] mb-2">
-                  Filter by Department
-                </label>
+
+              {/* Filters */}
+              <div className="flex flex-wrap gap-3">
                 <select
                   value={departmentFilter}
                   onChange={(e) => setDepartmentFilter(e.target.value)}
-                  className="w-full border-2 border-[var(--border-strong)] p-2 rounded-lg focus:outline-none focus:border-indigo-500"
+                  className="border p-2 rounded-lg"
                 >
                   <option value="">All Departments</option>
                   {uniqueDepartments.map((d) => (
@@ -168,15 +163,11 @@ export default function HRAttendance() {
                     </option>
                   ))}
                 </select>
-              </div>
-              <div>
-                <label className="block text-sm font-semibold text-[var(--text-primary)] mb-2">
-                  Filter by Role
-                </label>
+
                 <select
                   value={roleFilter}
                   onChange={(e) => setRoleFilter(e.target.value)}
-                  className="w-full border-2 border-[var(--border-strong)] p-2 rounded-lg focus:outline-none focus:border-indigo-500"
+                  className="border p-2 rounded-lg"
                 >
                   <option value="">All Roles</option>
                   {uniqueRoles.map((r) => (
@@ -185,20 +176,21 @@ export default function HRAttendance() {
                     </option>
                   ))}
                 </select>
+
+                {(searchQuery || departmentFilter || roleFilter) && (
+                  <button
+                    onClick={() => {
+                      setSearchQuery("");
+                      setDepartmentFilter("");
+                      setRoleFilter("");
+                    }}
+                    className="px-4 py-2 bg-slate-600 text-white rounded-lg hover:bg-slate-700"
+                  >
+                    Reset
+                  </button>
+                )}
               </div>
             </div>
-            {(searchQuery || departmentFilter || roleFilter) && (
-              <button
-                onClick={() => {
-                  setSearchQuery("");
-                  setDepartmentFilter("");
-                  setRoleFilter("");
-                }}
-                className="mt-4 bg-slate-600 text-white px-6 py-2 rounded-lg hover:bg-slate-700"
-              >
-                Reset Filters
-              </button>
-            )}
           </div>
 
           {/* Table */}

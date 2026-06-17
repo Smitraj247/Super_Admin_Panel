@@ -163,7 +163,7 @@ export default function ProfilePage() {
       setPreview(""); // revert preview on failure
     }
   };
-  
+
   const handleEdit = () => {
     setIsEditing(true);
     setMessage("");
@@ -416,18 +416,18 @@ export default function ProfilePage() {
 
               {/* Contact */}
               <div className="w-full border-t border-slate-200 pt-4">
-                <h3 className="font-bold text-lg mb-3 text-slate-900">
+                <h3 className="font-bold text-lg mb-3 text-cyan-600">
                   Contact
                 </h3>
                 <div className="flex flex-col gap-2">
-                  <div className="flex items-center gap-2 text-sm text-gray-700">
-                    <Mail size={16} className="text-gray-500 shrink-0" />
+                  <div className="flex items-center gap-2 text-sm ">
+                    <Mail size={16} className="text-gray-400 shrink-0" />
                     <span className="truncate">
                       {profileData?.email || "-"}
                     </span>
                   </div>
-                  <div className="flex items-center gap-2 text-sm text-gray-700">
-                    <Phone size={16} className="text-gray-500 shrink-0" />
+                  <div className="flex items-center gap-2 text-sm ">
+                    <Phone size={16} className="text-gray-400 shrink-0" />
                     <span>{profileData?.phone || "-"}</span>
                   </div>
                 </div>
@@ -453,7 +453,7 @@ export default function ProfilePage() {
                       {/* Basic Information */}
                       <div>
                         <h4 className="font-bold text-lg mb-4 flex items-center gap-2">
-                          <User size={20} />
+                          <User size={20} className="text-indigo-600" />
                           Basic Information
                         </h4>
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -731,13 +731,11 @@ export default function ProfilePage() {
                         </h4>{" "}
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                           <div>
-                            <p className="text-sm text-gray-500">FullName</p>
-                            <p className="font-medium text-gray-900">
-                              {profileData?.name}
-                            </p>
+                            <p className="text-sm text-gray-400">FullName</p>
+                            <p className="font-medium ">{profileData?.name}</p>
                           </div>
                           <div>
-                            <p className="text-sm text-gray-500">
+                            <p className="text-sm text-gray-400">
                               Personal Email
                             </p>
                             <p className="font-medium text-blue-600">
@@ -745,22 +743,22 @@ export default function ProfilePage() {
                             </p>
                           </div>
                           <div>
-                            <p className="text-sm text-gray-500">
+                            <p className="text-sm text-gray-400">
                               Company Email
                             </p>
-                            <p className="font-medium text-gray-900">
+                            <p className="font-medium ">
                               {profileData?.companyEmail || "-"}
                             </p>
                           </div>
                           <div>
-                            <p className="text-sm text-gray-500">Gender</p>
-                            <p className="font-medium text-gray-900">
+                            <p className="text-sm text-gray-400">Gender</p>
+                            <p className="font-medium ">
                               {profileData?.gender}
                             </p>
                           </div>
                           <div>
-                            <p className="text-sm text-gray-500">Birthday</p>
-                            <p className="font-medium text-gray-900">
+                            <p className="text-sm text-gray-400">Birthday</p>
+                            <p className="font-medium ">
                               {profileData?.birthday
                                 ? new Date(
                                     profileData.birthday,
@@ -769,18 +767,18 @@ export default function ProfilePage() {
                             </p>
                           </div>
                           <div>
-                            <p className="text-sm text-gray-500">
+                            <p className="text-sm text-gray-400">
                               Marital Status
                             </p>
-                            <p className="font-medium text-gray-900">
+                            <p className="font-medium ">
                               {profileData?.maritalStatus}
                             </p>
                           </div>
                           <div>
-                            <p className="text-sm text-gray-500">
+                            <p className="text-sm text-gray-400">
                               Marriage Anniversary
                             </p>
-                            <p className="font-medium text-gray-900">
+                            <p className="font-medium ">
                               {profileData?.marriageAnniversary
                                 ? new Date(
                                     profileData.marriageAnniversary,
@@ -789,7 +787,7 @@ export default function ProfilePage() {
                             </p>
                           </div>
                           <div>
-                            <p className="text-sm text-gray-500">Status</p>
+                            <p className="text-sm text-gray-400">Status</p>
                             <p className="font-medium">
                               <span className="px-3 py-1 bg-green-100 text-green-800 rounded-full text-sm">
                                 ✓{" "}
@@ -808,34 +806,34 @@ export default function ProfilePage() {
                         </h4>
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                           <div>
-                            <p className="text-sm text-gray-500">Department</p>
-                            <p className="font-medium text-gray-900">
+                            <p className="text-sm text-gray-400">Department</p>
+                            <p className="font-medium ">
                               {profileData?.department?.name || "-"}
                             </p>
                           </div>
                           <div>
-                            <p className="text-sm text-gray-500">Designation</p>
-                            <p className="font-medium text-gray-900">
+                            <p className="text-sm text-gray-400">Designation</p>
+                            <p className="font-medium ">
                               {profileData?.designation || "-"}
                             </p>
                           </div>
                           <div>
-                            <p className="text-sm text-gray-500">Batch</p>
-                            <p className="font-medium text-gray-900">
+                            <p className="text-sm text-gray-400">Batch</p>
+                            <p className="font-medium ">
                               {profileData?.batch || "-"}
                             </p>
                           </div>
                           <div>
-                            <p className="text-sm text-gray-500">Report To</p>
-                            <p className="font-medium text-gray-900">
+                            <p className="text-sm text-gray-400">Report To</p>
+                            <p className="font-medium ">
                               {profileData?.reportTo?.name || "-"}
                             </p>
                           </div>
                           <div>
-                            <p className="text-sm text-gray-500">
+                            <p className="text-sm text-gray-400">
                               Joining Date
                             </p>
-                            <p className="font-medium text-gray-900">
+                            <p className="font-medium ">
                               {profileData?.joiningDate
                                 ? new Date(
                                     profileData.joiningDate,
@@ -844,10 +842,10 @@ export default function ProfilePage() {
                             </p>
                           </div>
                           <div>
-                            <p className="text-sm text-gray-500">
+                            <p className="text-sm text-gray-400">
                               Probation End Date
                             </p>
-                            <p className="font-medium text-gray-900">
+                            <p className="font-medium ">
                               {profileData?.probationEndDate
                                 ? new Date(
                                     profileData.probationEndDate,
@@ -856,10 +854,10 @@ export default function ProfilePage() {
                             </p>
                           </div>
                           <div>
-                            <p className="text-sm text-gray-500">
+                            <p className="text-sm text-gray-400">
                               Work Duration
                             </p>
-                            <p className="font-medium text-gray-900">
+                            <p className="font-medium ">
                               {calculateWorkDuration()}
                             </p>
                           </div>
@@ -874,16 +872,14 @@ export default function ProfilePage() {
                         </h4>
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                           <div>
-                            <p className="text-sm text-gray-500">Phone</p>
-                            <p className="font-medium text-gray-900">
+                            <p className="text-sm text-gray-400">Phone</p>
+                            <p className="font-medium ">
                               {profileData?.phone || "-"}
                             </p>
                           </div>
                           <div>
-                            <p className="text-sm text-gray-500">Email</p>
-                            <p className="font-medium text-gray-900">
-                              {profileData?.email}
-                            </p>
+                            <p className="text-sm text-gray-400">Email</p>
+                            <p className="font-medium ">{profileData?.email}</p>
                           </div>
                         </div>
                       </div>
@@ -896,34 +892,34 @@ export default function ProfilePage() {
                         </h4>
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                           <div className="md:col-span-2">
-                            <p className="text-sm text-gray-500">
+                            <p className="text-sm text-gray-400">
                               Street Address
                             </p>
-                            <p className="font-medium text-gray-900">
+                            <p className="font-medium ">
                               {profileData?.address?.street || "-"}
                             </p>
                           </div>
                           <div>
-                            <p className="text-sm text-gray-500">City</p>
-                            <p className="font-medium text-gray-900">
+                            <p className="text-sm text-gray-400">City</p>
+                            <p className="font-medium ">
                               {profileData?.address?.city || "-"}
                             </p>
                           </div>
                           <div>
-                            <p className="text-sm text-gray-500">State</p>
-                            <p className="font-medium text-gray-900">
+                            <p className="text-sm text-gray-400">State</p>
+                            <p className="font-medium ">
                               {profileData?.address?.state || "-"}
                             </p>
                           </div>
                           <div>
-                            <p className="text-sm text-gray-500">Country</p>
-                            <p className="font-medium text-gray-900">
+                            <p className="text-sm text-gray-400">Country</p>
+                            <p className="font-medium ">
                               {profileData?.address?.country || "-"}
                             </p>
                           </div>
                           <div>
-                            <p className="text-sm text-gray-500">Postal Code</p>
-                            <p className="font-medium text-gray-900">
+                            <p className="text-sm text-gray-400">Postal Code</p>
+                            <p className="font-medium ">
                               {profileData?.address?.postalCode || "-"}
                             </p>
                           </div>

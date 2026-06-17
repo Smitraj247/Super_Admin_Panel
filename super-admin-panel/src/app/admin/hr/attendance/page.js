@@ -133,33 +133,28 @@ export default function HRAttendance() {
         {/* Table card with integrated filter toolbar */}
         <div className="bg-[var(--bg-surface)] rounded-xl shadow-sm overflow-hidden border border-[var(--border)]">
           <div className="p-6 border-b border-[var(--border)]">
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-              <div>
-                <label className="block text-sm font-semibold text-[var(--text-primary)] mb-2">
-                  Search User
-                </label>
-                <div className="relative">
-                  <Search
-                    className="absolute left-3 top-2.5 text-slate-400"
-                    size={18}
-                  />
-                  <input
-                    type="text"
-                    value={searchQuery}
-                    onChange={(e) => setSearchQuery(e.target.value)}
-                    placeholder="Search by name or email"
-                    className="w-full border-2 border-[var(--border-strong)] p-2 pl-10 rounded-lg focus:outline-none focus:border-indigo-500"
-                  />
-                </div>
+            <div className="flex flex-col lg:flex-row justify-between gap-4">
+              {/* Search */}
+              <div className="relative">
+                <Search
+                  size={18}
+                  className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400"
+                />
+                <input
+                  type="text"
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  placeholder="Search by name or email"
+                  className="w-72 border p-2 pl-10 rounded-lg"
+                />
               </div>
-              <div>
-                <label className="block text-sm font-semibold text-[var(--text-primary)] mb-2">
-                  Filter by Department
-                </label>
+
+              {/* Filters */}
+              <div className="flex flex-wrap gap-3">
                 <select
                   value={departmentFilter}
                   onChange={(e) => setDepartmentFilter(e.target.value)}
-                  className="w-full border-2 border-[var(--border-strong)] p-2 rounded-lg focus:outline-none focus:border-indigo-500"
+                  className="border p-2 rounded-lg"
                 >
                   <option value="">All Departments</option>
                   {uniqueDepartments.map((d) => (
@@ -168,15 +163,11 @@ export default function HRAttendance() {
                     </option>
                   ))}
                 </select>
-              </div>
-              <div>
-                <label className="block text-sm font-semibold text-[var(--text-primary)] mb-2">
-                  Filter by Role
-                </label>
+
                 <select
                   value={roleFilter}
                   onChange={(e) => setRoleFilter(e.target.value)}
-                  className="w-full border-2 border-[var(--border-strong)] p-2 rounded-lg focus:outline-none focus:border-indigo-500"
+                  className="border p-2 rounded-lg"
                 >
                   <option value="">All Roles</option>
                   {uniqueRoles.map((r) => (
@@ -185,20 +176,21 @@ export default function HRAttendance() {
                     </option>
                   ))}
                 </select>
+
+                {(searchQuery || departmentFilter || roleFilter) && (
+                  <button
+                    onClick={() => {
+                      setSearchQuery("");
+                      setDepartmentFilter("");
+                      setRoleFilter("");
+                    }}
+                    className="px-4 py-2 bg-slate-600 text-white rounded-lg hover:bg-slate-700"
+                  >
+                    Reset
+                  </button>
+                )}
               </div>
             </div>
-            {(searchQuery || departmentFilter || roleFilter) && (
-              <button
-                onClick={() => {
-                  setSearchQuery("");
-                  setDepartmentFilter("");
-                  setRoleFilter("");
-                }}
-                className="mt-4 bg-slate-600 text-white px-6 py-2 rounded-lg hover:bg-slate-700"
-              >
-                Reset Filters
-              </button>
-            )}
           </div>
 
           {/* Table */}
@@ -223,84 +215,87 @@ export default function HRAttendance() {
                 </tr>
               </thead>
               <tbody className="divide-y divide-[var(--border)]">
-                  {loading ? (
-                    <tr>
-                      <td
-                        colSpan="6"
-                        className="text-center p-8 text-[var(--text-secondary)]"
+                {loading ? (
+                  <tr>
+                    <td
+                      colSpan="6"
+                      className="text-center p-8 text-[var(--text-secondary)]"
+                    >
+                      Loading users...
+                    </td>
+                  </tr>
+                ) : filteredUsers.length > 0 ? (
+                  filteredUsers.map((user) => {
+                    const stats = attendanceStats[user._id] || {
+                      totalDays: 0,
+                      present: 0,
+                      pending: 0,
+                      expectedWorkingDays: 0,
+                    };
+                    return (
+                      <tr
+                        key={user._id}
+                        onClick={() =>
+                          router.push(`/admin/hr/attendance/${user._id}`)
+                        }
+                        className="hover:bg-[var(--bg-elevated)] transition cursor-pointer group"
                       >
-                        Loading users...
-                      </td>
-                    </tr>
-                  ) : filteredUsers.length > 0 ? (
-                    filteredUsers.map((user) => {
-                      const stats = attendanceStats[user._id] || {
-                        totalDays: 0,
-                        present: 0,
-                        pending: 0,
-                        expectedWorkingDays: 0,
-                      };
-                      return (
-                        <tr
-                          key={user._id}
-                          onClick={() =>
-                            router.push(`/admin/hr/attendance/${user._id}`)
-                          }
-                          className="hover:bg-[var(--bg-elevated)] transition cursor-pointer group"
-                        >
-                          <td className="p-4">
-                            <div className="flex items-center gap-3">
-                              <div className="w-10 h-10 bg-indigo-100 rounded-full flex items-center justify-center group-hover:bg-indigo-200 transition-colors">
-                                <User className="text-indigo-600" size={20} />
-                              </div>
-                              <div>
-                                <p className="text-[var(--text-primary)] group-hover:text-indigo-600 transition-colors">
-                                  {user.name}
-                                </p>
-                                <p className="text-xs text-[var(--text-secondary)]">
-                                  {user.email}
-                                </p>
-                              </div>
+                        <td className="p-4">
+                          <div className="flex items-center gap-3">
+                            <div className="w-10 h-10 bg-indigo-100 rounded-full flex items-center justify-center group-hover:bg-indigo-200 transition-colors">
+                              <User className="text-indigo-600" size={20} />
                             </div>
-                          </td>
-                          <td className="p-4 text-sm text-[var(--text-primary)]">
-                            {(typeof user.department === "object"
-                              ? user.department?.name
-                              : user.department) || "N/A"}
-                          </td>
-                          <td className="p-4 text-sm text-[var(--text-primary)]">
-                            {(typeof user.role === "object"
-                              ? user.role?.name
-                              : user.role) || "N/A"}
-                          </td>
-                          <td className="p-4 text-center">
-                            <div className="flex items-center justify-center gap-4 text-sm">
-                              <span
-                                className="text-[var(--text-primary)]"
-                                title="Total Working Days"
-                              >
-                                {stats.totalDays}
-                              </span>
-                              <span className="text-indigo-600 font-semibold" title="Expected Working Days (excl. leaves)">
-                                {stats.expectedWorkingDays || stats.totalDays}
-                              </span>
-                              <span className="text-green-600" title="Present">
-                                {stats.present}
-                              </span>
-                              <span className="text-yellow-600" title="Pending">
-                                {stats.pending}
-                              </span>
+                            <div>
+                              <p className="text-[var(--text-primary)] group-hover:text-indigo-600 transition-colors">
+                                {user.name}
+                              </p>
+                              <p className="text-xs text-[var(--text-secondary)]">
+                                {user.email}
+                              </p>
                             </div>
-                          </td>
-                          <td className="p-4 text-right">
-                            <button className="p-2 text-[var(--text-secondary)] group-hover:text-indigo-600 group-hover:bg-indigo-50 rounded-lg transition-colors">
-                              <ChevronRight size={18} />
-                            </button>
-                          </td>
-                        </tr>
-                      );
-                    })
-                  ) : (
+                          </div>
+                        </td>
+                        <td className="p-4 text-sm text-[var(--text-primary)]">
+                          {(typeof user.department === "object"
+                            ? user.department?.name
+                            : user.department) || "N/A"}
+                        </td>
+                        <td className="p-4 text-sm text-[var(--text-primary)]">
+                          {(typeof user.role === "object"
+                            ? user.role?.name
+                            : user.role) || "N/A"}
+                        </td>
+                        <td className="p-4 text-center">
+                          <div className="flex items-center justify-center gap-4 text-sm">
+                            <span
+                              className="text-[var(--text-primary)]"
+                              title="Total Working Days"
+                            >
+                              {stats.totalDays}
+                            </span>
+                            <span
+                              className="text-indigo-600 font-semibold"
+                              title="Expected Working Days (excl. leaves)"
+                            >
+                              {stats.expectedWorkingDays || stats.totalDays}
+                            </span>
+                            <span className="text-green-600" title="Present">
+                              {stats.present}
+                            </span>
+                            <span className="text-yellow-600" title="Pending">
+                              {stats.pending}
+                            </span>
+                          </div>
+                        </td>
+                        <td className="p-4 text-right">
+                          <button className="p-2 text-[var(--text-secondary)] group-hover:text-indigo-600 group-hover:bg-indigo-50 rounded-lg transition-colors">
+                            <ChevronRight size={18} />
+                          </button>
+                        </td>
+                      </tr>
+                    );
+                  })
+                ) : (
                   <tr>
                     <td
                       colSpan="5"

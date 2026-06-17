@@ -10,28 +10,36 @@ import {
   Search,
   Sun,
   Moon,
+  BellRing,
 } from "lucide-react";
 import { useRouter } from "next/navigation";
-import {
-  useState,
-  useEffect,
-  useCallback,
-  useMemo,
-  useRef,
-} from "react";
+import { useState, useEffect, useCallback, useMemo, useRef } from "react";
 import { useTheme } from "next-themes";
 import {
   getNotificationsApi,
   markAsReadApi,
   markAllAsReadApi,
   deleteNotificationApi,
+  createNotificationApi,
+  broadcastToAllApi,
 } from "@/services/notificationApi";
 import { cachedFetch, invalidateCache } from "@/lib/cache";
 import { useSidebar } from "@/context/SidebarContext";
 
-import { ROLE_MAP, DEPT_MAP, NOTIF_TTL, NOTIF_CACHE_KEY } from "./navbarConstants";
-import { getGreeting, getGreetingIcon, getTimeStr, getDateStr } from "./navbarUtils";
+import {
+  ROLE_MAP,
+  DEPT_MAP,
+  NOTIF_TTL,
+  NOTIF_CACHE_KEY,
+} from "./navbarConstants";
+import {
+  getGreeting,
+  getGreetingIcon,
+  getTimeStr,
+  getDateStr,
+} from "./navbarUtils";
 import NotificationItem from "./NotificationItem";
+import toast from "react-hot-toast";
 
 export default function Navbar() {
   const { user, logout, loading } = useAuth();
@@ -52,6 +60,15 @@ export default function Navbar() {
   const [timeStr, setTimeStr] = useState("");
   const [mounted, setMounted] = useState(false);
   const searchTimer = useRef(null);
+  const [showBroadcastModal, setShowBroadcastModal] = useState(false);
+
+  const [broadcastData, setBroadcastData] = useState({
+    title: "",
+    message: "",
+    type: "info",
+  });
+
+  const [sendingBroadcast, setSendingBroadcast] = useState(false);
 
   useEffect(() => {
     setMounted(true);
@@ -67,7 +84,7 @@ export default function Navbar() {
     return {
       roleKey,
       rolePath: ROLE_MAP[roleKey] || "user",
-      deptPath: DEPT_MAP[deptKey] || "ce",
+      deptPath: DEPT_MAP[deptKey] || "employee",
     };
   }, [user?.role, user?.department]);
 
@@ -170,6 +187,43 @@ export default function Navbar() {
     [notifications, fetchNotifs],
   );
 
+  const sendBroadcastNotification = useCallback(async () => {
+    if (!broadcastData.title.trim()) {
+      toast.error("Title is required");
+      return;
+    }
+    if (!broadcastData.message.trim()) {
+      toast.error("Message is required");
+      return;
+    }
+
+    try {
+      setSendingBroadcast(true);
+
+      const res = await broadcastToAllApi({
+        title: broadcastData.title,
+        message: broadcastData.message,
+        type: broadcastData.type,
+      });
+
+      toast.success(res?.data?.message || "Notification sent successfully");
+
+      setBroadcastData({
+        title: "",
+        message: "",
+        type: "info",
+      });
+
+      setShowBroadcastModal(false);
+    } catch (error) {
+      toast.error(
+        error?.response?.data?.message || "Failed to send notification",
+      );
+    } finally {
+      setSendingBroadcast(false);
+    }
+  }, [broadcastData]);
+
   const goToProfile = useCallback(() => {
     const path =
       roleKey === "SUPER_ADMIN"
@@ -209,7 +263,7 @@ export default function Navbar() {
       {/* Greeting */}
       {!showMobileSearch && (
         <div className="shrink-0 animate-fade-in relative z-10">
-          <h2 className="text-[15px] font-semibold text-black leading-tight">
+          <h2 className="text-[15px]  font-semibold  leading-tight">
             {greetingIcon} {greeting}
           </h2>
 
@@ -312,7 +366,7 @@ export default function Navbar() {
         bg-slate-100 border border-white/10
       "
         >
-          <span className="text-[12px] font-medium text-slate-400">
+          <span className="text-[12px] text-slate-400 font-medium">
             {dateStr}
           </span>
         </div>
@@ -323,9 +377,8 @@ export default function Navbar() {
             onClick={() => setTheme(isDark ? "light" : "dark")}
             className="
           p-2 rounded-xl
-          text-slate-400
-          hover:text-gray-600
-          
+          text-slate-500
+          hover:text-gray-400
           transition-all
         "
           >
@@ -379,32 +432,43 @@ export default function Navbar() {
             >
               {/* HEADER */}
               <div
-                className="px-5 py-4 flex items-center justify-between"
+                className="px-5 py-4"
                 style={{
                   background:
                     "linear-gradient(135deg,#7c6fff 0%,#4f46e5 60%,#00d4aa 100%)",
                 }}
               >
-                <div>
-                  <h3 className="text-white font-semibold text-sm">
-                    Notifications
-                  </h3>
+                <div className="flex items-center justify-between">
+                  <div>
+                    <h3 className="text-white font-semibold text-sm">
+                      Notifications
+                    </h3>
 
-                  <p className="text-white/70 text-xs mt-0.5">
-                    {unreadCount} unread
-                  </p>
+                    <p className="text-white/70 text-xs mt-0.5">
+                      {unreadCount} unread
+                    </p>
+                  </div>
+
+                  <button
+                    onClick={() => setShowNotifs(false)}
+                    className="p-2 rounded-xl hover:bg-white/10 text-white/70 hover:text-white"
+                  >
+                    <X size={15} />
+                  </button>
                 </div>
 
-                <button
-                  onClick={() => setShowNotifs(false)}
-                  className="
-                p-2 rounded-xl
-                hover:bg-white/10
-                text-white/70 hover:text-white
-              "
-                >
-                  <X size={15} />
-                </button>
+                {user?.role?.name === "SUPER_ADMIN" && (
+                  <button
+                    onClick={() => {
+                      setShowNotifs(false);
+                      setShowBroadcastModal(true);
+                    }}
+                    className="mt-3 w-full flex items-center justify-center gap-2 py-2.5 rounded-xl bg-white/15 hover:bg-white/20 text-white text-sm font-medium transition-all"
+                  >
+                    <BellRing size={16} />
+                    Broadcast Notification
+                  </button>
+                )}
               </div>
 
               {/* LIST */}
@@ -540,8 +604,94 @@ export default function Navbar() {
           )}
         </div>
       </div>
+
+      {/* BROADCAST MODAL */}
+      {showBroadcastModal && (
+        <div className="fixed inset-0 mt-[500px] z-[9999]  flex items-center justify-center p-4">
+          <div className="w-full max-w-lg rounded-3xl border border-blue-200 bg-white overflow-hidden shadow-2xl">
+            {/* Header */}
+            <div
+              className="px-6 py-5 flex items-center justify-between"
+              style={{
+                background:
+                  "linear-gradient(135deg,#7c6fff 0%,#4f46e5 60%,#00d4aa 100%)",
+              }}
+            >
+              <h2 className="text-xl font-bold text-white">
+                Broadcast Notification
+              </h2>
+
+              <button
+                onClick={() => setShowBroadcastModal(false)}
+                className="text-white hover:bg-white/10 rounded-lg p-2"
+              >
+                ✕
+              </button>
+            </div>
+
+            {/* Body */}
+            <div className="p-6 space-y-4">
+              <input
+                placeholder="Notification Title"
+                value={broadcastData.title}
+                onChange={(e) =>
+                  setBroadcastData((prev) => ({
+                    ...prev,
+                    title: e.target.value,
+                  }))
+                }
+                className="w-full border border-gray-300 p-3 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500"
+              />
+
+              <textarea
+                placeholder="Write your message..."
+                value={broadcastData.message}
+                onChange={(e) =>
+                  setBroadcastData((prev) => ({
+                    ...prev,
+                    message: e.target.value,
+                  }))
+                }
+                rows={5}
+                className="w-full border border-gray-300 p-3 rounded-xl resize-none focus:outline-none focus:ring-2 focus:ring-indigo-500"
+              />
+
+              <select
+                value={broadcastData.type}
+                onChange={(e) =>
+                  setBroadcastData((prev) => ({
+                    ...prev,
+                    type: e.target.value,
+                  }))
+                }
+                className="w-full border border-gray-300 p-3 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500"
+              >
+                <option value="info">Info</option>
+                <option value="warning">Warning</option>
+                <option value="success">Success</option>
+                <option value="error">Error</option>
+              </select>
+
+              <div className="flex gap-3 pt-2">
+                <button
+                  onClick={() => setShowBroadcastModal(false)}
+                  className="flex-1 border border-gray-300 rounded-xl py-3 font-medium hover:bg-gray-50"
+                >
+                  Cancel
+                </button>
+
+                <button
+                  onClick={sendBroadcastNotification}
+                  disabled={sendingBroadcast}
+                  className="flex-1 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl py-3 font-medium disabled:opacity-60"
+                >
+                  {sendingBroadcast ? "Sending..." : "Send Notification"}
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </header>
   );
 }
-
-

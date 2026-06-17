@@ -11,6 +11,7 @@ export const markAllAsReadApi = () => API.put("/notifications/read-all");
 
 export const deleteNotificationApi = (id) => API.delete(`/notifications/${id}`);
 
+export const createNotificationApi = (data) => API.post("/notifications", data);
 
 export const broadcastToDepartmentApi = (data) =>
   API.post("/notifications/broadcast", data);

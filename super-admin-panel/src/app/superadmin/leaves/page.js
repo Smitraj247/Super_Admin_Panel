@@ -224,16 +224,18 @@ export default function SuperAdminLeaves() {
       <Sidebar />
       <Navbar />
 
-      <div className="md:ml-64 pt-20 p-6">
+      <div className="md:ml-64 pt-25 p-6">
         {!selectedUser ? (
           <>
             {/* User List View */}
             <div className="mb-6">
-              <h1 className="text-3xl font-bold text-[var(--text-primary)] flex items-center gap-3">
-                <Calendar className="text-indigo-600" />
-                Leave Management - All Users
+              <h1 className="text-xl sm:text-3xl font-bold flex items-center gap-3">
+                <Calendar className="text-[var(--accent)]" />
+                <span className="bg-gradient-to-r from-cyan-600 via-blue-600 to-purple-600 dark:from-cyan-400 dark:via-blue-400 dark:to-purple-400 bg-clip-text text-transparent">
+                  Leave Management - All Users
+                </span>
               </h1>
-              <p className="text-[var(--text-secondary)] mt-2">
+              <p className="text-cyan-600 mt-2">
                 Select a user to view their leave history
               </p>
             </div>

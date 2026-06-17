@@ -32,7 +32,7 @@ import { useAttendanceAction } from "@/hooks/useAttendanceAction";
  */
 
 export default function UnifiedDashboard() {
-  const { user, isAuthenticated } = useAuth();
+  const { user, isAuthenticated } = useAuth();   
 
   if (!user || !isAuthenticated()) {
     return null;

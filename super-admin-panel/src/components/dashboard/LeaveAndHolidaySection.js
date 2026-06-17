@@ -11,21 +11,7 @@ import HolidayWidget from "@/components/features/HolidayWidget";
 const LeaveAndHolidaySection = memo(({ leaves = [], holidays = [] }) => {
   return (
     <div className="grid grid-cols-1 xl:grid-cols-[2fr_320px] gap-4">
-      <div
-        className="
-          rounded-2xl
-          border border-[var(--border)]
-          bg-[var(--bg-surface)]
-          p-4
-          shadow-sm
-        "
-      >
-        <h3 className="text-[16px] font-semibold text-[var(--text-primary)] mb-4">
-          Leave Calendar
-        </h3>
-
-        <LeaveCalendar leaves={leaves} holidays={holidays} />
-      </div>
+      <LeaveCalendar leaves={leaves} holidays={holidays} />
 
       <HolidayWidget />
     </div>
@@ -35,5 +21,3 @@ const LeaveAndHolidaySection = memo(({ leaves = [], holidays = [] }) => {
 LeaveAndHolidaySection.displayName = "LeaveAndHolidaySection";
 
 export default LeaveAndHolidaySection;
-
-

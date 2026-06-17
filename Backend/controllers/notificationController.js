@@ -243,7 +243,8 @@ export const broadcastToAll = async (req, res) => {
     const User = (await import("../models/User.models.js")).default;
 
     // Build query based on target
-    const query = { isActive: true };
+    const query = { isActive: true }; 
+    
     
     // If targetDepartment is specified, filter by department
     if (targetDepartment) {
