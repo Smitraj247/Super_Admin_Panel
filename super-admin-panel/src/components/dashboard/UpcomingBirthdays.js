@@ -82,7 +82,7 @@ const UpcomingBirthdays = memo(() => {
           maxHeight: "360px",
         }}
       >
-        <h3 className="text-[15px] font-semibold text-cyan-600 mb-3">
+        <h3 className="text-[15px] font-semibold text-pink-500 mb-3">
           Upcoming Birthdays
         </h3>
         <div className="flex items-center justify-center py-8">

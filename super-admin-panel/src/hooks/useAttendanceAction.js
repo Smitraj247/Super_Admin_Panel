@@ -33,7 +33,7 @@ export const useAttendanceAction = (onActionSuccess) => {
           err.response?.data?.message || `Failed to ${actionType}`;
         setError(errorMsg);
         console.error(`Action ${actionType} failed:`, err);
-      toast.error(errorMsg);
+        toast.error(errorMsg);
       } finally {
         setIsLoading(false);
       }

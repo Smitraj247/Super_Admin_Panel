@@ -20,8 +20,14 @@ export const getSuperAdminLeavesApi = () =>
   axiosInstance.get("/superadmin/leaves");
 export const updateSuperAdminLeaveStatusApi = (id, status) =>
   axiosInstance.put(`/superadmin/leaves/${id}`, { status });
-export const getAllUsersWithLeavesApi = () =>
-  axiosInstance.get("/superadmin/leaves/users");
+export const getAllUsersWithLeavesApi = (year, month) => {
+  let url = "/superadmin/leaves/users";
+  const params = [];
+  if (year) params.push(`year=${year}`);
+  if (month) params.push(`month=${month}`);
+  if (params.length > 0) url += `?${params.join("&")}`;
+  return axiosInstance.get(url);
+};
 export const getUserLeaveHistoryApi = (userId, year, month) => {
   let url = `/superadmin/leaves/users/${userId}`;
   const params = [];
@@ -31,4 +37,6 @@ export const getUserLeaveHistoryApi = (userId, year, month) => {
   return axiosInstance.get(url);
 };
 
-export const getLeaveTypesApi = () => axiosInstance.get('/leaves/types')
+export const getLeaveTypesApi = () => axiosInstance.get("/leaves/types");
+export const canUserCheckInApi = () =>
+  axiosInstance.get("/leaves/user/can-check-in");

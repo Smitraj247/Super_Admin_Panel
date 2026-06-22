@@ -334,13 +334,10 @@ export default function SuperAdminLeaves() {
                         Name
                       </th>
                       <th className="p-4 text-left text-sm font-semibold text-[var(--text-primary)]">
-                        Email
+                        Total Office
                       </th>
                       <th className="p-4 text-left text-sm font-semibold text-[var(--text-primary)]">
-                        Role
-                      </th>
-                      <th className="p-4 text-left text-sm font-semibold text-[var(--text-primary)]">
-                        Department
+                        Total Worked
                       </th>
                       <th className="p-4 text-left text-sm font-semibold text-[var(--text-primary)]">
                         Leave Balance
@@ -384,25 +381,8 @@ export default function SuperAdminLeaves() {
                                 </div>
                               </div>
                             </td>
-                            <td className="p-4 text-sm text-[var(--text-primary)]">
-                              {user.email}
-                            </td>
-                            <td className="p-4">
-                              <span
-                                className={`px-3 py-1 text-xs rounded-full font-semibold ${
-                                  user.role?.name === "SUPER_ADMIN"
-                                    ? "bg-purple-100 text-purple-800"
-                                    : user.role?.name === "ADMIN"
-                                      ? "bg-blue-100 text-blue-800"
-                                      : "bg-green-100 text-green-800"
-                                }`}
-                              >
-                                {user.role?.name}
-                              </span>
-                            </td>
-                            <td className="p-4 text-sm text-[var(--text-primary)]">
-                              {user.department?.name || "N/A"}
-                            </td>
+                            <td className="">{}</td>
+                            <td></td>
                             <td className="p-4 text-sm text-[var(--text-primary)]">
                               {user.leaveBalance ? (
                                 <div className="flex gap-2">

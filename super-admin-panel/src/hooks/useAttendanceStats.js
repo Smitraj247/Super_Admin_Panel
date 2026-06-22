@@ -17,6 +17,7 @@ export const useAttendanceStats = (
   monthlyRecords,
   monthlySummary,
   leaves,
+  canCheckIn,
 ) => {
   // Derived status flags
   const isCheckedIn = useMemo(
@@ -83,6 +84,10 @@ export const useAttendanceStats = (
     [monthlySummary, stats?.presentToday, stats?.totalWorkHours],
   );
 
+  console.log("userStatus:", stats?.userStatus);
+  console.log("isCheckedIn:", isCheckedIn);
+  console.log("isCheckedOut:", isCheckedOut);
+  console.log("hasCheckedInToday:", hasCheckedInToday);
   return {
     isCheckedIn,
     isOnBreak,
@@ -92,5 +97,6 @@ export const useAttendanceStats = (
     actualAbsent,
     goalProgress,
     displayValues,
+    canCheckIn,
   };
 };

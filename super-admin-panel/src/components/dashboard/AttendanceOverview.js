@@ -22,7 +22,7 @@ const AttendanceOverview = memo(({ overview, attendanceRate, mounted }) => {
 
   return (
     <SectionCard title="Attendance Overview">
-      <div className="flex justify-center mb-5">
+      <div className="flex justify-center mb-5 text-cyan-600">
         <div className="relative w-44 h-44">
           {mounted && (
             <ResponsiveContainer width="100%" height="100%">
@@ -66,7 +66,7 @@ const AttendanceOverview = memo(({ overview, attendanceRate, mounted }) => {
           />
         ))}
       </div>
-      <div className="mt-4 pt-4 border-t border-[var(--border)] flex items-center justify-between text-lg">
+      <div className="mt-4 pt-4 border-t border-[var(--border)] flex items-center justify-between text-md">
         <span className="text-[var(--text-secondary)]">Attendance Rate</span>
         <span className="font-bold text-[var(--text-primary)]">
           {attendanceRate}%

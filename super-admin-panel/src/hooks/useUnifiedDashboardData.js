@@ -3,13 +3,15 @@
  * Manages all unified dashboard data fetching and state
  */
 
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useMemo } from "react";
 import { fetchDashboardData } from "@/services/dashboardService";
+import { canUserCheckInApi } from "@/services/leaveApi";
 import {
   normalizeApiResponses,
   transformBreakData,
 } from "@/utils/dashboardUtils";
 import { DASHBOARD_REFRESH_INTERVAL } from "@/constants/dashboardConstants";
+import { useRealtime } from "./useRealtime";
 
 const INITIAL_STATE = {
   stats: {
@@ -33,6 +35,10 @@ const INITIAL_STATE = {
   monthlySummary: null,
   leaves: [],
   holidays: [],
+  canCheckIn: {
+    canCheckIn: true,
+    reason: null,
+  },
 };
 
 export const useUnifiedDashboardData = () => {
@@ -47,8 +53,12 @@ export const useUnifiedDashboardData = () => {
         const isInitialLoad = loading;
         if (!isInitialLoad) setRefreshing(true);
 
-        const responses = await fetchDashboardData(forceRefresh);
-        const normalizedData = normalizeApiResponses(responses);
+        const [dashboardResponses, canCheckInResponse] = await Promise.all([
+          fetchDashboardData(forceRefresh),
+          canUserCheckInApi(),
+        ]);
+
+        const normalizedData = normalizeApiResponses(dashboardResponses);
 
         // Transform break data for display
         const transformedStats = {
@@ -59,6 +69,10 @@ export const useUnifiedDashboardData = () => {
         setData({
           ...normalizedData,
           stats: transformedStats,
+          canCheckIn: canCheckInResponse?.data?.data || {
+            canCheckIn: true,
+            reason: null,
+          },
         });
         setError(null);
       } catch (err) {
@@ -73,6 +87,16 @@ export const useUnifiedDashboardData = () => {
     },
     [loading],
   );
+
+  // Set up real-time event listeners
+  const eventHandlers = useMemo(() => ({
+    "attendance:updated": () => fetchAll(true),
+    "leave:updated": () => fetchAll(true),
+    "leave:statusChanged": () => fetchAll(true),
+    "notification:created": () => fetchAll(true),
+  }), [fetchAll]);
+  
+  useRealtime(eventHandlers);
 
   // Fetch data on mount and set up auto-refresh
   useEffect(() => {

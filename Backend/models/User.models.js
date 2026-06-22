@@ -42,13 +42,18 @@ const userSchema = new mongoose.Schema(
     lastLogin: { type: Date },
     joiningDate: { type: Date },
     probationEndDate: { type: Date },
+    totalHour: { type: Number, default: 0 },
+    workingHour: { type: Number, default: 0 },
     leaveBalance: {
-      PL: { type: Number, default: 1 },
-      CL: { type: Number },
-      SL: { type: Number, default: 1 },
+      PL: { type: Number, default: 6 },
+      // 9999 is the sentinel value meaning "unlimited" for CL
+      CL: { type: Number, default: 9999 },
+      SL: { type: Number, default: 6 },
       DL: { type: Number, default: 0 },
     },
     lastLeaveRefill: { type: Date, default: Date.now },
+    // Tracks when the 6-month PL cycle last reset for this user
+    lastCycleRefill: { type: Date, default: Date.now },
     // Profile Information
     personalEmail: { type: String, trim: true, lowercase: true },
     companyEmail: { type: String, trim: true, lowercase: true },

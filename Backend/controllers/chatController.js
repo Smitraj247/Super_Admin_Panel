@@ -1,6 +1,7 @@
 import Chat from "../models/Chat.js";
 import User from "../models/User.models.js";
 import { io } from "../server.js";
+import { createNotificationHelper } from "./notificationController.js";
 
 // Get or create a chat between two users
 export const getOrCreateChat = async (req, res) => {
@@ -104,7 +105,14 @@ export const sendMessage = async (req, res) => {
 
     // Populate the new message
     const updatedChat = await Chat.findById(chatId)
-      .populate("participants", "name email role department")
+      .populate({
+        path: "participants",
+        select: "name email role department",
+        populate: [
+          { path: "role", select: "name" },
+          { path: "department", select: "name" },
+        ],
+      })
       .populate("messages.sender", "name email");
 
     // Emit real-time event to all participants in the chat room
@@ -113,6 +121,61 @@ export const sendMessage = async (req, res) => {
     // Also notify each participant's personal room (for chat list updates)
     updatedChat.participants.forEach((participant) => {
       io.to(participant._id.toString()).emit("chatUpdated", updatedChat);
+    });
+
+    // Create notifications for all participants except the sender
+    const sender = updatedChat.participants.find(
+      (p) => p._id.toString() === currentUserId.toString(),
+    );
+    const otherParticipants = updatedChat.participants.filter(
+      (p) => p._id.toString() !== currentUserId.toString(),
+    );
+
+    otherParticipants.forEach((participant) => {
+      const chatTitle = chat.isGroupChat ? chat.groupName : sender?.name;
+
+      // Determine the correct link path based on participant's department/role
+      let baseLink = "/dashboard/employee/chats";
+      const participantRole = participant.role
+        ? typeof participant.role === "object"
+          ? participant.role.name
+          : participant.role
+        : null;
+      const participantDept = participant.department
+        ? typeof participant.department === "object"
+          ? participant.department.name
+          : participant.department
+        : null;
+
+      if (participantRole === "SUPER_ADMIN") {
+        baseLink = "/superadmin/chats";
+      } else if (participantRole === "ADMIN" && participantDept) {
+        if (participantDept === "HR") {
+          baseLink = "/dashboard/hr/chats";
+        } else if (participantDept === "SALES") {
+          baseLink = "/dashboard/sales/chats";
+        } else {
+          baseLink = "/dashboard/employee/chats";
+        }
+      } else if (participantDept) {
+        if (participantDept === "HR") {
+          baseLink = "/dashboard/hr/chats";
+        } else if (participantDept === "SALES") {
+          baseLink = "/dashboard/sales/chats";
+        } else {
+          baseLink = "/dashboard/employee/chats";
+        }
+      }
+
+      const link = `${baseLink}?chatId=${chatId}`;
+
+      createNotificationHelper(
+        participant._id.toString(),
+        "info",
+        `${sender?.name || "Someone"} sent a message`,
+        `${sender?.name || "Someone"} sent a message in ${chatTitle}`,
+        link,
+      );
     });
 
     res.json({
@@ -464,5 +527,4 @@ export const updateGroupName = async (req, res) => {
   }
 };
 
-
-// saturday and sunday off, monday to friday 9am to 6pm, 1 hour lunch break at 1pm, timezone is IST (UTC+5:30)  
+// saturday and sunday off, monday to friday 9am to 6pm, 1 hour lunch break at 1pm, timezone is IST (UTC+5:30)

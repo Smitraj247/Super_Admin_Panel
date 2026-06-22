@@ -327,16 +327,16 @@ export default function HRLeaveDashboard() {
                             key={leave._id}
                             className="border-t hover:bg-gray-50 transition"
                           >
-                            <td className="p-4 font-semibold">
+                            <td className="p-4 font-semibold text-sm text-gray-500">
                               {leave.leaveType}
                             </td>
-                            <td className="p-4">
+                            <td className="p-4 text-sm text-gray-500">
                               {new Date(leave.fromDate).toLocaleDateString()}
                             </td>
-                            <td className="p-4">
+                            <td className="p-4 text-sm text-gray-500">
                               {new Date(leave.toDate).toLocaleDateString()}
                             </td>
-                            <td className="p-4">
+                            <td className="p-4 text-sm text-gray-500">
                               {leave.isHalfDay ? (
                                 <span className="px-2 py-0.5 bg-blue-100 text-blue-700 rounded-full text-xs font-semibold">
                                   Half Day

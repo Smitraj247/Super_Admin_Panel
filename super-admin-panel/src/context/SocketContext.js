@@ -1,49 +1,53 @@
 "use client";
 
-import { createContext, useContext, useEffect, useRef, useState } from "react";
+import React, { createContext, useContext, useEffect, useState } from "react";
 import { io } from "socket.io-client";
-import { useAuth } from "@/context/AuthContext";
+import { useAuth } from "./AuthContext";
 
 const SocketContext = createContext(null);
 
-const BACKEND_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000";
-
-export function SocketProvider({ children }) {
+export const SocketProvider = ({ children }) => {
+  const [socket, setSocket] = useState(null);
   const { user } = useAuth();
-  const socketRef = useRef(null);
-  const [connected, setConnected] = useState(false);
 
   useEffect(() => {
-    if (!user?._id) return;
+    if (user) {
+      const newSocket = io(
+        process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000",
+        {
+          withCredentials: true,
+        },
+      );
 
-    const socket = io(BACKEND_URL, {
-      transports: ["websocket", "polling"],
-    });
+      newSocket.on("connect", () => {
+        console.log("Connected to socket");
+        newSocket.emit("join", user._id);
+      });
 
-    socketRef.current = socket;
+      setSocket(newSocket);
 
-    socket.on("connect", () => {
-      setConnected(true);
-      // Join personal room for chat list updates
-      socket.emit("join", user._id);
-    });
-
-    socket.on("disconnect", () => setConnected(false));
-
-    return () => {
-      socket.disconnect();
-      socketRef.current = null;
-      setConnected(false);
-    };
+      return () => {
+        newSocket.disconnect();
+      };
+    } else {
+      if (socket) {
+        socket.disconnect();
+        setSocket(null);
+      }
+    }
   }, [user?._id]);
 
   return (
-    <SocketContext.Provider value={{ socket: socketRef.current, connected }}>
+    <SocketContext.Provider value={{ socket }}>
       {children}
     </SocketContext.Provider>
   );
-}
+};
 
-export function useSocket() {
-  return useContext(SocketContext);
-}
+export const useSocket = () => {
+  const context = useContext(SocketContext);
+  if (context === undefined) {
+    throw new Error("useSocket must be used within a SocketProvider");
+  }
+  return context;
+};

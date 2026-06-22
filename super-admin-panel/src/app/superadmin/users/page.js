@@ -38,6 +38,8 @@ export default function UsersPage() {
     password: "",
     role: "USER",
     department: "",
+    totalHour: 0,
+    workingHour: 0,
     sidebarPermissions: [
       "Dashboard",
       "Profile",
@@ -162,6 +164,8 @@ export default function UsersPage() {
           email: form.email,
           department: form.department,
           sidebarPermissions: form.sidebarPermissions,
+          totalHour: Number(form.totalHour),
+          workingHour: Number(form.workingHour),
         });
         setUsers(users.map((u) => (u._id === editingId ? res.data : u)));
         setEditingId(null);
@@ -172,6 +176,8 @@ export default function UsersPage() {
           password: form.password || "123456",
           department: form.department,
           sidebarPermissions: form.sidebarPermissions,
+          totalHour: Number(form.totalHour),
+          workingHour: Number(form.workingHour),
         });
         setUsers([...users, res.data]);
       }
@@ -181,6 +187,8 @@ export default function UsersPage() {
         password: "",
         role: "USER",
         department: "",
+        totalHour: 0,
+        workingHour: 0,
         sidebarPermissions: [
           "Dashboard",
           "Profile",
@@ -213,6 +221,8 @@ export default function UsersPage() {
       password: "",
       role: user.role?.name || "USER",
       department: user.department?._id || "",
+      totalHour: user.totalHour || 0,
+      workingHour: user.workingHour || 0,
       sidebarPermissions:
         user.sidebarPermissions?.length > 0
           ? user.sidebarPermissions
@@ -304,6 +314,25 @@ export default function UsersPage() {
                     >
                       {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
                     </button>
+                  </div>
+
+                  <div className="flex gap-4">
+                    <input
+                      name="totalHour"
+                      type="number"
+                      value={form.totalHour}
+                      onChange={handleChange}
+                      placeholder="Total Hours"
+                      className="w-full bg-[var(--bg-surface)] border border-[var(--border-strong)] rounded-lg p-3 outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 placeholder:text-slate-400"
+                    />
+                    <input
+                      name="workingHour"
+                      type="number"
+                      value={form.workingHour}
+                      onChange={handleChange}
+                      placeholder="Working Hours"
+                      className="w-full bg-[var(--bg-surface)] border border-[var(--border-strong)] rounded-lg p-3 outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 placeholder:text-slate-400"
+                    />
                   </div>
 
                   <select

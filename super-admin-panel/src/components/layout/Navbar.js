@@ -1,6 +1,7 @@
 "use client";
 
 import { useAuth } from "@/context/AuthContext";
+import { useNotifications } from "@/context/NotificationContext";
 import {
   Bell,
   User,
@@ -15,23 +16,10 @@ import {
 import { useRouter } from "next/navigation";
 import { useState, useEffect, useCallback, useMemo, useRef } from "react";
 import { useTheme } from "next-themes";
-import {
-  getNotificationsApi,
-  markAsReadApi,
-  markAllAsReadApi,
-  deleteNotificationApi,
-  createNotificationApi,
-  broadcastToAllApi,
-} from "@/services/notificationApi";
-import { cachedFetch, invalidateCache } from "@/lib/cache";
+import { broadcastToAllApi } from "@/services/notificationApi";
 import { useSidebar } from "@/context/SidebarContext";
 
-import {
-  ROLE_MAP,
-  DEPT_MAP,
-  NOTIF_TTL,
-  NOTIF_CACHE_KEY,
-} from "./navbarConstants";
+import { ROLE_MAP, DEPT_MAP } from "./navbarConstants";
 import {
   getGreeting,
   getGreetingIcon,
@@ -43,6 +31,14 @@ import toast from "react-hot-toast";
 
 export default function Navbar() {
   const { user, logout, loading } = useAuth();
+  const {
+    notifications,
+    unreadCount,
+    markAsRead,
+    markAllAsRead,
+    deleteNotification,
+    refetchNotifications,
+  } = useNotifications();
   const { collapsed } = useSidebar();
   const { theme, setTheme } = useTheme();
   const router = useRouter();
@@ -51,9 +47,6 @@ export default function Navbar() {
   const [showNotifs, setShowNotifs] = useState(false);
   const [showMobileSearch, setShowMobileSearch] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
-  const [notifications, setNotifications] = useState([]);
-  const [unreadCount, setUnreadCount] = useState(0);
-  const [loadingNotifs, setLoadingNotifs] = useState(false);
   const [dateStr, setDateStr] = useState("");
   const [greeting, setGreeting] = useState("");
   const [greetingIcon, setGreetingIcon] = useState("");
@@ -88,26 +81,7 @@ export default function Navbar() {
     };
   }, [user?.role, user?.department]);
 
-  const fetchNotifs = useCallback(async () => {
-    if (!user) return;
-    setLoadingNotifs(true);
-    try {
-      const res = await cachedFetch(
-        NOTIF_CACHE_KEY,
-        () => getNotificationsApi(20, 0),
-        NOTIF_TTL,
-      );
-      setNotifications(res.data?.notifications || []);
-      setUnreadCount(res.data?.unreadCount || 0);
-    } catch (e) {
-      console.error("Fetch notifications:", e);
-    } finally {
-      setLoadingNotifs(false);
-    }
-  }, [user]);
-
   useEffect(() => {
-    if (user) fetchNotifs();
     setDateStr(getDateStr());
     setGreeting(getGreeting());
     setGreetingIcon(getGreetingIcon());
@@ -118,13 +92,7 @@ export default function Navbar() {
       setGreetingIcon(getGreetingIcon());
     }, 1000);
     return () => clearInterval(tick);
-  }, [user, fetchNotifs]);
-
-  useEffect(() => {
-    if (!user) return;
-    const t = setInterval(fetchNotifs, 60_000);
-    return () => clearInterval(t);
-  }, [user, fetchNotifs]);
+  }, []);
 
   useEffect(() => {
     const handler = (e) => {
@@ -141,51 +109,6 @@ export default function Navbar() {
     clearTimeout(searchTimer.current);
     searchTimer.current = setTimeout(() => {}, 300);
   }, []);
-
-  const markAsRead = useCallback(
-    async (id) => {
-      setNotifications((prev) =>
-        prev.map((n) => (n._id === id ? { ...n, read: true } : n)),
-      );
-      setUnreadCount((prev) => Math.max(0, prev - 1));
-      invalidateCache(NOTIF_CACHE_KEY);
-      try {
-        await markAsReadApi(id);
-      } catch {
-        fetchNotifs();
-      }
-    },
-    [fetchNotifs],
-  );
-
-  const markAllRead = useCallback(async () => {
-    const snap = { notifications, unreadCount };
-    setNotifications((prev) => prev.map((n) => ({ ...n, read: true })));
-    setUnreadCount(0);
-    invalidateCache(NOTIF_CACHE_KEY);
-    try {
-      await markAllAsReadApi();
-    } catch {
-      setNotifications(snap.notifications);
-      setUnreadCount(snap.unreadCount);
-    }
-  }, [notifications, unreadCount]);
-
-  const deleteNotif = useCallback(
-    async (id) => {
-      const target = notifications.find((n) => n._id === id);
-      setNotifications((prev) => prev.filter((n) => n._id !== id));
-      if (target && !target.read)
-        setUnreadCount((prev) => Math.max(0, prev - 1));
-      invalidateCache(NOTIF_CACHE_KEY);
-      try {
-        await deleteNotificationApi(id);
-      } catch {
-        fetchNotifs();
-      }
-    },
-    [notifications, fetchNotifs],
-  );
 
   const sendBroadcastNotification = useCallback(async () => {
     if (!broadcastData.title.trim()) {
@@ -449,12 +372,22 @@ export default function Navbar() {
                     </p>
                   </div>
 
-                  <button
-                    onClick={() => setShowNotifs(false)}
-                    className="p-2 rounded-xl hover:bg-white/10 text-white/70 hover:text-white"
-                  >
-                    <X size={15} />
-                  </button>
+                  <div className="flex items-center gap-2">
+                    {unreadCount > 0 && (
+                      <button
+                        onClick={markAllAsRead}
+                        className="p-2 rounded-xl hover:bg-white/10 text-white/70 hover:text-white"
+                      >
+                        Mark all read
+                      </button>
+                    )}
+                    <button
+                      onClick={() => setShowNotifs(false)}
+                      className="p-2 rounded-xl hover:bg-white/10 text-white/70 hover:text-white"
+                    >
+                      <X size={15} />
+                    </button>
+                  </div>
                 </div>
 
                 {user?.role?.name === "SUPER_ADMIN" && (
@@ -485,7 +418,7 @@ export default function Navbar() {
                       key={n._id}
                       notif={n}
                       onMarkRead={markAsRead}
-                      onDelete={deleteNotif}
+                      onDelete={deleteNotification}
                     />
                   ))
                 )}

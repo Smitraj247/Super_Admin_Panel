@@ -9,7 +9,14 @@ import ActionButton from "./ActionButton";
  * Provides buttons for check-in, break, resume, and check-out actions
  */
 const AttendanceTracking = memo(
-  ({ isCheckedIn, isOnBreak, hasCheckedInToday, userStatus, onAction }) => {
+  ({
+    isCheckedIn,
+    isOnBreak,
+    hasCheckedInToday,
+    userStatus,
+    onAction,
+    canCheckIn,
+  }) => {
     const handleAction = (actionType) => {
       onAction?.(actionType);
     };
@@ -44,7 +51,7 @@ const AttendanceTracking = memo(
             subtitle="Start Your Day"
             color="green"
             onClick={() => handleAction("checkIn")}
-            disabled={hasCheckedInToday}
+            disabled={hasCheckedInToday || !canCheckIn?.canCheckIn}
           />
 
           <ActionButton
@@ -74,6 +81,12 @@ const AttendanceTracking = memo(
             disabled={!isCheckedIn}
           />
         </div>
+
+        {!canCheckIn?.canCheckIn && (
+          <div className="mt-4 text-sm text-orange-600 bg-orange-50 border border-orange-200 p-3 rounded-lg">
+            {canCheckIn?.reason}
+          </div>
+        )}
       </div>
     );
   },

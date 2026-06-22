@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState, useCallback } from "react";
+import { useSearchParams } from "next/navigation";
 import Sidebar from "@/components/Sidebar";
 import Navbar from "@/components/layout/Navbar";
 import ChatWindow from "@/components/ui/ChatWindow";
@@ -41,6 +42,7 @@ export default function ChatsPage({
 }) {
   const { user: currentUser } = useAuth();
   const { socket } = useSocket();
+  const searchParams = useSearchParams();
 
   const [chats, setChats] = useState([]);
   const [filteredChats, setFilteredChats] = useState([]);
@@ -60,7 +62,7 @@ export default function ChatsPage({
   const [groupName, setGroupName] = useState("");
   const [selectedParticipants, setSelectedParticipants] = useState([]);
 
-  // ── Data loading ──────────────────────────────────────────────────────────
+  // ── Data loading
 
   const loadChats = useCallback(async () => {
     try {
@@ -79,6 +81,26 @@ export default function ChatsPage({
   useEffect(() => {
     loadChats();
   }, [loadChats]);
+
+  // Handle chatId query param
+  useEffect(() => {
+    const chatIdParam = searchParams.get("chatId");
+    if (!chatIdParam || loading) return;
+
+    const foundChat = chats.find((c) => c._id === chatIdParam);
+    if (foundChat) {
+      if (foundChat.isGroupChat) {
+        setSelectedChat(foundChat);
+        setSelectedUser(null);
+      } else {
+        const otherUser = foundChat.participants.find(
+          (p) => p._id !== currentUser._id,
+        );
+        setSelectedUser(otherUser);
+        setSelectedChat(null);
+      }
+    }
+  }, [searchParams, chats, loading, currentUser]);
 
   // Real-time chat list updates
   useEffect(() => {
@@ -117,7 +139,7 @@ export default function ChatsPage({
     );
   }, [searchQuery, chats]);
 
-  // ── Helpers 
+  // ── Helpers
 
   const getOtherUser = (chat) =>
     chat.participants?.find((p) => p._id !== currentUser._id);
@@ -152,7 +174,7 @@ export default function ChatsPage({
     return d.toLocaleDateString("en-US", { month: "short", day: "numeric" });
   };
 
-  // ── Actions ───────────────────────────────────────────────────────────────
+  // ── Actions
 
   const openModal = async (mode) => {
     setModalMode(mode);
@@ -229,7 +251,7 @@ export default function ChatsPage({
       u.email?.toLowerCase().includes(userSearch.toLowerCase()),
   );
 
-  // ── Render 
+  // ── Render
 
   return (
     <div className="min-h-screen">
@@ -238,12 +260,11 @@ export default function ChatsPage({
 
       <main className="md:pl-64 pt-16">
         <div className="p-6 md:p-8">
-
           {/* Header */}
           <div className="flex justify-between items-center mb-8">
             <div>
-              <h1 className="text-2xl md:text-3xl font-bold flex items-center gap-2 text-[var(--text-primary)]">
-                <MessageCircle className="text-indigo-500" size={30} />
+              <h1 className="flex text-xl sm:text-2xl font-bold bg-gradient-to-r from-cyan-600 via-blue-600 to-purple-600 bg-clip-text text-transparent gap-2">
+                <MessageCircle className="text-blue-600" size={30} />
                 Messages
               </h1>
               <p className="text-[var(--text-muted)] text-sm mt-0.5">
@@ -490,8 +511,18 @@ export default function ChatsPage({
                         )}
                         {modalMode === "group" && isSelected && (
                           <div className="w-5 h-5 rounded-full bg-indigo-600 flex items-center justify-center">
-                            <svg className="w-3 h-3 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" />
+                            <svg
+                              className="w-3 h-3 text-white"
+                              fill="none"
+                              stroke="currentColor"
+                              viewBox="0 0 24 24"
+                            >
+                              <path
+                                strokeLinecap="round"
+                                strokeLinejoin="round"
+                                strokeWidth={3}
+                                d="M5 13l4 4L19 7"
+                              />
                             </svg>
                           </div>
                         )}
@@ -507,7 +538,9 @@ export default function ChatsPage({
               <div className="p-5 border-t border-[var(--border)]">
                 <button
                   onClick={handleCreateGroup}
-                  disabled={!groupName.trim() || selectedParticipants.length < 2}
+                  disabled={
+                    !groupName.trim() || selectedParticipants.length < 2
+                  }
                   className="w-full bg-violet-600 text-white py-2.5 rounded-xl text-sm font-semibold hover:bg-violet-700 disabled:opacity-40 disabled:cursor-not-allowed transition"
                 >
                   {!groupName.trim()

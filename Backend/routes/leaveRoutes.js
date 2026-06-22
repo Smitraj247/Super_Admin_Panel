@@ -8,6 +8,7 @@ import {
   deleteUserLeave,
   updateUserLeave,
   checkLeaveAvailability,
+  getCanUserCheckIn,
 } from "../controllers/leaveController.js";
 import authMiddleware from "../middleware/authMiddleware.js";
 import { autoRefillLeaves } from "../middleware/leaveRefillMiddleware.js";
@@ -25,10 +26,19 @@ router.get("/user/own", getUserLeaves);
 router.get("/user/balance", getUserLeaveBalance);
 
 router.get("/user/availability", checkLeaveAvailability);
+router.get("/user/can-check-in", getCanUserCheckIn);
 
-router.put("/user/:id", auditMiddleware("Updated leave application"), updateUserLeave);
+router.put(
+  "/user/:id",
+  auditMiddleware("Updated leave application"),
+  updateUserLeave,
+);
 
-router.delete("/user/:id", auditMiddleware("Deleted leave application"), deleteUserLeave);
+router.delete(
+  "/user/:id",
+  auditMiddleware("Deleted leave application"),
+  deleteUserLeave,
+);
 
 router.get("/", getAllLeaves);
 

@@ -14,6 +14,7 @@ import User from "../models/User.models.js";
 import Role from "../models/Roles.models.js";
 import cloudinary from "../config/cloudinary.js";
 import { uploadImage } from "../utils/uploadImage.js";
+import { emitEvent, SocketEvents } from "../utils/socketEmitter.js";
 
 export const getUser = async (req, res) => {
   try {
@@ -106,6 +107,10 @@ export const updateProfile = async (req, res) => {
       return res.status(404).json({ message: "User not found" });
     }
 
+    // Emit events
+    emitEvent(SocketEvents.PROFILE_UPDATED, updatedUser, userId.toString());
+    emitEvent(SocketEvents.USER_UPDATED, updatedUser);
+
     res.json({
       success: true,
       message: "Profile updated successfully",
@@ -174,7 +179,19 @@ export const updateUser = async (req, res) => {
   try {
     const updatedUser = await User.findByIdAndUpdate(req.params.id, req.body, {
       new: true,
-    });
+    })
+      .populate("role", "name")
+      .populate("department", "name")
+      .select("-password");
+
+    if (updatedUser) {
+      emitEvent(SocketEvents.USER_UPDATED, updatedUser);
+      emitEvent(
+        SocketEvents.PROFILE_UPDATED,
+        updatedUser,
+        updatedUser._id.toString(),
+      );
+    }
 
     res.json({
       message: "User updated successfully",
@@ -290,6 +307,14 @@ export const uploadProfilePhoto = async (req, res) => {
     user.profileImagePublicId = result.public_id;
     await user.save();
 
+    const populatedUser = await User.findById(user._id)
+      .populate("role", "name")
+      .populate("department", "name")
+      .select("-password");
+
+    emitEvent(SocketEvents.PROFILE_UPDATED, populatedUser, user._id.toString());
+    emitEvent(SocketEvents.USER_UPDATED, populatedUser);
+
     return res.status(200).json({
       success: true,
       message: "Profile photo uploaded successfully",
@@ -302,7 +327,11 @@ export const uploadProfilePhoto = async (req, res) => {
 
     // Provide a user-friendly message for Cloudinary auth errors
     let message = error.message;
-    if (error.http_code === 403 || message.includes("403") || message.includes("Invalid")) {
+    if (
+      error.http_code === 403 ||
+      message.includes("403") ||
+      message.includes("Invalid")
+    ) {
       message =
         "Failed to upload image due to Cloudinary authentication error. Please contact the administrator.";
     }

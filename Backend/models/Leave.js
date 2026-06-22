@@ -17,6 +17,11 @@ const leaveSchema = new mongoose.Schema(
       type: Boolean,
       default: false,
     },
+    halfDayPeriod: {
+      type: String,
+      enum: ["FIRST_HALF", "SECOND_HALF"],
+      default: null,
+    },
     reason: String,
     status: {
       type: String,

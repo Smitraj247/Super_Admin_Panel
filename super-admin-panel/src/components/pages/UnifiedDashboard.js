@@ -32,7 +32,7 @@ import { useAttendanceAction } from "@/hooks/useAttendanceAction";
  */
 
 export default function UnifiedDashboard() {
-  const { user, isAuthenticated } = useAuth();   
+  const { user, isAuthenticated } = useAuth();
 
   if (!user || !isAuthenticated()) {
     return null;
@@ -49,6 +49,7 @@ export default function UnifiedDashboard() {
     holidays,
     loading,
     refetch: refetchData,
+    canCheckIn: canCheckInData,
   } = useUnifiedDashboardData();
 
   // Derived state calculations
@@ -59,7 +60,14 @@ export default function UnifiedDashboard() {
     lateCount,
     actualAbsent,
     displayValues,
-  } = useAttendanceStats(stats, monthlyRecords, monthlySummary, leaves);
+    canCheckIn,
+  } = useAttendanceStats(
+    stats,
+    monthlyRecords,
+    monthlySummary,
+    leaves,
+    canCheckInData,
+  );
 
   // Attendance action handler
   const { executeAction: handleAttendanceAction } = useAttendanceAction(
@@ -134,6 +142,7 @@ export default function UnifiedDashboard() {
                 hasCheckedInToday={hasCheckedInToday}
                 userStatus={stats.userStatus}
                 onAction={handleAttendanceAction}
+                canCheckIn={canCheckIn}
               />
               <AttendanceHistory records={history} />
             </div>

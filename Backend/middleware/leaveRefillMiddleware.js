@@ -1,80 +1,132 @@
 import User from "../models/User.models.js";
-import Leave from "../models/Leave.js";
 
 /**
- * Middleware to automatically refill monthly leaves (PL and SL)
- * - Checks if a new month has started since last refill
- * - Refills PL to 1 and SL to 1 each month
- * - CL remains unlimited (999)
- * - Adds unused PL/CL from previous month to DL balance
+ * Middleware to automatically manage cycle boundary leaf resets.
+ *
+ * Policy:
+ *  - PL/SL : 6 credited per cycle at the start.
+ *          6-month cycles are fixed calendar windows:
+ *            Cycle 1 → January  – June
+ *            Cycle 2 → July     – December
+ *          At the START of each new cycle (1 Jan or 1 Jul), any UNUSED PL
+ *          from the previous cycle is carried forward into the fresh balance.
+ *          If user joins in middle of a cycle, pro-rate PL/SL based on joining month.
+ *
+ *  - SL : Reset to 6 at cycle start. No carry-forward ever.
+ *  - DL : Computed dynamically on the fly. No longer stored/updated here.
+ *  - CL : Unlimited — stored as sentinel value 9999. Never changed.
  */
+
+const getCurrentCycleStart = (date) => {
+  const year = date.getFullYear();
+  const month = date.getMonth(); // 0-indexed
+  return month < 6
+    ? new Date(year, 0, 1) // January 1
+    : new Date(year, 6, 1); // July 1
+};
+
+const getNextCycleStart = (date) => {
+  const year = date.getFullYear();
+  const month = date.getMonth(); // 0-indexed
+  return month < 6
+    ? new Date(year, 6, 1) // Next is July 1
+    : new Date(year + 1, 0, 1); // Next is Jan 1
+};
+
+// Helper to calculate pro-rated PL/SL for a cycle based on joining month
+const getProRatedLeave = (joiningMonth, cycleStartMonth) => {
+  // joiningMonth and cycleStartMonth are 0-indexed (0 = Jan, 6 = July)
+  const monthsInCycle = 6;
+  // Calculate how many months are left in the cycle after (and including) joining month
+  let remainingMonths;
+  if (cycleStartMonth === 0) {
+    // Jan-Jun cycle
+    if (joiningMonth < 0 || joiningMonth > 5) return 0;
+    remainingMonths = 6 - joiningMonth;
+  } else {
+    // July-Dec cycle (cycleStartMonth = 6)
+    if (joiningMonth < 6 || joiningMonth > 11) return 0;
+    remainingMonths = 12 - joiningMonth;
+  }
+  // 6 days per cycle → 1 day per month
+  return remainingMonths;
+};
+
 export const autoRefillLeaves = async (req, res, next) => {
   try {
-    if (!req.user || !req.user._id) {
-      return next();
-    }
+    if (!req.user || !req.user._id) return next();
 
     const user = await User.findById(req.user._id);
-
-    if (!user) {
-      return next();
-    }
+    if (!user) return next();
 
     const now = new Date();
-    const lastRefill = user.lastLeaveRefill
-      ? new Date(user.lastLeaveRefill)
-      : new Date(0);
+    const currentCycleStart = getCurrentCycleStart(now);
+    const joiningDate = user.joiningDate
+      ? new Date(user.joiningDate)
+      : new Date(user.createdAt);
+    const userLastCycleRefill = user.lastCycleRefill
+      ? new Date(user.lastCycleRefill)
+      : null;
 
-    // Check if we're in a new month
-    const isNewMonth =
-      now.getMonth() !== lastRefill.getMonth() ||
-      now.getFullYear() !== lastRefill.getFullYear();
-
-    if (isNewMonth) {
-      console.log(
-        `🔄 Auto-refilling leaves for user: ${user.name} (${user.email})`,
-      );
-
-      // Check previous month's PL and CL usage
-      const previousMonthStart = new Date(now.getFullYear(), now.getMonth() - 1, 1);
-      const previousMonthEnd = new Date(now.getFullYear(), now.getMonth(), 0);
-
-      const previousMonthLeaves = await Leave.countDocuments({
-        user: req.user._id,
-        leaveType: { $in: ["PL", "CL"] },
-        status: { $in: ["PENDING", "APPROVED"] },
-        fromDate: { $gte: previousMonthStart, $lte: previousMonthEnd },
-      });
-
-      // If no PL or CL was taken in previous month, add 1 to DL balance
-      if (previousMonthLeaves === 0) {
-        user.leaveBalance.DL = (user.leaveBalance.DL || 0) + 1;
-        console.log(`✅ Added 1 DL (no PL/CL taken in previous month). New DL balance: ${user.leaveBalance.DL}`);
-      } else {
-        console.log(`ℹ️ No DL added (${previousMonthLeaves} PL/CL taken in previous month)`);
-      }
-
-      // Refill monthly leaves
-      user.leaveBalance.PL = 1;
-      user.leaveBalance.SL = 1;
-
-      // Ensure CL remains unlimited
-      if (user.leaveBalance.CL < "♾️") {
-        user.leaveBalance.CL = "♾️";
-      }
-
-      user.lastLeaveRefill = now;
+    // If user has no lastCycleRefill, or lastCycleRefill is before the user's joining date!
+    if (
+      !user.lastCycleRefill ||
+      (userLastCycleRefill && userLastCycleRefill < joiningDate)
+    ) {
+      // Pro-rate PL/SL for the current cycle
+      const joiningMonth = joiningDate.getMonth();
+      const cycleStartMonth = currentCycleStart.getMonth();
+      const proRated = getProRatedLeave(joiningMonth, cycleStartMonth);
+      user.leaveBalance.PL = proRated;
+      user.leaveBalance.SL = proRated;
+      user.lastCycleRefill = currentCycleStart;
+      // console.log(
+      //   `📊 First cycle refill: Pro-rated PL/SL to ${proRated} for user joining in ${joiningDate.toLocaleDateString()}`,
+      // );
       await user.save();
+    } else {
+      // Normal cycle processing
+      let lastCycleRefill = new Date(user.lastCycleRefill);
+      let processDate = getNextCycleStart(lastCycleRefill);
+      let changed = false;
 
-      console.log(`✅ Leaves refilled: PL=1, SL=1, CL=♾️, DL=${user.leaveBalance.DL}`);
+      // Loop through every cycle boundary missed until we catch up to currentCycleStart
+      while (processDate <= currentCycleStart) {
+        // Carry forward PL for this boundary
+        const carryForwardPL = Math.max(0, user.leaveBalance.PL || 0);
+        user.leaveBalance.PL = 6 + carryForwardPL;
+        user.leaveBalance.SL = 6;
+        user.leaveBalance.DL = 0; // reset DL DB state for cleanliness
+        user.lastCycleRefill = processDate;
 
-      // Update req.user with new balance
-      req.user.leaveBalance = user.leaveBalance;
+        console.log(
+          `🔁 Cycle boundary hit (${processDate.toLocaleDateString()}): Carried forward ${carryForwardPL} PL. Reset SL to 6.`,
+        );
+
+        processDate = getNextCycleStart(processDate);
+        changed = true;
+      }
+
+      if (changed) {
+        await user.save();
+      }
     }
+
+    if (!user.leaveBalance.CL || user.leaveBalance.CL !== 9999) {
+      user.leaveBalance.CL = 9999;
+    }
+
+    // Only save if we need to (don't always save to avoid unnecessary writes)
+    if (user.isModified()) {
+      await user.save();
+    }
+
+    // Keep req.user in sync so downstream handlers see the fresh balance
+    req.user.leaveBalance = user.leaveBalance;
 
     next();
   } catch (error) {
     console.error("Error in autoRefillLeaves middleware:", error);
-    next(); // Continue even if refill fails
+    next(); // Don't block request even if refill fails
   }
 };

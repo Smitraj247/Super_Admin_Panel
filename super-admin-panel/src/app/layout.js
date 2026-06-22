@@ -2,6 +2,7 @@ import "./globals.css";
 import { AuthProvider } from "../context/AuthContext";
 import { SidebarProvider } from "../context/SidebarContext";
 import { SocketProvider } from "../context/SocketContext";
+import { NotificationProvider } from "../context/NotificationContext";
 import { ThemeProvider } from "@/components/theme-provider";
 import { Toaster } from "react-hot-toast";
 import { ToastContainer } from "react-toastify";
@@ -24,19 +25,21 @@ export default function RootLayout({ children }) {
         >
           <AuthProvider>
             <SocketProvider>
-              <SidebarProvider>
-                {children}
-                <Toaster position="top-right" />
-                <ToastContainer
-                  position="top-right"
-                  autoClose={3000}
-                  hideProgressBar={false}
-                  newestOnTop
-                  closeOnClick
-                  pauseOnHover
-                  theme="colored"
-                />
-              </SidebarProvider>
+              <NotificationProvider>
+                <SidebarProvider>
+                  {children}
+                  <Toaster position="top-right" />
+                  <ToastContainer
+                    position="top-right"
+                    autoClose={3000}
+                    hideProgressBar={false}
+                    newestOnTop
+                    closeOnClick
+                    pauseOnHover
+                    theme="colored"
+                  />
+                </SidebarProvider>
+              </NotificationProvider>
             </SocketProvider>
           </AuthProvider>
         </ThemeProvider>

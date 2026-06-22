@@ -3,6 +3,7 @@ import Role from "../models/Roles.models.js";
 import Department from "../models/Department.models.js";
 import AuditLogs from "../models/AuditLogs.models.js";
 import Leave from "../models/Leave.js";
+import Attendance from "../models/Attendance.js";
 import {
   createUserValidation,
   updateUserValidation,
@@ -11,6 +12,7 @@ import {
   createUser as createUserService,
   deleteUserById,
 } from "../services/userService.js";
+import { calculateDynamicDL, calcLeaveDays } from "../services/leaveService.js";
 
 export const getAdmins = async (req, res) => {
   try {
@@ -47,6 +49,8 @@ export const createAdmin = async (req, res) => {
       probationEndDate,
       leaveBalance,
       sidebarPermissions,
+      totalHour,
+      workingHour,
     } = req.body;
 
     console.log("👤 Creating admin:", { name, email, department });
@@ -61,6 +65,8 @@ export const createAdmin = async (req, res) => {
       joiningDate,
       probationEndDate,
       leaveBalance,
+      totalHour,
+      workingHour,
     );
 
     // Update sidebar permissions if provided
@@ -73,7 +79,6 @@ export const createAdmin = async (req, res) => {
       .populate("role", "name")
       .populate("department", "name")
       .select("-password");
-
     console.log("✓ Admin created successfully:", createdAdmin._id);
 
     res.status(201).json(createdAdmin);
@@ -96,6 +101,8 @@ export const updateAdmin = async (req, res) => {
       probationEndDate,
       leaveBalance,
       sidebarPermissions,
+      totalHour,
+      workingHour,
     } = req.body;
 
     const updateData = { name, email, department };
@@ -106,6 +113,8 @@ export const updateAdmin = async (req, res) => {
     if (leaveBalance !== undefined) updateData.leaveBalance = leaveBalance;
     if (sidebarPermissions !== undefined)
       updateData.sidebarPermissions = sidebarPermissions;
+    if (totalHour !== undefined) updateData.totalHour = totalHour;
+    if (workingHour !== undefined) updateData.workingHour = workingHour;
 
     const admin = await User.findByIdAndUpdate(id, updateData, { new: true })
       .populate("role", "name")
@@ -276,6 +285,8 @@ export const createUser = async (req, res) => {
       joiningDate,
       probationEndDate,
       leaveBalance,
+      totalHour,
+      workingHour,
     } = req.body;
 
     console.log("👤 Creating user:", {
@@ -312,7 +323,9 @@ export const createUser = async (req, res) => {
       sidebarPermissions: sidebarPermissions || [],
       joiningDate: joiningDate || new Date(),
       probationEndDate: probationEndDate,
-      leaveBalance: leaveBalance,N
+      leaveBalance: leaveBalance,
+      totalHour: totalHour || 0,
+      workingHour: workingHour || 0,
     });
 
     const createdUser = await User.findById(user._id)
@@ -342,6 +355,8 @@ export const updateUser = async (req, res) => {
       probationEndDate,
       leaveBalance,
       sidebarPermissions,
+      totalHour,
+      workingHour,
     } = req.body;
 
     const updateData = { name, email, department };
@@ -352,6 +367,8 @@ export const updateUser = async (req, res) => {
     if (leaveBalance !== undefined) updateData.leaveBalance = leaveBalance;
     if (sidebarPermissions !== undefined)
       updateData.sidebarPermissions = sidebarPermissions;
+    if (totalHour !== undefined) updateData.totalHour = totalHour;
+    if (workingHour !== undefined) updateData.workingHour = workingHour;
 
     const user = await User.findByIdAndUpdate(id, updateData, { new: true })
       .populate("role", "name")
@@ -461,15 +478,74 @@ export const getDashboardStats = async (req, res) => {
   }
 };
 
+// Helper functions to build YYYY-MM-DD date strings
+const monthFirstDay = (year, month) =>
+  `${year}-${String(month).padStart(2, "0")}-01`;
+
+const monthLastDay = (year, month) => {
+  const d = new Date(year, month, 0); // day 0 of next month = last day of `month`
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+};
+
 export const getAllUsersWithLeaves = async (req, res) => {
   try {
+    const { year, month } = req.query;
     const users = await User.find()
       .populate("role", "name")
       .populate("department", "name")
       .select("-password")
       .sort({ name: 1 });
 
-    // Get pending leave counts for each user
+    // Build attendance query based on year and month (using YYYY-MM-DD strings)
+    let attendanceQuery = {};
+    if (year && month) {
+      const startDate = monthFirstDay(parseInt(year), parseInt(month));
+      const endDate = monthLastDay(parseInt(year), parseInt(month));
+      attendanceQuery.date = { $gte: startDate, $lte: endDate };
+    } else if (year) {
+      const startDate = monthFirstDay(parseInt(year), 1);
+      const endDate = monthLastDay(parseInt(year), 12);
+      attendanceQuery.date = { $gte: startDate, $lte: endDate };
+    }
+
+    // Fetch attendances for the specified period
+    const attendances = await Attendance.find(attendanceQuery);
+    const userAttendanceStats = {};
+
+    attendances.forEach((r) => {
+      const uid = r.userId.toString();
+      if (!userAttendanceStats[uid]) {
+        userAttendanceStats[uid] = { totalWorkMinutes: 0, presentDays: 0 };
+      }
+
+      if (r.checkIn && r.checkOut) {
+        let m = (new Date(r.checkOut) - new Date(r.checkIn)) / 60000;
+        (r.breaks || []).forEach((b) => {
+          if (b.breakIn && b.breakOut) {
+            m -= (new Date(b.breakOut) - new Date(b.breakIn)) / 60000;
+          }
+        });
+        if (m > 0) {
+          userAttendanceStats[uid].totalWorkMinutes += m;
+        }
+      }
+
+      if (
+        [
+          "CHECKED_IN",
+          "ON_BREAK",
+          "BACK_TO_WORK",
+          "CHECKED_OUT",
+          "LATE",
+        ].includes(r.status)
+      ) {
+        if (r.checkIn) {
+          userAttendanceStats[uid].presentDays += 1;
+        }
+      }
+    });
+
+    // Get pending leave counts for each user and calculate leave balances with used/total
     const usersWithPendingCounts = await Promise.all(
       users.map(async (user) => {
         const pendingCount = await Leave.countDocuments({
@@ -477,9 +553,81 @@ export const getAllUsersWithLeaves = async (req, res) => {
           status: "PENDING",
         });
 
+        const stats = userAttendanceStats[user._id.toString()] || {
+          totalWorkMinutes: 0,
+          presentDays: 0,
+        };
+        const workingHour = parseFloat(
+          (stats.totalWorkMinutes / 60).toFixed(1),
+        );
+        const totalHour = stats.presentDays * 8.5;
+
+        // Calculate dynamic DL for selected year/month
+        const dlStats = await calculateDynamicDL(
+          user._id,
+          year ? parseInt(year) : undefined,
+          month ? parseInt(month) : undefined,
+        );
+
+        // Calculate cycle info for pro-rated totals
+        const now = new Date();
+        const targetYear = year ? parseInt(year) : now.getFullYear();
+        const targetMonth = month ? parseInt(month) - 1 : now.getMonth();
+        const isFirstHalf = targetMonth < 6;
+        const cycleStartMonth = isFirstHalf ? 0 : 6;
+        const cycleEndMonth = isFirstHalf ? 5 : 11;
+
+        // Calculate allocated PL/SL
+        const joiningDate = user.joiningDate
+          ? new Date(user.joiningDate)
+          : new Date(user.createdAt);
+        const joiningYear = joiningDate.getFullYear();
+        const joiningMonth = joiningDate.getMonth();
+        const userJoinedInCurrentCycle =
+          (joiningYear === targetYear &&
+            joiningMonth >= cycleStartMonth &&
+            joiningMonth <= cycleEndMonth) ||
+          (joiningYear < targetYear && cycleStartMonth === 0) ||
+          (joiningYear > targetYear && cycleStartMonth === 6);
+
+        let allocatedPL = 6;
+        let allocatedSL = 6;
+
+        if (userJoinedInCurrentCycle && joiningYear === targetYear) {
+          const monthsRemaining = cycleEndMonth - joiningMonth + 1;
+          allocatedPL = monthsRemaining;
+          allocatedSL = monthsRemaining;
+        }
+
+        // Default totals for each leave type
+        const leaveTotals = {
+          PL: allocatedPL,
+          CL: 9999, // unlimited
+          SL: allocatedSL,
+          DL: dlStats.grossDL,
+        };
+
+        // Current remaining leaves from user model
+        const remaining = {
+          PL: user.leaveBalance?.PL || 0,
+          CL: user.leaveBalance?.CL || 0,
+          SL: user.leaveBalance?.SL || 0,
+          DL: dlStats.netDL,
+        };
+
         return {
           ...user.toObject(),
           pendingLeaveCount: pendingCount,
+          workingHour,
+          totalHour,
+          leaveBalance: {
+            ...remaining,
+            // Store totals too for frontend
+            PLTotal: leaveTotals.PL,
+            CLTotal: leaveTotals.CL,
+            SLTotal: leaveTotals.SL,
+            DLTotal: leaveTotals.DL,
+          },
         };
       }),
     );
@@ -520,14 +668,114 @@ export const getUserLeaveHistory = async (req, res) => {
       query.fromDate = { $gte: startDate, $lte: endDate };
     }
 
-    const leaves = await User.findById(userId)
-      .populate("role", "name")
-      .populate("department", "name")
-      .select("-password");
+    // Calculate dynamic DL for selected year/month
+    const dlStats = await calculateDynamicDL(
+      userId,
+      year ? parseInt(year) : undefined,
+      month ? parseInt(month) : undefined,
+    );
 
-    if (!user) {
-      return res.status(404).json({ message: "User not found" });
+    // Calculate cycle info
+    const now = new Date();
+    const targetYear = year ? parseInt(year) : now.getFullYear();
+    const targetMonth = month ? parseInt(month) - 1 : now.getMonth();
+    const isFirstHalf = targetMonth < 6;
+    const cycleStartMonth = isFirstHalf ? 0 : 6;
+    const cycleEndMonth = isFirstHalf ? 5 : 11;
+    const cycleStart = new Date(targetYear, cycleStartMonth, 1);
+    const cycleEnd = new Date(targetYear, cycleEndMonth + 1, 0);
+
+    // Calculate allocated PL/SL
+    const joiningDate = user.joiningDate
+      ? new Date(user.joiningDate)
+      : new Date(user.createdAt);
+    const joiningYear = joiningDate.getFullYear();
+    const joiningMonth = joiningDate.getMonth();
+    const userJoinedInCurrentCycle =
+      (joiningYear === targetYear &&
+        joiningMonth >= cycleStartMonth &&
+        joiningMonth <= cycleEndMonth) ||
+      (joiningYear < targetYear && cycleStartMonth === 0) ||
+      (joiningYear > targetYear && cycleStartMonth === 6);
+
+    let allocatedPL = 6;
+    let allocatedSL = 6;
+
+    if (userJoinedInCurrentCycle && joiningYear === targetYear) {
+      const monthsRemaining = cycleEndMonth - joiningMonth + 1;
+      allocatedPL = monthsRemaining;
+      allocatedSL = monthsRemaining;
     }
+
+    // Calculate used PL/SL
+    const [cyclePLLeaves, cycleSLLeaves] = await Promise.all([
+      Leave.find({
+        user: user._id,
+        leaveType: "PL",
+        status: { $in: ["PENDING", "APPROVED"] },
+        fromDate: { $gte: cycleStart, $lte: cycleEnd },
+      }),
+      Leave.find({
+        user: user._id,
+        leaveType: "SL",
+        status: { $in: ["PENDING", "APPROVED"] },
+        fromDate: { $gte: cycleStart, $lte: cycleEnd },
+      }),
+    ]);
+
+    const usedPL = cyclePLLeaves.reduce(
+      (acc, leave) =>
+        acc + calcLeaveDays(leave.fromDate, leave.toDate, leave.isHalfDay),
+      0,
+    );
+    const usedSL = cycleSLLeaves.reduce(
+      (acc, leave) =>
+        acc + calcLeaveDays(leave.fromDate, leave.toDate, leave.isHalfDay),
+      0,
+    );
+    const remainingPL = user.leaveBalance?.PL || 0;
+    const remainingSL = user.leaveBalance?.SL || 0;
+    const carriedForwardPL = Math.max(0, remainingPL);
+
+    // Default totals for each leave type
+    const leaveTotals = {
+      PL: allocatedPL,
+      CL: 9999, // unlimited
+      SL: allocatedSL,
+      DL: dlStats.grossDL,
+    };
+
+    // Current remaining leaves from user model
+    const remaining = {
+      PL: remainingPL,
+      CL: user.leaveBalance?.CL || 0,
+      SL: remainingSL,
+      DL: dlStats.netDL,
+    };
+
+    // Update user's leaveBalance to include totals and dynamic DL
+    const userWithLeaveInfo = {
+      ...user.toObject(),
+      leaveBalance: {
+        ...remaining,
+        PLTotal: leaveTotals.PL,
+        CLTotal: leaveTotals.CL,
+        SLTotal: leaveTotals.SL,
+        DLTotal: leaveTotals.DL,
+      },
+      cycleInfo: {
+        cycleLabel: `${new Date(targetYear, cycleStartMonth).toLocaleString("en-US", { month: "long" })}–${new Date(targetYear, cycleEndMonth).toLocaleString("en-US", { month: "long", year: "numeric" })}`,
+        cycleStart,
+        cycleEnd,
+        allocatedPL,
+        allocatedSL,
+        usedPL,
+        usedSL,
+        remainingPL,
+        remainingSL,
+        carriedForwardPL,
+      },
+    };
 
     let leaveQuery = { user: userId };
 
@@ -549,7 +797,7 @@ export const getUserLeaveHistory = async (req, res) => {
     res.json({
       success: true,
       data: {
-        user,
+        user: userWithLeaveInfo,
         leaves: leaveRecords,
       },
     });
@@ -558,5 +806,3 @@ export const getUserLeaveHistory = async (req, res) => {
     res.status(500).json({ message: error.message });
   }
 };
-
-

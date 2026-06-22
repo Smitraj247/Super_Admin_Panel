@@ -2,6 +2,8 @@ import mongoose from "mongoose";
 import Attendance from "../models/Attendance.js";
 import Leave from "../models/Leave.js";
 import Holiday from "../models/Holiday.js";
+import { canUserCheckIn } from "./leaveService.js";
+import { emitEvent, SocketEvents } from "../utils/socketEmitter.js";
 
 // ─── Timezone helpers (IST = UTC+5:30) ───────────────────────────────────────
 
@@ -10,7 +12,9 @@ import Holiday from "../models/Holiday.js";
  * Prevents the UTC midnight shift that would return yesterday for IST users.
  */
 export const getToday = () => {
-  return new Intl.DateTimeFormat("en-CA", { timeZone: "Asia/Kolkata" }).format(new Date());
+  return new Intl.DateTimeFormat("en-CA", { timeZone: "Asia/Kolkata" }).format(
+    new Date(),
+  );
 };
 
 /**
@@ -68,7 +72,8 @@ const populateUser = (id) =>
 
 const populateRecord = (id) =>
   Attendance.findById(id).populate({
-    path: "userId", select: "name email _id",
+    path: "userId",
+    select: "name email _id",
     populate: { path: "role department", select: "name" },
   });
 
@@ -77,37 +82,75 @@ const populateRecord = (id) =>
 export const performCheckIn = async (userId) => {
   const today = getToday();
   if (await Attendance.findOne({ userId, date: today }))
-    throw Object.assign(new Error("Already checked in"), { status: 400, code: 11000 });
+    throw Object.assign(new Error("Already checked in"), {
+      status: 400,
+      code: 11000,
+    });
+
+  // Check if user can check in (not on full leave or half-day leave for current period)
+  const checkInPermission = await canUserCheckIn(userId);
+  if (!checkInPermission.canCheckIn) {
+    throw Object.assign(new Error(checkInPermission.reason), { status: 400 });
+  }
 
   const now = new Date();
   const istParts = new Intl.DateTimeFormat("en-IN", {
-    timeZone: "Asia/Kolkata", hour: "2-digit", minute: "2-digit", hour12: false,
+    timeZone: "Asia/Kolkata",
+    hour: "2-digit",
+    minute: "2-digit",
+    hour12: false,
   }).formatToParts(now);
 
   const hour = Number(istParts.find((p) => p.type === "hour").value);
-  const min  = Number(istParts.find((p) => p.type === "minute").value);
+  const min = Number(istParts.find((p) => p.type === "minute").value);
   const isLate = hour > 10 || (hour === 10 && min >= 15);
 
   const record = await Attendance.create({
     userId: new mongoose.Types.ObjectId(userId),
-    date: today, checkIn: now,
+    date: today,
+    checkIn: now,
     status: isLate ? "LATE" : "CHECKED_IN",
     isLate,
   });
+  const populatedRecord = await populateUser(record._id);
+  emitEvent(
+    SocketEvents.ATTENDANCE_UPDATED,
+    { userId, record: populatedRecord },
+    userId,
+  );
+  emitEvent(SocketEvents.ATTENDANCE_UPDATED, {
+    userId,
+    record: populatedRecord,
+  });
 
-  return { record: await populateUser(record._id), isLate };
+  return { record: populatedRecord, isLate };
 };
 
 export const performBreakIn = async (userId) => {
   const record = await Attendance.findOne({ userId, date: getToday() });
-  if (!record) throw Object.assign(new Error("Please check in first"), { status: 400 });
+  if (!record)
+    throw Object.assign(new Error("Please check in first"), { status: 400 });
   if (!["CHECKED_IN", "BACK_TO_WORK", "LATE"].includes(record.status))
-    throw Object.assign(new Error(`Cannot start break. Current status: ${record.status}`), { status: 400 });
+    throw Object.assign(
+      new Error(`Cannot start break. Current status: ${record.status}`),
+      { status: 400 },
+    );
 
   record.breaks.push({ breakIn: new Date() });
   record.status = "ON_BREAK";
   await record.save();
-  return populateUser(record._id);
+  const populatedRecord = await populateUser(record._id);
+  emitEvent(
+    SocketEvents.ATTENDANCE_UPDATED,
+    { userId, record: populatedRecord },
+    userId,
+  );
+  emitEvent(SocketEvents.ATTENDANCE_UPDATED, {
+    userId,
+    record: populatedRecord,
+  });
+
+  return populatedRecord;
 };
 
 export const performBreakOut = async (userId) => {
@@ -122,7 +165,18 @@ export const performBreakOut = async (userId) => {
   lastBreak.breakOut = new Date();
   record.status = "BACK_TO_WORK";
   await record.save();
-  return populateUser(record._id);
+  const populatedRecord = await populateUser(record._id);
+  emitEvent(
+    SocketEvents.ATTENDANCE_UPDATED,
+    { userId, record: populatedRecord },
+    userId,
+  );
+  emitEvent(SocketEvents.ATTENDANCE_UPDATED, {
+    userId,
+    record: populatedRecord,
+  });
+
+  return populatedRecord;
 };
 
 export const performCheckOut = async (userId) => {
@@ -133,57 +187,127 @@ export const performCheckOut = async (userId) => {
   record.checkOut = new Date();
   record.status = "CHECKED_OUT";
   await record.save();
-  return populateUser(record._id);
+  const populatedRecord = await populateUser(record._id);
+  emitEvent(
+    SocketEvents.ATTENDANCE_UPDATED,
+    { userId, record: populatedRecord },
+    userId,
+  );
+  emitEvent(SocketEvents.ATTENDANCE_UPDATED, {
+    userId,
+    record: populatedRecord,
+  });
+
+  return populatedRecord;
 };
 
 export const fetchTodayStatus = async (userId) => {
-  const record = await Attendance.findOne({ userId, date: getToday() }).populate("userId", "email name _id");
-  return record ? { status: record.status, record } : { status: "NOT_CHECKED_IN" };
+  const record = await Attendance.findOne({
+    userId,
+    date: getToday(),
+  }).populate("userId", "email name _id");
+  return record
+    ? { status: record.status, record }
+    : { status: "NOT_CHECKED_IN" };
 };
 
 // ─── Queries ──────────────────────────────────────────────────────────────────
 
 export const fetchByDateRange = async (userId, startDate, endDate, date) => {
   const filter = { userId };
-  if (startDate && endDate) filter.date = { $gte: startDate, $lte: endDate };
-  else if (date) filter.date = date;
-  else throw Object.assign(new Error("Date or date range is required"), { status: 400 });
+  const todayStr = getToday();
 
-  return Attendance.find(filter).populate("userId", "email name _id").sort({ date: 1 });
+  if (startDate && endDate) {
+    const effectiveEnd = endDate > todayStr ? todayStr : endDate;
+    filter.date = { $gte: startDate, $lte: effectiveEnd };
+  } else if (date) {
+    if (date > todayStr) {
+      return [];
+    }
+    filter.date = date;
+  } else {
+    throw Object.assign(new Error("Date or date range is required"), {
+      status: 400,
+    });
+  }
+
+  return Attendance.find(filter)
+    .populate("userId", "email name _id")
+    .sort({ date: 1 });
 };
 
-export const fetchAllUsersAttendance = async ({ startDate, endDate, date, page = 1, limit = 50 }, departmentFilter) => {
+export const fetchAllUsersAttendance = async (
+  { startDate, endDate, date, page = 1, limit = 50 },
+  departmentFilter,
+) => {
   const filter = {};
-  if (date) filter.date = date;
-  else if (startDate && endDate) filter.date = { $gte: startDate, $lte: endDate };
+  const todayStr = getToday();
+
+  if (date) {
+    if (date > todayStr) {
+      return {
+        data: [],
+        total: 0,
+        page: parseInt(page),
+        limit: parseInt(limit),
+      };
+    }
+    filter.date = date;
+  } else if (startDate && endDate) {
+    const effectiveEnd = endDate > todayStr ? todayStr : endDate;
+    filter.date = { $gte: startDate, $lte: effectiveEnd };
+  }
 
   const skip = (parseInt(page) - 1) * parseInt(limit);
   let attendance = await Attendance.find(filter)
-    .populate({ path: "userId", select: "name email _id department role", populate: { path: "role department", select: "name" } })
+    .populate({
+      path: "userId",
+      select: "name email _id department role",
+      populate: { path: "role department", select: "name" },
+    })
     .sort({ date: -1, createdAt: -1 })
     .skip(skip)
     .limit(parseInt(limit));
 
   if (departmentFilter?.department) {
     attendance = attendance.filter(
-      (r) => r.userId?.department?._id?.toString() === departmentFilter.department.toString()
+      (r) =>
+        r.userId?.department?._id?.toString() ===
+        departmentFilter.department.toString(),
     );
   }
 
-  return { data: attendance, total: attendance.length, page: parseInt(page), limit: parseInt(limit) };
+  return {
+    data: attendance,
+    total: attendance.length,
+    page: parseInt(page),
+    limit: parseInt(limit),
+  };
 };
 
 // ─── Admin record update
 
-export const updateRecord = async (id, { checkIn, checkOut, breakIn, breakOut, breakIndex, breaks }) => {
+export const updateRecord = async (
+  id,
+  { checkIn, checkOut, breakIn, breakOut, breakIndex, breaks },
+) => {
   const record = await Attendance.findById(id);
-  if (!record) throw Object.assign(new Error("Attendance record not found"), { status: 404 });
+  if (!record)
+    throw Object.assign(new Error("Attendance record not found"), {
+      status: 404,
+    });
 
-  if (checkIn !== undefined) record.checkIn = checkIn ? new Date(checkIn) : null;
+  if (checkIn !== undefined)
+    record.checkIn = checkIn ? new Date(checkIn) : null;
 
   if (checkOut !== undefined) {
-    if (checkOut === null) { record.checkOut = null; record.status = "CHECKED_IN"; }
-    else { record.checkOut = new Date(checkOut); record.status = "CHECKED_OUT"; }
+    if (checkOut === null) {
+      record.checkOut = null;
+      record.status = "CHECKED_IN";
+    } else {
+      record.checkOut = new Date(checkOut);
+      record.status = "CHECKED_OUT";
+    }
   }
 
   if (breaks !== undefined && Array.isArray(breaks)) {
@@ -192,17 +316,29 @@ export const updateRecord = async (id, { checkIn, checkOut, breakIn, breakOut, b
       breakIn: b.breakIn ? new Date(b.breakIn) : null,
       breakOut: b.breakOut ? new Date(b.breakOut) : null,
     }));
-  } else if (breakIndex !== undefined && (breakIn !== undefined || breakOut !== undefined)) {
+  } else if (
+    breakIndex !== undefined &&
+    (breakIn !== undefined || breakOut !== undefined)
+  ) {
     if (record.breaks[breakIndex]) {
-      if (breakIn !== undefined) record.breaks[breakIndex].breakIn = breakIn ? new Date(breakIn) : record.breaks[breakIndex].breakIn;
-      if (breakOut !== undefined) record.breaks[breakIndex].breakOut = breakOut ? new Date(breakOut) : null;
+      if (breakIn !== undefined)
+        record.breaks[breakIndex].breakIn = breakIn
+          ? new Date(breakIn)
+          : record.breaks[breakIndex].breakIn;
+      if (breakOut !== undefined)
+        record.breaks[breakIndex].breakOut = breakOut
+          ? new Date(breakOut)
+          : null;
     }
   } else if (breakIn !== undefined || breakOut !== undefined) {
     if (breakIn && !breakOut) {
       record.breaks.push({ breakIn: new Date(breakIn) });
       record.status = "ON_BREAK";
     } else if (breakIn && breakOut) {
-      record.breaks.push({ breakIn: new Date(breakIn), breakOut: new Date(breakOut) });
+      record.breaks.push({
+        breakIn: new Date(breakIn),
+        breakOut: new Date(breakOut),
+      });
       if (!record.checkOut) record.status = "BACK_TO_WORK";
     }
   }
@@ -229,7 +365,9 @@ const recalculateRecordStatus = (record) => {
     return;
   }
   // Check if there's an active break (breakIn without breakOut)
-  const hasActiveBreak = (record.breaks || []).some((b) => b.breakIn && !b.breakOut);
+  const hasActiveBreak = (record.breaks || []).some(
+    (b) => b.breakIn && !b.breakOut,
+  );
   if (hasActiveBreak) {
     record.status = "ON_BREAK";
     return;
@@ -243,7 +381,10 @@ const recalculateRecordStatus = (record) => {
 
 export const finishBreak = async (id, breakIndex, breakOut) => {
   const record = await Attendance.findById(id);
-  if (!record) throw Object.assign(new Error("Attendance record not found"), { status: 404 });
+  if (!record)
+    throw Object.assign(new Error("Attendance record not found"), {
+      status: 404,
+    });
   if (breakIndex === undefined || !record.breaks[breakIndex])
     throw Object.assign(new Error("Invalid break index"), { status: 400 });
 
@@ -259,26 +400,40 @@ export const finishBreak = async (id, breakIndex, breakOut) => {
  */
 export const adminAddBreaks = async (recordId, breaksToAdd) => {
   const record = await Attendance.findById(recordId);
-  if (!record) throw Object.assign(new Error("Attendance record not found"), { status: 404 });
+  if (!record)
+    throw Object.assign(new Error("Attendance record not found"), {
+      status: 404,
+    });
   if (!Array.isArray(breaksToAdd) || breaksToAdd.length === 0)
-    throw Object.assign(new Error("breaksToAdd must be a non-empty array"), { status: 400 });
+    throw Object.assign(new Error("breaksToAdd must be a non-empty array"), {
+      status: 400,
+    });
 
   for (const b of breaksToAdd) {
     if (!b.breakIn) {
-      throw Object.assign(new Error("Each break entry must have a breakIn timestamp"), { status: 400 });
+      throw Object.assign(
+        new Error("Each break entry must have a breakIn timestamp"),
+        { status: 400 },
+      );
     }
     const breakInDate = new Date(b.breakIn);
     if (isNaN(breakInDate.getTime())) {
-      throw Object.assign(new Error("Invalid breakIn timestamp provided"), { status: 400 });
+      throw Object.assign(new Error("Invalid breakIn timestamp provided"), {
+        status: 400,
+      });
     }
     const breakEntry = { breakIn: breakInDate };
     if (b.breakOut) {
       const breakOutDate = new Date(b.breakOut);
       if (isNaN(breakOutDate.getTime())) {
-        throw Object.assign(new Error("Invalid breakOut timestamp provided"), { status: 400 });
+        throw Object.assign(new Error("Invalid breakOut timestamp provided"), {
+          status: 400,
+        });
       }
       if (breakOutDate <= breakInDate) {
-        throw Object.assign(new Error("breakOut must be after breakIn"), { status: 400 });
+        throw Object.assign(new Error("breakOut must be after breakIn"), {
+          status: 400,
+        });
       }
       breakEntry.breakOut = breakOutDate;
     }
@@ -295,35 +450,53 @@ export const adminAddBreaks = async (recordId, breaksToAdd) => {
  * If no attendance record exists for that date, it will create one with just breaks.
  * If a record exists, it will append the breaks.
  */
-export const adminCreateBreak = async (userId, date, breaksToAdd, adminUser) => {
+export const adminCreateBreak = async (
+  userId,
+  date,
+  breaksToAdd,
+  adminUser,
+) => {
   // Validate inputs
   if (!mongoose.Types.ObjectId.isValid(userId))
     throw Object.assign(new Error("Invalid user ID"), { status: 400 });
 
   if (!date || typeof date !== "string")
-    throw Object.assign(new Error("Date string (YYYY-MM-DD) is required"), { status: 400 });
+    throw Object.assign(new Error("Date string (YYYY-MM-DD) is required"), {
+      status: 400,
+    });
 
   if (!Array.isArray(breaksToAdd) || breaksToAdd.length === 0)
-    throw Object.assign(new Error("breaksToAdd must be a non-empty array"), { status: 400 });
+    throw Object.assign(new Error("breaksToAdd must be a non-empty array"), {
+      status: 400,
+    });
 
   // Validate each break entry
   const validatedBreaks = [];
   for (const b of breaksToAdd) {
     if (!b.breakIn) {
-      throw Object.assign(new Error("Each break entry must have a breakIn timestamp"), { status: 400 });
+      throw Object.assign(
+        new Error("Each break entry must have a breakIn timestamp"),
+        { status: 400 },
+      );
     }
     const breakInDate = new Date(b.breakIn);
     if (isNaN(breakInDate.getTime())) {
-      throw Object.assign(new Error("Invalid breakIn timestamp provided"), { status: 400 });
+      throw Object.assign(new Error("Invalid breakIn timestamp provided"), {
+        status: 400,
+      });
     }
     const breakEntry = { breakIn: breakInDate };
     if (b.breakOut) {
       const breakOutDate = new Date(b.breakOut);
       if (isNaN(breakOutDate.getTime())) {
-        throw Object.assign(new Error("Invalid breakOut timestamp provided"), { status: 400 });
+        throw Object.assign(new Error("Invalid breakOut timestamp provided"), {
+          status: 400,
+        });
       }
       if (breakOutDate <= breakInDate) {
-        throw Object.assign(new Error("breakOut must be after breakIn"), { status: 400 });
+        throw Object.assign(new Error("breakOut must be after breakIn"), {
+          status: 400,
+        });
       }
       breakEntry.breakOut = breakOutDate;
     }
@@ -378,13 +551,13 @@ const buildWorkingDays = (startDate, endDate, holidayDates) => {
   const workingDays = [];
   const todayStr = getToday();
   const cursor = localDate(startDate);
-  const end    = localDate(endDate > todayStr ? todayStr : endDate);
+  const end = localDate(endDate > todayStr ? todayStr : endDate);
 
   // Cache last-Saturday lookups per month to avoid recomputing for every Saturday
   const lastSaturdayCache = {};
 
   while (cursor <= end) {
-    const ds  = toDateStr(cursor);
+    const ds = toDateStr(cursor);
     const dow = cursor.getDay(); // 0=Sun, 6=Sat
 
     if (dow === 0) {
@@ -419,12 +592,16 @@ export const computeSummary = async (userId, startDate, endDate) => {
   const todayStr = getToday();
   const effectiveEnd = endDate > todayStr ? todayStr : endDate;
 
-  const [records, approvedHalfDayLeaves, holidays, approvedFullLeaves] = await Promise.all([
-    Attendance.find({ userId, date: { $gte: startDate, $lte: effectiveEnd } }),
+  const [records, approvedLeaves, holidays] = await Promise.all([
+    Attendance.find({
+      userId,
+      date: { $gte: startDate, $lte: effectiveEnd },
+    }),
     Leave.find({
-      user: userId, isHalfDay: true, status: "APPROVED",
+      user: userId,
+      status: "APPROVED",
       fromDate: { $lte: new Date(effectiveEnd + "T23:59:59.999Z") },
-      toDate:   { $gte: new Date(startDate  + "T00:00:00.000Z") },
+      toDate: { $gte: new Date(startDate + "T00:00:00.000Z") },
     }),
     // Add 1 day buffer on both sides to account for UTC storage of holiday dates
     Holiday.find({
@@ -433,56 +610,78 @@ export const computeSummary = async (userId, startDate, endDate) => {
         $lte: new Date(effectiveEnd + "T23:59:59.999Z"),
       },
     }),
-    Leave.find({
-      user: userId, isHalfDay: false, status: "APPROVED",
-      fromDate: { $lte: new Date(effectiveEnd + "T23:59:59.999Z") },
-      toDate:   { $gte: new Date(startDate  + "T00:00:00.000Z") },
-    }),
   ]);
 
   // Convert holiday Dates to local YYYY-MM-DD strings (avoids UTC shift)
   const holidayDates = new Set(
-    holidays.map((h) => toDateStr(new Date(h.date)))
+    holidays.map((h) => toDateStr(new Date(h.date))),
   );
 
   const workingDays = buildWorkingDays(startDate, effectiveEnd, holidayDates);
 
+  // Build sets of approved leave dates
+  const approvedHalfDayDates = new Set();
+  const approvedFullDayDates = new Set();
+
+  for (const leave of approvedLeaves) {
+    const lc = localDate(toDateStr(new Date(leave.fromDate)));
+    const le = localDate(toDateStr(new Date(leave.toDate)));
+
+    while (lc <= le) {
+      const ds = toDateStr(lc);
+      if (leave.isHalfDay) {
+        approvedHalfDayDates.add(ds);
+      } else {
+        approvedFullDayDates.add(ds);
+      }
+      lc.setDate(lc.getDate() + 1);
+    }
+  }
+
   const attendanceByDate = new Map(records.map((r) => [r.date, r]));
 
-  // Collect half-day leave dates not already marked in attendance
-  const alreadyMarked = new Set(records.filter((r) => r.status === "HALF_DAY_LEAVE").map((r) => r.date));
-  const leaveHalfDayCount = approvedHalfDayLeaves.filter(
-    (l) => !alreadyMarked.has(toDateStr(new Date(l.fromDate)))
-  ).length;
-
-  // Build set of full-leave dates (YYYY-MM-DD) within the range
-  const fullLeaveDates = new Set();
-  approvedFullLeaves.forEach((l) => {
-    const lc = localDate(toDateStr(new Date(l.fromDate)));
-    const le = localDate(toDateStr(new Date(l.toDate)));
-    while (lc <= le) { fullLeaveDates.add(toDateStr(lc)); lc.setDate(lc.getDate() + 1); }
-  });
-
   const HALF_DAY_HOURS = 4;
-  let present = 0, pending = 0, halfDay = 0, totalWorkMinutes = 0, onLeave = 0;
+  let present = 0,
+    pending = 0,
+    halfDay = 0,
+    totalWorkMinutes = 0,
+    onLeave = 0;
 
   for (const ds of workingDays) {
+    // First check if date is an approved leave
+    if (approvedFullDayDates.has(ds)) {
+      onLeave++;
+      continue;
+    }
+
+    if (approvedHalfDayDates.has(ds)) {
+      halfDay++;
+      present++;
+      onLeave++;
+      continue;
+    }
+
     const r = attendanceByDate.get(ds);
 
     if (!r) {
-      fullLeaveDates.has(ds) ? onLeave++ : /* absent */ null;
+      // Not a leave, no attendance record = absent
       continue;
     }
-    if (r.status === "ON_LEAVE")       { onLeave++;                       continue; }
-    if (r.status === "HALF_DAY_LEAVE") { halfDay++; present++; onLeave++; continue; }
-    if (!r.checkIn)                    { /* absent — no checkIn */         continue; }
+
+    if (!r.checkIn) {
+      // Has attendance record but no check in = absent
+      continue;
+    }
 
     // Has checkIn — employee was present this day
     if (r.checkOut) {
       // Fully checked out = confirmed present
       present++;
       let mins = (new Date(r.checkOut) - new Date(r.checkIn)) / 60000;
-      r.breaks?.forEach((b) => { if (b.breakIn && b.breakOut) mins -= (new Date(b.breakOut) - new Date(b.breakIn)) / 60000; });
+      r.breaks?.forEach((b) => {
+        if (b.breakIn && b.breakOut)
+          mins -= (new Date(b.breakOut) - new Date(b.breakIn)) / 60000;
+      });
       totalWorkMinutes += mins;
       if (mins / 60 < HALF_DAY_HOURS) halfDay++;
     } else {
@@ -492,9 +691,6 @@ export const computeSummary = async (userId, startDate, endDate) => {
     }
   }
 
-  halfDay += leaveHalfDayCount;
-  present += leaveHalfDayCount;
-
   // Absent = Total Working Days − Present − Approved Leave Days
   const absent = Math.max(0, workingDays.length - present - onLeave);
 
@@ -502,19 +698,35 @@ export const computeSummary = async (userId, startDate, endDate) => {
   // This represents the number of days the user was expected to work (excluding planned leaves).
   const expectedWorkingDays = Math.max(0, workingDays.length - onLeave);
 
-  const lateCount        = records.filter((r) => r.isLate).length;
-  const totalWorkHours   = parseFloat((totalWorkMinutes / 60).toFixed(1));
+  const lateCount = records.filter((r) => r.isLate).length;
+  const totalWorkHours = parseFloat((totalWorkMinutes / 60).toFixed(1));
   const REQUIRED_DAILY_HOURS = 8.5;
   const totalOfficeHours = present * REQUIRED_DAILY_HOURS;
-  const productivity     = totalOfficeHours ? parseInt(((totalWorkMinutes / 60 / totalOfficeHours) * 100).toFixed(0)) : 0;
-  const attendanceRate   = workingDays.length ? Math.round((present / workingDays.length) * 100) : 0;
-  const avgWorkHours     = present ? parseFloat((totalWorkMinutes / 60 / present).toFixed(1)) : 0;
+  const productivity = totalOfficeHours
+    ? parseInt(((totalWorkMinutes / 60 / totalOfficeHours) * 100).toFixed(0))
+    : 0;
+  const attendanceRate = workingDays.length
+    ? Math.round((present / workingDays.length) * 100)
+    : 0;
+  const avgWorkHours = present
+    ? parseFloat((totalWorkMinutes / 60 / present).toFixed(1))
+    : 0;
 
   return {
-    totalDays: workingDays.length, present, pending, absent, halfDay,
-    totalOffice: present, totalWorkHours, totalOfficeHours,
-    productivity, leaves: onLeave, lateCount,
-    attendanceRate, avgWorkHours, expectedWorkingDays,
+    totalDays: workingDays.length,
+    present,
+    pending,
+    absent,
+    halfDay,
+    totalOffice: present,
+    totalWorkHours,
+    totalOfficeHours,
+    productivity,
+    leaves: onLeave,
+    lateCount,
+    attendanceRate,
+    avgWorkHours,
+    expectedWorkingDays,
   };
 };
 
@@ -525,9 +737,11 @@ export const computeDashboardStats = async (userId) => {
 
   // Use IST to get current year/month (avoids UTC offset giving wrong month near midnight)
   const istParts = new Intl.DateTimeFormat("en-CA", {
-    timeZone: "Asia/Kolkata", year: "numeric", month: "2-digit",
+    timeZone: "Asia/Kolkata",
+    year: "numeric",
+    month: "2-digit",
   }).formatToParts(new Date());
-  const istYear  = parseInt(istParts.find((p) => p.type === "year").value);
+  const istYear = parseInt(istParts.find((p) => p.type === "year").value);
   const istMonth = parseInt(istParts.find((p) => p.type === "month").value);
 
   const monthStart = monthFirstDay(istYear, istMonth);
@@ -549,8 +763,15 @@ export const computeDashboardStats = async (userId) => {
   ]);
 
   // Present days = working days (Mon–Fri) where employee actually checked in
-  const PRESENT_STATUSES = new Set(["CHECKED_IN", "ON_BREAK", "BACK_TO_WORK", "CHECKED_OUT", "LATE"]);
-  let monthPresentDays = 0, totalLateDays = 0;
+  const PRESENT_STATUSES = new Set([
+    "CHECKED_IN",
+    "ON_BREAK",
+    "BACK_TO_WORK",
+    "CHECKED_OUT",
+    "LATE",
+  ]);
+  let monthPresentDays = 0,
+    totalLateDays = 0;
   monthRecords.forEach((r) => {
     const [y, m, d] = r.date.split("-").map(Number);
     const dow = new Date(y, m - 1, d).getDay();
@@ -565,21 +786,36 @@ export const computeDashboardStats = async (userId) => {
   weekRecords.forEach((r) => {
     if (r.checkIn && r.checkOut) {
       let m = (new Date(r.checkOut) - new Date(r.checkIn)) / 60000;
-      r.breaks?.forEach((b) => { if (b.breakIn && b.breakOut) m -= (new Date(b.breakOut) - new Date(b.breakIn)) / 60000; });
+      r.breaks?.forEach((b) => {
+        if (b.breakIn && b.breakOut)
+          m -= (new Date(b.breakOut) - new Date(b.breakIn)) / 60000;
+      });
       weekWorkMinutes += m;
     }
   });
 
   // Today's detail
-  let totalWorkMinutes = 0, totalBreakMinutes = 0;
-  let checkInTime = "---", checkOutTime = "---", breaks = [], isOnBreak = false;
+  let totalWorkMinutes = 0,
+    totalBreakMinutes = 0;
+  let checkInTime = "---",
+    checkOutTime = "---",
+    breaks = [],
+    isOnBreak = false;
 
   if (todayRecord) {
     if (todayRecord.checkIn)
-      checkInTime = new Date(todayRecord.checkIn).toLocaleTimeString("en-US", { hour: "2-digit", minute: "2-digit" });
+      checkInTime = new Date(todayRecord.checkIn).toLocaleTimeString("en-US", {
+        hour: "2-digit",
+        minute: "2-digit",
+      });
     if (todayRecord.checkOut) {
-      checkOutTime = new Date(todayRecord.checkOut).toLocaleTimeString("en-US", { hour: "2-digit", minute: "2-digit" });
-      totalWorkMinutes = (new Date(todayRecord.checkOut) - new Date(todayRecord.checkIn)) / 60000;
+      checkOutTime = new Date(todayRecord.checkOut).toLocaleTimeString(
+        "en-US",
+        { hour: "2-digit", minute: "2-digit" },
+      );
+      totalWorkMinutes =
+        (new Date(todayRecord.checkOut) - new Date(todayRecord.checkIn)) /
+        60000;
     } else if (todayRecord.checkIn) {
       totalWorkMinutes = (new Date() - new Date(todayRecord.checkIn)) / 60000;
     }
@@ -588,15 +824,31 @@ export const computeDashboardStats = async (userId) => {
 
     todayRecord.breaks?.forEach((b, i) => {
       let dur = 0;
-      if (b.breakIn && b.breakOut) { dur = (new Date(b.breakOut) - new Date(b.breakIn)) / 60000; totalBreakMinutes += dur; }
-      else if (b.breakIn) { dur = (new Date() - new Date(b.breakIn)) / 60000; totalBreakMinutes += dur; }
+      if (b.breakIn && b.breakOut) {
+        dur = (new Date(b.breakOut) - new Date(b.breakIn)) / 60000;
+        totalBreakMinutes += dur;
+      } else if (b.breakIn) {
+        dur = (new Date() - new Date(b.breakIn)) / 60000;
+        totalBreakMinutes += dur;
+      }
 
       breaks.push({
         index: i + 1,
-        breakStart: b.breakIn  ? new Date(b.breakIn).toLocaleTimeString("en-US",  { hour: "2-digit", minute: "2-digit" }) : null,
-        breakEnd:   b.breakOut ? new Date(b.breakOut).toLocaleTimeString("en-US", { hour: "2-digit", minute: "2-digit" }) : "Ongoing",
-        duration:   dur > 0 ? `${Math.floor(dur / 60)}h ${Math.floor(dur % 60)}m` : "0m",
-        isActive:   !!(b.breakIn && !b.breakOut),
+        breakStart: b.breakIn
+          ? new Date(b.breakIn).toLocaleTimeString("en-US", {
+              hour: "2-digit",
+              minute: "2-digit",
+            })
+          : null,
+        breakEnd: b.breakOut
+          ? new Date(b.breakOut).toLocaleTimeString("en-US", {
+              hour: "2-digit",
+              minute: "2-digit",
+            })
+          : "Ongoing",
+        duration:
+          dur > 0 ? `${Math.floor(dur / 60)}h ${Math.floor(dur % 60)}m` : "0m",
+        isActive: !!(b.breakIn && !b.breakOut),
       });
     });
 
@@ -604,25 +856,31 @@ export const computeDashboardStats = async (userId) => {
   }
 
   return {
-    presentToday: monthPresentDays,       // present days this month (up to today)
+    presentToday: monthPresentDays, // present days this month (up to today)
     totalWorkHours: parseFloat((weekWorkMinutes / 60).toFixed(1)),
     lateCheckIns: totalLateDays,
     absentToday: 0,
     onBreak: isOnBreak ? 1 : 0,
-    checkInTime, checkOutTime,
-    totalBreakTime: totalBreakMinutes > 0
-      ? `${Math.floor(totalBreakMinutes / 60)}:${String(Math.floor(totalBreakMinutes % 60)).padStart(2, "0")}`
-      : "0:00",
-    workingHours: totalWorkMinutes > 0
-      ? `${Math.floor(totalWorkMinutes / 60)}h ${Math.floor(totalWorkMinutes % 60)}m`
-      : "---",
-    goalProgress: Math.min(100, Math.round((totalWorkMinutes / (8 * 60)) * 100)),
+    checkInTime,
+    checkOutTime,
+    totalBreakTime:
+      totalBreakMinutes > 0
+        ? `${Math.floor(totalBreakMinutes / 60)}:${String(Math.floor(totalBreakMinutes % 60)).padStart(2, "0")}`
+        : "0:00",
+    workingHours:
+      totalWorkMinutes > 0
+        ? `${Math.floor(totalWorkMinutes / 60)}h ${Math.floor(totalWorkMinutes % 60)}m`
+        : "---",
+    goalProgress: Math.min(
+      100,
+      Math.round((totalWorkMinutes / (8 * 60)) * 100),
+    ),
     userStatus: todayRecord?.status || "NOT_CHECKED_IN",
     breaks,
   };
 };
 
-// ─── Weekly stats (all users, current week) 
+// ─── Weekly stats (all users, current week)
 
 export const computeWeeklyStats = async () => {
   const today = new Date();
@@ -638,25 +896,38 @@ export const computeWeeklyStats = async () => {
       const recs = await Attendance.find({ date: dateStr });
 
       const present = recs.filter((r) =>
-        ["CHECKED_IN", "ON_BREAK", "BACK_TO_WORK", "CHECKED_OUT", "LATE"].includes(r.status)
+        [
+          "CHECKED_IN",
+          "ON_BREAK",
+          "BACK_TO_WORK",
+          "CHECKED_OUT",
+          "LATE",
+        ].includes(r.status),
       ).length;
 
       let mins = 0;
       recs.forEach((r) => {
         if (r.checkIn && r.checkOut) {
           let m = (new Date(r.checkOut) - new Date(r.checkIn)) / 60000;
-          r.breaks?.forEach((b) => { if (b.breakIn && b.breakOut) m -= (new Date(b.breakOut) - new Date(b.breakIn)) / 60000; });
+          r.breaks?.forEach((b) => {
+            if (b.breakIn && b.breakOut)
+              m -= (new Date(b.breakOut) - new Date(b.breakIn)) / 60000;
+          });
           mins += m;
         }
       });
 
-      return { day: DAYS[i], present, hours: parseFloat((mins / 60).toFixed(1)) };
-    })
+      return {
+        day: DAYS[i],
+        present,
+        hours: parseFloat((mins / 60).toFixed(1)),
+      };
+    }),
   );
 
   return {
     weeklyAttendance: results.map(({ day, present }) => ({ day, present })),
-    weeklyWorkHours:  results.map(({ day, hours })   => ({ day, hours })),
+    weeklyWorkHours: results.map(({ day, hours }) => ({ day, hours })),
   };
 };
 
@@ -664,27 +935,32 @@ export const computeWeeklyStats = async () => {
 
 export const computeAllUsersSummary = async (year, month) => {
   const firstDay = monthFirstDay(year, month);
-  const lastDay  = monthLastDay(year, month);
+  const lastDay = monthLastDay(year, month);
   const todayStr = getToday();
 
   // Fetch holidays for the month to exclude them from working days
   const holidays = await Holiday.find({
     date: {
       $gte: new Date(firstDay + "T00:00:00.000Z"),
-      $lte: new Date(lastDay  + "T23:59:59.999Z"),
+      $lte: new Date(lastDay + "T23:59:59.999Z"),
     },
   });
-  const holidayDates = new Set(holidays.map((h) => toDateStr(new Date(h.date))));
+  const holidayDates = new Set(
+    holidays.map((h) => toDateStr(new Date(h.date))),
+  );
 
   // Working days = non-weekend, non-holiday days from 1st up to min(lastDay, today)
   const effectiveEnd = lastDay > todayStr ? todayStr : lastDay;
-  const workingDays  = buildWorkingDays(firstDay, effectiveEnd, holidayDates);
+  const workingDays = buildWorkingDays(firstDay, effectiveEnd, holidayDates);
   const workingDaysCount = workingDays.length;
 
   // Fetch all records for the month in one query
   const [allRecords, todayRecords] = await Promise.all([
-    Attendance.find({ date: { $gte: firstDay, $lte: lastDay } })
-      .populate({ path: "userId", select: "name email _id department role", populate: { path: "role department", select: "name" } }),
+    Attendance.find({ date: { $gte: firstDay, $lte: lastDay } }).populate({
+      path: "userId",
+      select: "name email _id department role",
+      populate: { path: "role department", select: "name" },
+    }),
     Attendance.find({ date: todayStr }),
   ]);
 
@@ -692,7 +968,7 @@ export const computeAllUsersSummary = async (year, month) => {
   const allApprovedLeaves = await Leave.find({
     status: "APPROVED",
     fromDate: { $lte: new Date(effectiveEnd + "T23:59:59.999Z") },
-    toDate:   { $gte: new Date(firstDay  + "T00:00:00.000Z") },
+    toDate: { $gte: new Date(firstDay + "T00:00:00.000Z") },
   });
 
   // Build per-user leave-day sets (only leave days that fall on working days)
@@ -714,7 +990,13 @@ export const computeAllUsersSummary = async (year, month) => {
 
   // Per-user stats
   const userMap = new Map();
-  const PRESENT_STATUSES = new Set(["CHECKED_IN", "ON_BREAK", "BACK_TO_WORK", "CHECKED_OUT", "LATE"]);
+  const PRESENT_STATUSES = new Set([
+    "CHECKED_IN",
+    "ON_BREAK",
+    "BACK_TO_WORK",
+    "CHECKED_OUT",
+    "LATE",
+  ]);
 
   for (const r of allRecords) {
     const uid = r.userId?._id?.toString();
@@ -738,16 +1020,25 @@ export const computeAllUsersSummary = async (year, month) => {
   }
 
   // Today's dashboard totals
-  const presentToday = todayRecords.filter((r) => PRESENT_STATUSES.has(r.status)).length;
-  const lateToday    = todayRecords.filter((r) => r.isLate || r.status === "LATE").length;
-  const onBreakToday = todayRecords.filter((r) => r.status === "ON_BREAK").length;
+  const presentToday = todayRecords.filter((r) =>
+    PRESENT_STATUSES.has(r.status),
+  ).length;
+  const lateToday = todayRecords.filter(
+    (r) => r.isLate || r.status === "LATE",
+  ).length;
+  const onBreakToday = todayRecords.filter(
+    (r) => r.status === "ON_BREAK",
+  ).length;
 
   // Total work hours for the month across all users
   let totalWorkMinutes = 0;
   for (const r of allRecords) {
     if (r.checkIn && r.checkOut) {
       let m = (new Date(r.checkOut) - new Date(r.checkIn)) / 60000;
-      (r.breaks || []).forEach((b) => { if (b.breakIn && b.breakOut) m -= (new Date(b.breakOut) - new Date(b.breakIn)) / 60000; });
+      (r.breaks || []).forEach((b) => {
+        if (b.breakIn && b.breakOut)
+          m -= (new Date(b.breakOut) - new Date(b.breakIn)) / 60000;
+      });
       totalWorkMinutes += m;
     }
   }
@@ -764,25 +1055,46 @@ export const computeAllUsersSummary = async (year, month) => {
   };
 };
 
-// ─── Per-user summary for admin (by userId) 
+// ─── Per-user summary for admin (by userId)
 
 export const computeUserSummary = async (userId, year, month) => {
-  return computeSummary(userId, monthFirstDay(year, month), monthLastDay(year, month));
+  return computeSummary(
+    userId,
+    monthFirstDay(year, month),
+    monthLastDay(year, month),
+  );
 };
 
-// ─── User attendance by ID (admin) 
+// ─── User attendance by ID (admin)
 
-export const fetchUserAttendanceById = async (userId, { date, startDate, endDate } = {}) => {
+export const fetchUserAttendanceById = async (
+  userId,
+  { date, startDate, endDate } = {},
+) => {
   if (!mongoose.Types.ObjectId.isValid(userId))
     throw Object.assign(new Error("Invalid user ID"), { status: 400 });
 
   const filter = { userId: new mongoose.Types.ObjectId(userId) };
-  if (date) filter.date = date;
-  else if (startDate && endDate) filter.date = { $gte: startDate, $lte: endDate };
-  else filter.date = getToday();
+  const todayStr = getToday();
+
+  if (date) {
+    if (date > todayStr) {
+      return { data: [], total: 0 };
+    }
+    filter.date = date;
+  } else if (startDate && endDate) {
+    const effectiveEnd = endDate > todayStr ? todayStr : endDate;
+    filter.date = { $gte: startDate, $lte: effectiveEnd };
+  } else {
+    filter.date = todayStr;
+  }
 
   const records = await Attendance.find(filter)
-    .populate({ path: "userId", select: "name email _id department role", populate: { path: "role department", select: "name" } })
+    .populate({
+      path: "userId",
+      select: "name email _id department role",
+      populate: { path: "role department", select: "name" },
+    })
     .sort({ date: -1, createdAt: -1 });
 
   return { data: records, total: records.length };

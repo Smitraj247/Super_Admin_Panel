@@ -98,7 +98,7 @@ const AttendanceHistory = memo(({ records = [] }) => {
                   </td>
 
                   <td className="py-2 px-2">
-                    <span
+                    <span      
                       className={`px-1.5 py-0.5 rounded-full text-[10px] font-semibold ${
                         STATUS_STYLES[record.status] ||
                         "bg-gray-500/10 text-gray-400"
@@ -108,7 +108,7 @@ const AttendanceHistory = memo(({ records = [] }) => {
                     </span>
                   </td>
 
-                  <td className="py-2 px-2">
+                  {/* <td className="py-2 px-2">
                     <p className="text-indigo-400 font-medium text-[12px]">
                       {record.userEmail}
                     </p>
@@ -116,7 +116,7 @@ const AttendanceHistory = memo(({ records = [] }) => {
                     <p className="text-[10px] text-[var(--text-muted)]">
                       {record.userName}
                     </p>
-                  </td>
+                  </td> */}
                 </tr>
               ))
             )}

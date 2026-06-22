@@ -1,4 +1,5 @@
 import Notification from "../models/Notification.js";
+import { emitEvent, SocketEvents } from "../utils/socketEmitter.js";
 
 // Get all notifications for the logged-in user
 export const getNotifications = async (req, res) => {
@@ -142,13 +143,27 @@ export const createNotificationHelper = async (
   link = null,
 ) => {
   try {
-    await Notification.create({
+    const notification = await Notification.create({
       userId,
       type,
       title,
       message,
       link,
     });
+    emitEvent(
+      SocketEvents.NOTIFICATION_CREATED,
+      notification,
+      userId.toString(),
+    );
+    const unreadCount = await Notification.countDocuments({
+      userId,
+      read: false,
+    });
+    emitEvent(
+      SocketEvents.UNREAD_COUNT_UPDATED,
+      { unreadCount },
+      userId.toString(),
+    );
   } catch (error) {
     console.error("Create Notification Helper Error:", error.message);
   }
@@ -162,25 +177,31 @@ export const broadcastToDepartment = async (req, res) => {
 
     // Validate input
     if (!title || !message) {
-      return res.status(400).json({ message: "Title and message are required" });
+      return res
+        .status(400)
+        .json({ message: "Title and message are required" });
     }
 
     // Check if user is admin
-    const userRole = typeof adminUser.role === "object" 
-      ? adminUser.role.name 
-      : adminUser.role;
-    
+    const userRole =
+      typeof adminUser.role === "object" ? adminUser.role.name : adminUser.role;
+
     if (userRole !== "ADMIN") {
-      return res.status(403).json({ message: "Only admins can broadcast messages" });
+      return res
+        .status(403)
+        .json({ message: "Only admins can broadcast messages" });
     }
 
     // Get admin's department
-    const adminDepartment = typeof adminUser.department === "object"
-      ? adminUser.department._id
-      : adminUser.department;
+    const adminDepartment =
+      typeof adminUser.department === "object"
+        ? adminUser.department._id
+        : adminUser.department;
 
     if (!adminDepartment) {
-      return res.status(400).json({ message: "Admin has no department assigned" });
+      return res
+        .status(400)
+        .json({ message: "Admin has no department assigned" });
     }
 
     // Import User model
@@ -205,7 +226,25 @@ export const broadcastToDepartment = async (req, res) => {
       link: null,
     }));
 
-    await Notification.insertMany(notifications);
+    const createdNotifications = await Notification.insertMany(notifications);
+
+    // Emit events to each user
+    createdNotifications.forEach(async (notification) => {
+      emitEvent(
+        SocketEvents.NOTIFICATION_CREATED,
+        notification,
+        notification.userId.toString(),
+      );
+      const unreadCount = await Notification.countDocuments({
+        userId: notification.userId,
+        read: false,
+      });
+      emitEvent(
+        SocketEvents.UNREAD_COUNT_UPDATED,
+        { unreadCount },
+        notification.userId.toString(),
+      );
+    });
 
     res.status(201).json({
       message: "Message broadcasted successfully",
@@ -227,25 +266,29 @@ export const broadcastToAll = async (req, res) => {
 
     // Validate input
     if (!title || !message) {
-      return res.status(400).json({ message: "Title and message are required" });
+      return res
+        .status(400)
+        .json({ message: "Title and message are required" });
     }
 
     // Check if user is super admin
-    const userRole = typeof superAdminUser.role === "object" 
-      ? superAdminUser.role.name 
-      : superAdminUser.role;
-    
+    const userRole =
+      typeof superAdminUser.role === "object"
+        ? superAdminUser.role.name
+        : superAdminUser.role;
+
     if (userRole !== "SUPER_ADMIN") {
-      return res.status(403).json({ message: "Only super admins can broadcast to all users" });
+      return res
+        .status(403)
+        .json({ message: "Only super admins can broadcast to all users" });
     }
 
     // Import User model
     const User = (await import("../models/User.models.js")).default;
 
     // Build query based on target
-    const query = { isActive: true }; 
-    
-    
+    const query = { isActive: true };
+
     // If targetDepartment is specified, filter by department
     if (targetDepartment) {
       query.department = targetDepartment;
@@ -267,11 +310,29 @@ export const broadcastToAll = async (req, res) => {
       link: null,
     }));
 
-    await Notification.insertMany(notifications);
+    const createdNotifications = await Notification.insertMany(notifications);
+
+    // Emit events to each user
+    createdNotifications.forEach(async (notification) => {
+      emitEvent(
+        SocketEvents.NOTIFICATION_CREATED,
+        notification,
+        notification.userId.toString(),
+      );
+      const unreadCount = await Notification.countDocuments({
+        userId: notification.userId,
+        read: false,
+      });
+      emitEvent(
+        SocketEvents.UNREAD_COUNT_UPDATED,
+        { unreadCount },
+        notification.userId.toString(),
+      );
+    });
 
     res.status(201).json({
-      message: targetDepartment 
-        ? "Message broadcasted to department successfully" 
+      message: targetDepartment
+        ? "Message broadcasted to department successfully"
         : "Message broadcasted to all users successfully",
       recipientCount: users.length,
     });

@@ -123,7 +123,7 @@ export default function HRAttendance() {
             <Users className="text-blue-600" />
             All Users &amp; Admins Attendance Management
           </h2>
-          <div className="text-sm px-3 py-2 bg-indigo-100 rounded-xl font-medium">
+          <div className="text-sm px-3 py-2  rounded-xl font-medium">
             {dateStr} 📅
           </div>
         </div>

@@ -266,7 +266,7 @@ export default function SuperAdminDashboard() {
               : "Flexible";
         acc[key] = (acc[key] || 0) + 1;
         return acc;
-      }, {});        
+      }, {});
       const shiftTotal = presentToday || 1;
       setShiftData(
         Object.entries(shiftCounts).map(([name, value]) => ({

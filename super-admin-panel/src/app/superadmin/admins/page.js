@@ -37,6 +37,8 @@ export default function AdminsPage() {
     password: "",
     role: "ADMIN",
     department: "",
+    totalHour: 0,
+    workingHour: 0,
     sidebarPermissions: [],
   });
 
@@ -161,11 +163,13 @@ export default function AdminsPage() {
 
     try {
       if (editingId) {
-        const res = await updateAdminApi(editingId, form);
+        const payload = { ...form, totalHour: Number(form.totalHour), workingHour: Number(form.workingHour) };
+        const res = await updateAdminApi(editingId, payload);
         setAdmins(admins.map((a) => (a._id === editingId ? res.data : a)));
         setEditingId(null);
       } else {
-        const res = await createAdminApi(form);
+        const payload = { ...form, totalHour: Number(form.totalHour), workingHour: Number(form.workingHour) };
+        const res = await createAdminApi(payload);
         setAdmins([...admins, res.data]);
       }
       setForm({
@@ -174,6 +178,8 @@ export default function AdminsPage() {
         password: "",
         role: "ADMIN",
         department: "",
+        totalHour: 0,
+        workingHour: 0,
         sidebarPermissions: [],
       });
       toast.success("Admin " + (editingId ? "updated" : "created") + " successfully!");
@@ -200,6 +206,8 @@ export default function AdminsPage() {
       password: "",
       role: admin.role?._id || "ADMIN",
       department: admin.department?._id || "",
+      totalHour: admin.totalHour || 0,
+      workingHour: admin.workingHour || 0,
       sidebarPermissions: admin.sidebarPermissions || [],
     });
     window.scrollTo({ top: 0, behavior: "smooth" });
@@ -311,6 +319,35 @@ export default function AdminsPage() {
                         </option>
                       ))}
                     </select>
+                  </div>
+
+                  <div className="flex gap-4">
+                    <div className="w-full">
+                      <label className="block text-sm font-medium text-gray-700 mb-1">
+                        Total Hours
+                      </label>
+                      <input
+                        name="totalHour"
+                        type="number"
+                        value={form.totalHour}
+                        onChange={handleChange}
+                        placeholder="e.g., 9"
+                        className="w-full border border-[var(--border-strong)] rounded-lg p-3 outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500"
+                      />
+                    </div>
+                    <div className="w-full">
+                      <label className="block text-sm font-medium text-gray-700 mb-1">
+                        Working Hours
+                      </label>
+                      <input
+                        name="workingHour"
+                        type="number"
+                        value={form.workingHour}
+                        onChange={handleChange}
+                        placeholder="e.g., 8"
+                        className="w-full border border-[var(--border-strong)] rounded-lg p-3 outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500"
+                      />
+                    </div>
                   </div>
 
                   {/* Sidebar Permissions */}
