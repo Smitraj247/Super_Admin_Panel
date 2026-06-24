@@ -2,6 +2,7 @@ import mongoose from "mongoose";
 import Attendance from "../models/Attendance.js";
 import Leave from "../models/Leave.js";
 import Holiday from "../models/Holiday.js";
+import User from "../models/User.models.js";
 import { canUserCheckIn } from "./leaveService.js";
 import { emitEvent, SocketEvents } from "../utils/socketEmitter.js";
 
@@ -619,9 +620,10 @@ export const computeSummary = async (userId, startDate, endDate) => {
 
   const workingDays = buildWorkingDays(startDate, effectiveEnd, holidayDates);
 
-  // Build sets of approved leave dates
-  const approvedHalfDayDates = new Set();
-  const approvedFullDayDates = new Set();
+  // Build sets of approved leave dates: PL only for On Leave, all for Absent
+  const approvedHalfDayDates = new Set(); // All half-day leaves
+  const approvedFullDayDates = new Set(); // All full-day leaves (any type)
+  let plLeaveDays = 0; // Only PL leaves for On Leave card
 
   for (const leave of approvedLeaves) {
     const lc = localDate(toDateStr(new Date(leave.fromDate)));
@@ -629,10 +631,20 @@ export const computeSummary = async (userId, startDate, endDate) => {
 
     while (lc <= le) {
       const ds = toDateStr(lc);
-      if (leave.isHalfDay) {
-        approvedHalfDayDates.add(ds);
-      } else {
-        approvedFullDayDates.add(ds);
+      if (workingDays.includes(ds)) {
+        if (leave.isHalfDay) {
+          approvedHalfDayDates.add(ds);
+        } else {
+          approvedFullDayDates.add(ds);
+        }
+        // Only count PL leaves for On Leave card
+        if (leave.leaveType === "PL") {
+          if (leave.isHalfDay) {
+            plLeaveDays += 0.5;
+          } else {
+            plLeaveDays += 1;
+          }
+        }
       }
       lc.setDate(lc.getDate() + 1);
     }
@@ -648,17 +660,16 @@ export const computeSummary = async (userId, startDate, endDate) => {
     onLeave = 0;
 
   for (const ds of workingDays) {
-    // First check if date is an approved leave
-    if (approvedFullDayDates.has(ds)) {
-      onLeave++;
-      continue;
-    }
-
+    // First check if date is an approved half-day leave
     if (approvedHalfDayDates.has(ds)) {
       halfDay++;
       present++;
-      onLeave++;
       continue;
+    }
+
+    // Check if date is an approved full-day leave (any type)
+    if (approvedFullDayDates.has(ds)) {
+      continue; // Will be counted in Absent, not On Leave
     }
 
     const r = attendanceByDate.get(ds);
@@ -691,12 +702,14 @@ export const computeSummary = async (userId, startDate, endDate) => {
     }
   }
 
-  // Absent = Total Working Days − Present − Approved Leave Days
-  const absent = Math.max(0, workingDays.length - present - onLeave);
+  // Absent = Total Working Days − Present (since full-day leaves are absent)
+  const absent = Math.max(0, workingDays.length - present);
 
-  // Expected working days = total working days minus approved leave days on working days.
-  // This represents the number of days the user was expected to work (excluding planned leaves).
-  const expectedWorkingDays = Math.max(0, workingDays.length - onLeave);
+  // Expected working days = total working days minus approved full-day leaves (any type)
+  const expectedWorkingDays = Math.max(
+    0,
+    workingDays.length - approvedFullDayDates.size,
+  );
 
   const lateCount = records.filter((r) => r.isLate).length;
   const totalWorkHours = parseFloat((totalWorkMinutes / 60).toFixed(1));
@@ -722,7 +735,7 @@ export const computeSummary = async (userId, startDate, endDate) => {
     totalWorkHours,
     totalOfficeHours,
     productivity,
-    leaves: onLeave,
+    leaves: plLeaveDays, // Still only PL for On Leave card
     lateCount,
     attendanceRate,
     avgWorkHours,
@@ -954,38 +967,78 @@ export const computeAllUsersSummary = async (year, month) => {
   const workingDays = buildWorkingDays(firstDay, effectiveEnd, holidayDates);
   const workingDaysCount = workingDays.length;
 
+  // Fetch all active users first
+  const activeUsers = await User.find({ isActive: true }).select("_id");
+  const activeUserIds = new Set(activeUsers.map((u) => u._id.toString()));
+
   // Fetch all records for the month in one query
-  const [allRecords, todayRecords] = await Promise.all([
+  const [allRecords, todayRecords, allApprovedLeaves] = await Promise.all([
     Attendance.find({ date: { $gte: firstDay, $lte: lastDay } }).populate({
       path: "userId",
       select: "name email _id department role",
       populate: { path: "role department", select: "name" },
     }),
     Attendance.find({ date: todayStr }),
+    Leave.find({
+      status: "APPROVED",
+      fromDate: { $lte: new Date(effectiveEnd + "T23:59:59.999Z") },
+      toDate: { $gte: new Date(firstDay + "T00:00:00.000Z") },
+    }),
   ]);
 
-  // Fetch all approved leaves for the month to calculate expected working days per user
-  const allApprovedLeaves = await Leave.find({
-    status: "APPROVED",
-    fromDate: { $lte: new Date(effectiveEnd + "T23:59:59.999Z") },
-    toDate: { $gte: new Date(firstDay + "T00:00:00.000Z") },
-  });
-
-  // Build per-user leave-day sets (only leave days that fall on working days)
-  const userLeaveDays = new Map(); // userId -> Set of date strings
+  // Build per-user leave-day sets
+  // userLeaveDays: userId -> { fullDay: Set (all types), halfDay: Set (all types), plDays: number (only PL) }
+  const userLeaveDays = new Map();
   for (const leave of allApprovedLeaves) {
     const uid = leave.user?.toString();
     if (!uid) continue;
-    if (!userLeaveDays.has(uid)) userLeaveDays.set(uid, new Set());
-    const leaveDays = userLeaveDays.get(uid);
+    if (!userLeaveDays.has(uid)) {
+      userLeaveDays.set(uid, {
+        fullDay: new Set(),
+        halfDay: new Set(),
+        plDays: 0,
+      });
+    }
+    const userLeaves = userLeaveDays.get(uid);
     const lc = localDate(toDateStr(new Date(leave.fromDate)));
     const le = localDate(toDateStr(new Date(leave.toDate)));
     while (lc <= le) {
       const ds = toDateStr(lc);
       // Only count leave days that are in the workingDays list
-      if (workingDays.includes(ds)) leaveDays.add(ds);
+      if (workingDays.includes(ds)) {
+        if (leave.isHalfDay) {
+          userLeaves.halfDay.add(ds);
+        } else {
+          userLeaves.fullDay.add(ds);
+        }
+        // Only count PL leaves for On Leave value
+        if (leave.leaveType === "PL") {
+          if (leave.isHalfDay) {
+            userLeaves.plDays += 0.5;
+          } else {
+            userLeaves.plDays += 1;
+          }
+        }
+      }
       lc.setDate(lc.getDate() + 1);
     }
+  }
+
+  // Build map of today's attendance records
+  const todayAttendanceMap = new Map();
+  for (const r of todayRecords) {
+    todayAttendanceMap.set(r.userId.toString(), r);
+  }
+
+  // Build attendance records by user
+  const userAttendance = new Map();
+  for (const r of allRecords) {
+    const uid = r.userId?._id?.toString();
+    if (!uid) continue;
+    if (!userAttendance.has(uid)) {
+      userAttendance.set(uid, []);
+    }
+    userAttendance.get(uid).push(r);
   }
 
   // Per-user stats
@@ -998,41 +1051,93 @@ export const computeAllUsersSummary = async (year, month) => {
     "LATE",
   ]);
 
-  for (const r of allRecords) {
-    const uid = r.userId?._id?.toString();
-    if (!uid) continue;
-    if (!userMap.has(uid)) {
-      const leaveDays = userLeaveDays.get(uid) || new Set();
-      userMap.set(uid, {
-        totalDays: workingDaysCount,
-        present: 0,
-        pending: 0,
-        lateCount: 0,
-        expectedWorkingDays: Math.max(0, workingDaysCount - leaveDays.size),
-      });
+  // Now process each active user
+  for (const userId of activeUserIds) {
+    const userLeaves = userLeaveDays.get(userId) || {
+      fullDay: new Set(),
+      halfDay: new Set(),
+      plDays: 0,
+    };
+    const userRecords = userAttendance.get(userId) || [];
+    const attendanceByDate = new Map(userRecords.map((r) => [r.date, r]));
+
+    let present = 0;
+    let halfDay = 0;
+
+    for (const ds of workingDays) {
+      // First check if date is an approved half-day leave
+      if (userLeaves.halfDay.has(ds)) {
+        halfDay++;
+        present++;
+        continue;
+      }
+
+      // Check if date is an approved full-day leave (any type)
+      if (userLeaves.fullDay.has(ds)) {
+        continue; // Will be counted in Absent
+      }
+
+      const r = attendanceByDate.get(ds);
+      if (!r || !r.checkIn) {
+        // No check-in = absent
+        continue;
+      }
+
+      // Has check-in: count as present
+      present++;
     }
-    const s = userMap.get(uid);
-    if (PRESENT_STATUSES.has(r.status)) {
-      if (r.status === "CHECKED_OUT") s.present++;
-      else s.pending++;
+
+    // Absent = Total Working Days − Present
+    const absent = Math.max(0, workingDaysCount - present);
+
+    // Expected working days = total working days minus approved full-day leaves (any type)
+    const expectedWorkingDays = Math.max(
+      0,
+      workingDaysCount - userLeaves.fullDay.size,
+    );
+
+    // Determine today's status
+    const todayRecord = todayAttendanceMap.get(userId);
+    let todayStatus = "Absent";
+    if (todayRecord && PRESENT_STATUSES.has(todayRecord.status)) {
+      todayStatus = "Present";
+    } else if (
+      userLeaves.fullDay.has(todayStr) ||
+      userLeaves.halfDay.has(todayStr)
+    ) {
+      todayStatus = "On Leave";
     }
-    if (r.isLate) s.lateCount++;
+
+    userMap.set(userId, {
+      totalDays: workingDaysCount,
+      present,
+      absent,
+      halfDay,
+      lateCount: userRecords.filter((r) => r.isLate).length,
+      expectedWorkingDays,
+      todayStatus,
+    });
   }
 
   // Today's dashboard totals
-  const presentToday = todayRecords.filter((r) =>
-    PRESENT_STATUSES.has(r.status),
+  const presentToday = todayRecords.filter(
+    (r) =>
+      PRESENT_STATUSES.has(r.status) && activeUserIds.has(r.userId.toString()),
   ).length;
   const lateToday = todayRecords.filter(
-    (r) => r.isLate || r.status === "LATE",
+    (r) =>
+      (r.isLate || r.status === "LATE") &&
+      activeUserIds.has(r.userId.toString()),
   ).length;
   const onBreakToday = todayRecords.filter(
-    (r) => r.status === "ON_BREAK",
+    (r) => r.status === "ON_BREAK" && activeUserIds.has(r.userId.toString()),
   ).length;
 
   // Total work hours for the month across all users
   let totalWorkMinutes = 0;
   for (const r of allRecords) {
+    const uid = r.userId?._id?.toString();
+    if (!activeUserIds.has(uid)) continue; // Skip inactive users
     if (r.checkIn && r.checkOut) {
       let m = (new Date(r.checkOut) - new Date(r.checkIn)) / 60000;
       (r.breaks || []).forEach((b) => {

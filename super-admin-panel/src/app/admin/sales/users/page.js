@@ -1,9 +1,10 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useMemo } from "react";
 import Sidebar from "@/components/Sidebar";
 import Navbar from "@/components/layout/Navbar";
 import API from "@/lib/api";
+import { useRealtime } from "@/hooks/useRealtime";
 import {
   Users,
   UserPlus,
@@ -22,6 +23,18 @@ export default function UsersPage() {
   const [loading, setLoading] = useState(true);
   const [showPassword, setShowPassword] = useState(false);
   const [dept] = useState("sales");
+
+  // Set up real-time event listeners
+  const eventHandlers = useMemo(
+    () => ({
+      "user:deleted": () => fetchUsers(),
+      "user:created": () => fetchUsers(),
+      "user:updated": () => fetchUsers(),
+    }),
+    [],
+  );
+
+  useRealtime(eventHandlers);
 
   const [form, setForm] = useState({
     name: "",

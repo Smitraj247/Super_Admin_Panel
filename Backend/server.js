@@ -8,6 +8,7 @@ import connectDB from "./config/db.js";
 import cors from "cors";
 import { notFound, errorHandler } from "./middleware/errorMiddleware.js";
 import compression from "compression";
+import { setSocketIO } from "./utils/socketEmitter.js";
 
 import authRoutes from "./routes/authRoutes.js";
 import superAdminRoutes from "./routes/superAdminRoutes.js";
@@ -33,13 +34,16 @@ const allowedOrigins = [
   "https://super-admin-panel-gray.vercel.app",
 ];
 
-export const io = new Server(httpServer, {
+const io = new Server(httpServer, {
   cors: {
     origin: allowedOrigins,
     credentials: true,
     methods: ["GET", "POST"],
   },
 });
+
+// Set the io instance in the socket emitter
+setSocketIO(io);
 
 // Socket.io connection handling
 io.on("connection", (socket) => {
@@ -65,7 +69,7 @@ app.use(
   cors({
     origin: allowedOrigins,
     credentials: true,
-    methods: ["GET", "POST", "PUT", "DELETE"],
+    methods: ["GET", "POST", "PUT", "DELETE"],    
     allowedHeaders: ["Content-Type", "Authorization"],
   }),
 );

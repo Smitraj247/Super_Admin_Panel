@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, useCallback } from "react";
+import { useEffect, useState, useCallback, useMemo } from "react";
 import { useSearchParams } from "next/navigation";
 import Sidebar from "@/components/Sidebar";
 import Navbar from "@/components/layout/Navbar";
@@ -116,9 +116,20 @@ export default function ChatsPage({
         );
       });
     };
+    const handleUserChange = () => {
+      loadChats();
+    };
     socket.on("chatUpdated", handle);
-    return () => socket.off("chatUpdated", handle);
-  }, [socket]);
+    socket.on("user:created", handleUserChange);
+    socket.on("user:deleted", handleUserChange);
+    socket.on("user:updated", handleUserChange);
+    return () => {
+      socket.off("chatUpdated", handle);
+      socket.off("user:created", handleUserChange);
+      socket.off("user:deleted", handleUserChange);
+      socket.off("user:updated", handleUserChange);
+    };
+  }, [socket, loadChats]);
 
   // Search filter
   useEffect(() => {

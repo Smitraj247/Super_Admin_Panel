@@ -1,6 +1,6 @@
 import Chat from "../models/Chat.js";
 import User from "../models/User.models.js";
-import { io } from "../server.js";
+import { getIO } from "../utils/socketEmitter.js";
 import { createNotificationHelper } from "./notificationController.js";
 
 // Get or create a chat between two users
@@ -58,9 +58,15 @@ export const getUserChats = async (req, res) => {
       .populate("messages.sender", "name email")
       .sort({ lastMessageAt: -1 });
 
+    // Filter out any direct chats that don't have exactly 2 participants
+    const filteredChats = chats.filter(chat => {
+      if (chat.isGroupChat) return true;
+      return chat.participants.length === 2;
+    });
+
     res.json({
       success: true,
-      data: chats,
+      data: filteredChats,
     });
   } catch (error) {
     console.error("Get user chats error:", error);
@@ -116,12 +122,15 @@ export const sendMessage = async (req, res) => {
       .populate("messages.sender", "name email");
 
     // Emit real-time event to all participants in the chat room
-    io.to(chatId).emit("newMessage", updatedChat);
+    const io = getIO();
+    if (io) {
+      io.to(chatId).emit("newMessage", updatedChat);
 
-    // Also notify each participant's personal room (for chat list updates)
-    updatedChat.participants.forEach((participant) => {
-      io.to(participant._id.toString()).emit("chatUpdated", updatedChat);
-    });
+      // Also notify each participant's personal room (for chat list updates)
+      updatedChat.participants.forEach((participant) => {
+        io.to(participant._id.toString()).emit("chatUpdated", updatedChat);
+      });
+    }
 
     // Create notifications for all participants except the sender
     const sender = updatedChat.participants.find(

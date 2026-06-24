@@ -240,8 +240,7 @@ export const getUserAttendanceById = async (req, res) => {
   }
 };
 
-// ─── Admin Break Management ─────────────────────────────────────────────────
-
+// ─── Admin Break Management                                                                                                     
 /**
  * POST /attendance/:id/breaks
  * Super Admin / HR Admin: Add break entries to an existing attendance record

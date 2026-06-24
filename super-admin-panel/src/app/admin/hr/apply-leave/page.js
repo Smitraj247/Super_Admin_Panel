@@ -480,7 +480,7 @@ export default function HRLeaveDashboard() {
                               {leave.leaveType}
                             </td>
                             <td className="p-4">
-                              {leave.isHalfDay ? (
+                              {leave.isHalfDay ? (  
                                 <span className="px-2 py-0.5 bg-blue-100 text-blue-700 rounded-full text-xs font-semibold">
                                   Half Day
                                 </span>

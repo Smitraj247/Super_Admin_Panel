@@ -1,5 +1,11 @@
 import User from "../models/User.models.js";
 import Role from "../models/Roles.models.js";
+import Department from "../models/Department.models.js";
+import Attendance from "../models/Attendance.js";
+import Leave from "../models/Leave.js";
+import Notification from "../models/Notification.js";
+import Chat from "../models/Chat.js";
+import AuditLogs from "../models/AuditLogs.models.js";
 import { emitEvent, SocketEvents } from "../utils/socketEmitter.js";
 
 // Helper to calculate pro-rated PL/SL for a cycle based on joining month
@@ -99,7 +105,9 @@ export const createUser = async (
 };
 
 export const getUsersByDepartment = async (departmentId) => {
-  return await User.find({ department: departmentId }).populate("role");
+  return await User.find({ department: departmentId, isActive: true }).populate(
+    "role",
+  );
 };
 
 export const deleteUserById = async (id) => {
@@ -109,7 +117,54 @@ export const deleteUserById = async (id) => {
     throw new Error("User not found");
   }
 
-  await user.deleteOne();
+  // Delete all related records
+  await Promise.all([
+    // Delete attendance records
+    Attendance.deleteMany({ userId: id }),
+    // Delete leave records
+    Leave.deleteMany({ user: id }),
+    // Delete notifications
+    Notification.deleteMany({ userId: id }),
+    // Delete audit logs where user is performer or target
+    AuditLogs.deleteMany({
+      $or: [{ performedBy: id }, { targetUser: id }],
+    }),
+    // Update or delete chats: pull user from participants first
+    Chat.updateMany({ participants: id }, { $pull: { participants: id } }),
+    // Remove user from groupAdmin if applicable
+    Chat.updateMany({ groupAdmin: id }, { $unset: { groupAdmin: "" } }),
+    // Remove user from readBy arrays in messages
+    Chat.updateMany({}, { $pull: { "messages.$[].readBy": id } }),
+    // Set messages.sender to null if sender is the deleted user
+    Chat.updateMany(
+      { "messages.sender": id },
+      { $set: { "messages.$[elem].sender": null } },
+      { arrayFilters: [{ "elem.sender": id }] },
+    ),
+    // Update reportTo field for other users that report to this user
+    User.updateMany({ reportTo: id }, { $unset: { reportTo: "" } }),
+    // Update createdBy field for users created by this user
+    User.updateMany({ createdBy: id }, { $unset: { createdBy: "" } }),
+    // Update departments created by this user
+    Department.updateMany({ createdBy: id }, { $unset: { createdBy: "" } }),
+  ]);
+
+  // Find all direct chats that now have only one participant left and mark as inactive
+  const directChatsToDeactivate = await Chat.find({
+    isGroupChat: false,
+    $expr: { $eq: [{ $size: "$participants" }, 1] },
+  });
+
+  if (directChatsToDeactivate.length > 0) {
+    await Chat.updateMany(
+      { _id: { $in: directChatsToDeactivate.map((c) => c._id) } },
+      { isActive: false },
+    );
+  }
+
+  // Soft delete: mark user as inactive
+  user.isActive = false;
+  await user.save();
 
   // Emit event
   emitEvent(SocketEvents.USER_DELETED, { userId: id });

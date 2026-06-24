@@ -358,8 +358,9 @@ export default function ChatWindow({ user, chat: initialChat, onClose, onUpdate 
                 {/* Messages for this date */}
                 {messages.map((msg) => {
                   const isCurrentUser =
-                    msg.sender._id === currentUser._id ||
+                    msg.sender?._id === currentUser._id ||
                     msg.sender === currentUser._id;
+                  const senderName = msg.sender?.name || "Deleted User";
 
                   return (
                     <div
@@ -375,7 +376,7 @@ export default function ChatWindow({ user, chat: initialChat, onClose, onUpdate 
                       >
                         {!isCurrentUser && (
                           <p className="text-xs font-semibold text-indigo-600 mb-1">
-                            {msg.sender.name}
+                            {senderName}
                           </p>
                         )}
                         <p className="text-sm break-words">{msg.content}</p>

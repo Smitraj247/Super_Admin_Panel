@@ -1,30 +1,31 @@
-import { io } from "../server.js";
+// socketEmitter.js
+let io;
 
-export const emitEvent = (eventName, data, room = null) => {
-  if (room) {
-    io.to(room).emit(eventName, data);
-  } else {
-    io.emit(eventName, data);
+export const SocketEvents = {
+  USER_CREATED: "user:created",
+  USER_DELETED: "user:deleted",
+  USER_UPDATED: "user:updated",
+  ATTENDANCE_UPDATED: "attendance:updated",
+  LEAVE_UPDATED: "leave:updated",
+  LEAVE_STATUS_CHANGED: "leave:statusChanged",
+};
+
+export const setSocketIO = (socketIO) => {
+  io = socketIO;
+};
+
+export const getIO = () => {
+  return io;
+};
+
+export const emitEvent = (event, data) => {
+  if (io) {
+    io.emit(event, data);
   }
 };
 
-// Event names for consistency
-export const SocketEvents = {
-  ATTENDANCE_UPDATED: "attendance:updated",
-  LEAVE_UPDATED: "leave:updated",
-  LEAVE_CREATED: "leave:created",
-  LEAVE_STATUS_CHANGED: "leave:statusChanged",
-  NOTIFICATION_CREATED: "notification:created",
-  USER_UPDATED: "user:updated",
-  USER_CREATED: "user:created",
-  USER_DELETED: "user:deleted",
-  ROLE_UPDATED: "role:updated",
-  DEPARTMENT_UPDATED: "department:updated",
-  HOLIDAY_UPDATED: "holiday:updated",
-  NEW_MESSAGE: "newMessage",
-  CHAT_UPDATED: "chatUpdated",
-  MESSAGE_READ: "message:read",
-  ANNOUNCEMENT: "announcement",
-  PROFILE_UPDATED: "profile:updated",
-  UNREAD_COUNT_UPDATED: "unread:count:updated",
+export const emitToRoom = (room, event, data) => {
+  if (io) {
+    io.to(room).emit(event, data);
+  }
 };

@@ -24,7 +24,7 @@ export const getAdmins = async (req, res) => {
       });
     }
 
-    const admins = await User.find({ role: adminRole._id })
+    const admins = await User.find({ role: adminRole._id, isActive: true })
       .populate("role", "name")
       .populate("department", "name")
       .select("-password");
@@ -241,7 +241,7 @@ export const getUser = async (req, res) => {
       });
     }
 
-    const filter = { role: userRole._id };
+    const filter = { role: userRole._id, isActive: true };
     if (req.user.role.name === "ADMIN" && req.user.department) {
       filter.department = req.user.department._id;
     }
@@ -419,8 +419,8 @@ export const getDashboardStats = async (req, res) => {
       recentAuditLogs,
       deptCounts,
     ] = await Promise.all([
-      User.countDocuments({ role: userRole?._id }),
-      User.countDocuments({ role: adminRole?._id }),
+      User.countDocuments({ role: userRole?._id, isActive: true }),
+      User.countDocuments({ role: adminRole?._id, isActive: true }),
       Department.countDocuments(),
       Role.countDocuments(),
       AuditLogs.find()
@@ -429,7 +429,10 @@ export const getDashboardStats = async (req, res) => {
         .populate("department", "name")
         .limit(10)
         .sort({ createdAt: -1 }),
-      User.aggregate([{ $group: { _id: "$department", users: { $sum: 1 } } }]),
+      User.aggregate([
+        { $match: { isActive: true } },
+        { $group: { _id: "$department", users: { $sum: 1 } } },
+      ]),
     ]);
 
     const userGrowth = [
@@ -490,7 +493,7 @@ const monthLastDay = (year, month) => {
 export const getAllUsersWithLeaves = async (req, res) => {
   try {
     const { year, month } = req.query;
-    const users = await User.find()
+    const users = await User.find({ isActive: true })
       .populate("role", "name")
       .populate("department", "name")
       .select("-password")
@@ -498,14 +501,24 @@ export const getAllUsersWithLeaves = async (req, res) => {
 
     // Build attendance query based on year and month (using YYYY-MM-DD strings)
     let attendanceQuery = {};
+    let leaveQuery = {};
+    let startDate, endDate;
     if (year && month) {
-      const startDate = monthFirstDay(parseInt(year), parseInt(month));
-      const endDate = monthLastDay(parseInt(year), parseInt(month));
+      startDate = monthFirstDay(parseInt(year), parseInt(month));
+      endDate = monthLastDay(parseInt(year), parseInt(month));
       attendanceQuery.date = { $gte: startDate, $lte: endDate };
+      leaveQuery.fromDate = {
+        $gte: new Date(startDate + "T00:00:00.000Z"),
+        $lte: new Date(endDate + "T23:59:59.999Z"),
+      };
     } else if (year) {
-      const startDate = monthFirstDay(parseInt(year), 1);
-      const endDate = monthLastDay(parseInt(year), 12);
+      startDate = monthFirstDay(parseInt(year), 1);
+      endDate = monthLastDay(parseInt(year), 12);
       attendanceQuery.date = { $gte: startDate, $lte: endDate };
+      leaveQuery.fromDate = {
+        $gte: new Date(startDate + "T00:00:00.000Z"),
+        $lte: new Date(endDate + "T23:59:59.999Z"),
+      };
     }
 
     // Fetch attendances for the specified period
@@ -542,6 +555,31 @@ export const getAllUsersWithLeaves = async (req, res) => {
         if (r.checkIn) {
           userAttendanceStats[uid].presentDays += 1;
         }
+      }
+    });
+
+    // Fetch all leaves for the specified period
+    const leaves = await Leave.find({
+      ...leaveQuery,
+      status: { $in: ["APPROVED", "PENDING"] },
+    });
+    const userLeaveStats = {};
+    leaves.forEach((leave) => {
+      const uid = leave.user.toString();
+      if (!userLeaveStats[uid]) {
+        userLeaveStats[uid] = { usedPL: 0, usedSL: 0, usedDL: 0 };
+      }
+      const leaveDays = calcLeaveDays(
+        leave.fromDate,
+        leave.toDate,
+        leave.isHalfDay,
+      );
+      if (leave.leaveType === "PL") {
+        userLeaveStats[uid].usedPL += leaveDays;
+      } else if (leave.leaveType === "SL") {
+        userLeaveStats[uid].usedSL += leaveDays;
+      } else if (leave.leaveType === "DL") {
+        userLeaveStats[uid].usedDL += leaveDays;
       }
     });
 
@@ -599,20 +637,11 @@ export const getAllUsersWithLeaves = async (req, res) => {
           allocatedSL = monthsRemaining;
         }
 
-        // Default totals for each leave type
-        const leaveTotals = {
-          PL: allocatedPL,
-          CL: 9999, // unlimited
-          SL: allocatedSL,
-          DL: dlStats.grossDL,
-        };
-
-        // Current remaining leaves from user model
-        const remaining = {
-          PL: user.leaveBalance?.PL || 0,
-          CL: user.leaveBalance?.CL || 0,
-          SL: user.leaveBalance?.SL || 0,
-          DL: dlStats.netDL,
+        // Get used leaves for this user
+        const usedStats = userLeaveStats[user._id.toString()] || {
+          usedPL: 0,
+          usedSL: 0,
+          usedDL: 0,
         };
 
         return {
@@ -621,12 +650,17 @@ export const getAllUsersWithLeaves = async (req, res) => {
           workingHour,
           totalHour,
           leaveBalance: {
-            ...remaining,
-            // Store totals too for frontend
-            PLTotal: leaveTotals.PL,
-            CLTotal: leaveTotals.CL,
-            SLTotal: leaveTotals.SL,
-            DLTotal: leaveTotals.DL,
+            PL: user.leaveBalance?.PL || 0,
+            CL: user.leaveBalance?.CL || 0,
+            SL: user.leaveBalance?.SL || 0,
+            DL: dlStats.netDL,
+            usedPL: usedStats.usedPL,
+            usedSL: usedStats.usedSL,
+            usedDL: usedStats.usedDL,
+            PLTotal: allocatedPL,
+            CLTotal: 9999, // unlimited
+            SLTotal: allocatedSL,
+            DLTotal: dlStats.grossDL,
           },
         };
       }),

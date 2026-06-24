@@ -94,6 +94,9 @@ export const useUnifiedDashboardData = () => {
     "leave:updated": () => fetchAll(true),
     "leave:statusChanged": () => fetchAll(true),
     "notification:created": () => fetchAll(true),
+    "user:created": () => fetchAll(true),
+    "user:deleted": () => fetchAll(true),
+    "user:updated": () => fetchAll(true),
   }), [fetchAll]);
   
   useRealtime(eventHandlers);

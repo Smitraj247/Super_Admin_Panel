@@ -1,12 +1,13 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useMemo } from "react";
 import Sidebar from "@/components/Sidebar";
 import Navbar from "@/components/layout/Navbar";
 import API from "@/lib/api";
 import { ProtectedDashboardRoute } from "@/components/auth/ProtectedDashboardRoute";
 import { ROLES } from "@/utils/constants";
 import ChatWindow from "@/components/ui/ChatWindow";
+import { useRealtime } from "@/hooks/useRealtime";
 import {
   Users,
   UserPlus,
@@ -31,6 +32,18 @@ export default function UsersPage() {
   const [search, setSearch] = useState("");
   const [loading, setLoading] = useState(true);
   const [showPassword, setShowPassword] = useState(false);
+
+  // Set up real-time event listeners
+  const eventHandlers = useMemo(
+    () => ({
+      "user:deleted": () => fetchData(),
+      "user:created": () => fetchData(),
+      "user:updated": () => fetchData(),
+    }),
+    [],
+  );
+
+  useRealtime(eventHandlers);
 
   const [form, setForm] = useState({
     name: "",

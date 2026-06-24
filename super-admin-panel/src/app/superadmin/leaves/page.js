@@ -21,6 +21,10 @@ import {
   BellDot,
 } from "lucide-react";
 import { toast } from "react-toastify";
+import { useRealtime } from "@/hooks/useRealtime";
+import { useMemo } from "react";
+import * as XLSX from "xlsx";
+import { saveAs } from "file-saver";
 
 export default function SuperAdminLeaves() {
   const [users, setUsers] = useState([]);
@@ -38,10 +42,22 @@ export default function SuperAdminLeaves() {
   const [selectedMonth, setSelectedMonth] = useState(new Date().getMonth() + 1);
   const [statusFilter, setStatusFilter] = useState("");
 
+  // Set up realtime event listeners
+  const eventHandlers = useMemo(
+    () => ({
+      "user:deleted": () => fetchUsers(),
+      "user:created": () => fetchUsers(),
+      "user:updated": () => fetchUsers(),
+    }),
+    [],
+  );
+
+  useRealtime(eventHandlers);
+
   const fetchUsers = async () => {
     setLoading(true);
     try {
-      const res = await getAllUsersWithLeavesApi();
+      const res = await getAllUsersWithLeavesApi(selectedYear, selectedMonth);
       const data = res.data?.data || res.data || [];
       setUsers(data);
       setFilteredUsers(data);
@@ -81,7 +97,7 @@ export default function SuperAdminLeaves() {
 
   useEffect(() => {
     fetchUsers();
-  }, []);
+  }, [selectedYear, selectedMonth]);
 
   useEffect(() => {
     let filtered = users;
@@ -219,6 +235,44 @@ export default function SuperAdminLeaves() {
     { value: 12, label: "December" },
   ];
 
+  const downloadReport = () => {
+    const reportData = filteredUsers.map((user) => ({
+      Name: user.name || "-",
+      TotalOfficeHours: user.totalHour?.toFixed(1) || "0.0",
+      TotalWorkedHours: user.workingHour?.toFixed(1) || "0.0",
+
+      PLUsed: user.leaveBalance?.usedPL || 0,
+      PLTotal: user.leaveBalance?.PLTotal || 0,
+
+      SLUsed: user.leaveBalance?.usedSL || 0,
+      SLTotal: user.leaveBalance?.SLTotal || 0,
+
+      DLUsed: user.leaveBalance?.usedDL || 0,
+      DLTotal: user.leaveBalance?.DLTotal || 0,
+
+      PendingLeaves: userPendingLeaves[user._id] || 0,
+    }));
+
+    const worksheet = XLSX.utils.json_to_sheet(reportData);
+
+    const workbook = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(workbook, worksheet, "Employee Report");
+
+    const excelBuffer = XLSX.write(workbook, {
+      bookType: "xlsx",
+      type: "array",
+    });
+
+    const fileData = new Blob([excelBuffer], {
+      type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+    });
+
+    saveAs(
+      fileData,
+      `Employee_Report_${new Date().toISOString().split("T")[0]}.xlsx`,
+    );
+  };
+
   return (
     <div className="min-h-screen">
       <Sidebar />
@@ -227,7 +281,7 @@ export default function SuperAdminLeaves() {
       <div className="md:ml-64 pt-25 p-6">
         {!selectedUser ? (
           <>
-            {/* User List View */}
+            {/* Header */}
             <div className="mb-6">
               <h1 className="text-xl sm:text-3xl font-bold flex items-center gap-3">
                 <Calendar className="text-[var(--accent)]" />
@@ -240,92 +294,105 @@ export default function SuperAdminLeaves() {
               </p>
             </div>
 
-            {/* User Filters */}
-            <div className="bg-[var(--bg-surface)] rounded-2xl shadow-sm border border-[var(--border)] p-6 mb-6">
-              <div className="mb-4">
-                <div className="flex items-center gap-2 text-sm text-[var(--text-secondary)]">
-                  <BellDot className="text-orange-500" size={20} />
-                  <span className="font-semibold">
-                    Total Pending Leaves:{" "}
-                    {Object.values(userPendingLeaves).reduce(
-                      (sum, count) => sum + count,
-                      0,
-                    )}
-                  </span>
-                </div>
-              </div>
-
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                <div>
-                  <label className="block text-sm font-semibold text-[var(--text-primary)] mb-2">
-                    Search User
-                  </label>
-                  <div className="relative">
-                    <Search
-                      className="absolute left-3 top-2.5 text-slate-400"
-                      size={18}
-                    />
-                    <input
-                      type="text"
-                      value={searchQuery}
-                      onChange={(e) => setSearchQuery(e.target.value)}
-                      placeholder="Search by name or email"
-                      className="w-full border-2 border-[var(--border-strong)] p-2 pl-10 rounded-lg focus:outline-none focus:border-indigo-500"
-                    />
-                  </div>
-                </div>
-
-                <div>
-                  <label className="block text-sm font-semibold text-[var(--text-primary)] mb-2">
-                    Filter by Role
-                  </label>
-                  <select
-                    value={roleFilter}
-                    onChange={(e) => setRoleFilter(e.target.value)}
-                    className="w-full border-2 border-[var(--border-strong)] p-2 rounded-lg focus:outline-none focus:border-indigo-500"
-                  >
-                    <option value="">All Roles</option>
-                    {uniqueRoles.map((role) => (
-                      <option key={role} value={role}>
-                        {role}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-
-                <div>
-                  <label className="block text-sm font-semibold text-[var(--text-primary)] mb-2">
-                    Filter by Department
-                  </label>
-                  <select
-                    value={departmentFilter}
-                    onChange={(e) => setDepartmentFilter(e.target.value)}
-                    className="w-full border-2 border-[var(--border-strong)] p-2 rounded-lg focus:outline-none focus:border-indigo-500"
-                  >
-                    <option value="">All Departments</option>
-                    {uniqueDepartments.map((dept) => (
-                      <option key={dept?._id} value={dept?._id}>
-                        {dept?.name}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-              </div>
-
-              <button
-                onClick={() => {
-                  setSearchQuery("");
-                  setRoleFilter("");
-                  setDepartmentFilter("");
-                }}
-                className="mt-4 bg-slate-600 text-white px-6 py-2 rounded-lg hover:bg-slate-700"
-              >
-                Reset Filters
-              </button>
-            </div>
-
-            {/* Users Table */}
+            {/* Combined Filters + Table */}
             <div className="bg-[var(--bg-surface)] rounded-2xl shadow-sm border border-[var(--border)] overflow-hidden">
+              {/* Toolbar */}
+              <div className="p-4 border-b border-[var(--border)] bg-[var(--bg-elevated)]">
+                {/* Top row: pending count + download */}
+                <div className="flex items-center justify-between mb-4">
+                  <div className="flex items-center gap-2 text-sm text-[var(--text-secondary)]">
+                    <BellDot className="text-orange-500" size={20} />
+                    <span className="font-semibold">
+                      Total Pending Leaves:{" "}
+                      {Object.values(userPendingLeaves).reduce(
+                        (sum, count) => sum + count,
+                        0,
+                      )}
+                    </span>
+                  </div>
+                  <button
+                    onClick={downloadReport}
+                    className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 text-sm"
+                  >
+                    Download Excel Report
+                  </button>
+                </div>
+
+                {/* Filter row */}
+                <div className="flex flex-wrap items-end gap-3">
+                  <div>
+                    <label className="block text-xs font-semibold text-[var(--text-primary)] mb-1">
+                      Year
+                    </label>
+                    <select
+                      value={selectedYear}
+                      onChange={(e) =>
+                        setSelectedYear(parseInt(e.target.value))
+                      }
+                      className="border-2 border-[var(--border-strong)] p-2 rounded-lg focus:outline-none focus:border-indigo-500 text-sm"
+                    >
+                      {years.map((year) => (
+                        <option key={year} value={year}>
+                          {year}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+
+                  <div>
+                    <label className="block text-xs font-semibold text-[var(--text-primary)] mb-1">
+                      Month
+                    </label>
+                    <select
+                      value={selectedMonth}
+                      onChange={(e) =>
+                        setSelectedMonth(parseInt(e.target.value))
+                      }
+                      className="border-2 border-[var(--border-strong)] p-2 rounded-lg focus:outline-none focus:border-indigo-500 text-sm"
+                    >
+                      {months.map((month) => (
+                        <option key={month.value} value={month.value}>
+                          {month.label}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+
+                  <div>
+                    <label className="block text-xs font-semibold text-[var(--text-primary)] mb-1">
+                      Search User
+                    </label>
+                    <div className="relative">
+                      <Search
+                        className="absolute left-3 top-2.5 text-slate-400"
+                        size={16}
+                      />
+                      <input
+                        type="text"
+                        value={searchQuery}
+                        onChange={(e) => setSearchQuery(e.target.value)}
+                        placeholder="Search by name or email"
+                        className="border-2 border-[var(--border-strong)] p-2 pl-9 rounded-lg focus:outline-none focus:border-indigo-500 text-sm w-56"
+                      />
+                    </div>
+                  </div>
+
+                  <button
+                    onClick={() => {
+                      setSearchQuery("");
+                      setRoleFilter("");
+                      setDepartmentFilter("");
+                      setSelectedYear(new Date().getFullYear());
+                      setSelectedMonth(new Date().getMonth() + 1);
+                    }}
+                    className="bg-slate-600 text-white px-4 py-2 rounded-lg hover:bg-slate-700 text-sm"
+                  >
+                    Reset Filters
+                  </button>
+                </div>
+              </div>
+
+              {/* Table */}
               <div className="overflow-x-auto">
                 <table className="w-full">
                   <thead className="bg-[var(--bg-elevated)] border-b">
@@ -354,7 +421,7 @@ export default function SuperAdminLeaves() {
                     {loading ? (
                       <tr>
                         <td
-                          colSpan="7"
+                          colSpan="6"
                           className="text-center p-8 text-[var(--text-secondary)]"
                         >
                           Loading...
@@ -381,19 +448,30 @@ export default function SuperAdminLeaves() {
                                 </div>
                               </div>
                             </td>
-                            <td className="">{}</td>
-                            <td></td>
+                            <td className="p-4">
+                              {typeof user.totalHour === "number"
+                                ? `${user.totalHour.toFixed(1)}h`
+                                : "0.0h"}
+                            </td>
+                            <td className="p-4">
+                              {typeof user.workingHour === "number"
+                                ? `${user.workingHour.toFixed(1)}h`
+                                : "0.0h"}
+                            </td>
                             <td className="p-4 text-sm text-[var(--text-primary)]">
                               {user.leaveBalance ? (
                                 <div className="flex gap-2">
                                   <span className="px-2 py-1 bg-blue-50 text-blue-700 text-xs rounded">
-                                    PL: {user.leaveBalance.PL || 0}
+                                    PL: {user.leaveBalance.usedPL || 0}/
+                                    {user.leaveBalance.PLTotal || 0}
                                   </span>
                                   <span className="px-2 py-1 bg-green-50 text-green-700 text-xs rounded">
-                                    CL: {user.leaveBalance.CL || 0}
+                                    SL: {user.leaveBalance.usedSL || 0}/
+                                    {user.leaveBalance.SLTotal || 0}
                                   </span>
-                                  <span className="px-2 py-1 bg-yellow-50 text-yellow-700 text-xs rounded">
-                                    SL: {user.leaveBalance.SL || 0}
+                                  <span className="px-2 py-1 bg-purple-50 text-purple-700 text-xs rounded">
+                                    DL: {user.leaveBalance.usedDL || 0}/
+                                    {user.leaveBalance.DLTotal || 0}
                                   </span>
                                 </div>
                               ) : (
@@ -443,7 +521,7 @@ export default function SuperAdminLeaves() {
                     ) : (
                       <tr>
                         <td
-                          colSpan="7"
+                          colSpan="6"
                           className="text-center p-8 text-[var(--text-secondary)]"
                         >
                           No users found

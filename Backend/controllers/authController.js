@@ -26,7 +26,6 @@ export const register = async (req, res) => {
       return res.status(400).json({ message: `Role ${roleName} not found` });
     }
 
-
     const user = await User.create({
       name,
       email,
@@ -63,6 +62,12 @@ export const login = async (req, res) => {
 
     if (!user) {
       return res.status(401).json({ message: "Invalid email or password" });
+    }
+
+    if (!user.isActive) {
+      return res
+        .status(401)
+        .json({ message: "Your account has been deactivated" });
     }
 
     const isMatch = await bcrypt.compare(password, user.password);
@@ -123,6 +128,10 @@ export const googleSignup = async (req, res) => {
       user = await User.findById(user._id)
         .populate("role")
         .populate("department");
+    } else if (!user.isActive) {
+      return res
+        .status(401)
+        .json({ message: "Your account has been deactivated" });
     }
 
     const token = generateToken(user);
@@ -141,6 +150,3 @@ export const googleSignup = async (req, res) => {
     });
   }
 };
-
-
-

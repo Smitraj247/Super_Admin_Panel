@@ -1,10 +1,11 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useMemo } from "react";
 import Sidebar from "@/components/Sidebar";
 import Navbar from "@/components/layout/Navbar";
 import API from "@/lib/api";
 import ChatWindow from "@/components/ui/ChatWindow";
+import { useRealtime } from "@/hooks/useRealtime";
 import {
   User,
   UserPlus,
@@ -33,6 +34,18 @@ export default function UsersPage() {
 
   // Chat state
   const [chatUser, setChatUser] = useState(null);
+
+  // Set up real-time event listeners
+  const eventHandlers = useMemo(
+    () => ({
+      "user:deleted": () => fetchData(),
+      "user:created": () => fetchData(),
+      "user:updated": () => fetchData(),
+    }),
+    [],
+  );
+
+  useRealtime(eventHandlers);
 
   // Get selected department name
   const selectedDepartment = departments.find(

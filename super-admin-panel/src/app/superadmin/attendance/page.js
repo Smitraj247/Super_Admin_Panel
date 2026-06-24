@@ -152,7 +152,7 @@ export default function HRAttendance() {
               {/* Filters */}
               <div className="flex flex-wrap gap-3">
                 <select
-                  value={departmentFilter}
+                  value={departmentFilter}      
                   onChange={(e) => setDepartmentFilter(e.target.value)}
                   className="border p-2 rounded-lg"
                 >
@@ -163,7 +163,7 @@ export default function HRAttendance() {
                     </option>
                   ))}
                 </select>
-
+  
                 <select
                   value={roleFilter}
                   onChange={(e) => setRoleFilter(e.target.value)}
@@ -202,12 +202,13 @@ export default function HRAttendance() {
                     "User",
                     "Department",
                     "Role",
-                    "This Month (Total / Present / Pending)",
+                    "Today's Status",
+                    "This Month (Total / Present / Absent / Half Day)",
                     "Action",
                   ].map((h, i) => (
                     <th
                       key={h}
-                      className={`p-4 text-xs font-bold text-[var(--text-secondary)] uppercase tracking-wider${i === 3 ? " text-center" : i === 4 ? " text-right" : ""}`}
+                      className={`p-4 text-xs font-bold text-[var(--text-secondary)] uppercase tracking-wider${i === 3 || i === 4 ? " text-center" : i === 5 ? " text-right" : ""}`}
                     >
                       {h}
                     </th>
@@ -218,7 +219,7 @@ export default function HRAttendance() {
                 {loading ? (
                   <tr>
                     <td
-                      colSpan="5"
+                      colSpan="6"
                       className="text-center p-8 text-[var(--text-secondary)]"
                     >
                       Loading users...
@@ -229,8 +230,16 @@ export default function HRAttendance() {
                     const stats = attendanceStats[user._id] || {
                       totalDays: 0,
                       present: 0,
-                      pending: 0,
+                      absent: 0,
+                      halfDay: 0,
+                      todayStatus: "Absent",
                     };
+                    const statusColor =
+                      stats.todayStatus === "Present"
+                        ? "text-green-600"
+                        : stats.todayStatus === "On Leave"
+                          ? "text-yellow-600"
+                          : "text-red-600";
                     return (
                       <tr
                         key={user._id}
@@ -264,6 +273,11 @@ export default function HRAttendance() {
                             ? user.role?.name
                             : user.role) || "N/A"}
                         </td>
+                        <td
+                          className={`p-4 text-center text-sm font-semibold ${statusColor}`}
+                        >
+                          {stats.todayStatus}
+                        </td>
                         <td className="p-4 text-center">
                           <div className="flex items-center justify-center gap-4 text-sm">
                             <span
@@ -275,8 +289,11 @@ export default function HRAttendance() {
                             <span className="text-green-600" title="Present">
                               {stats.present}
                             </span>
-                            <span className="text-yellow-600" title="Pending">
-                              {stats.pending}
+                            <span className="text-red-600" title="Absent">
+                              {stats.absent}
+                            </span>
+                            <span className="text-yellow-600" title="Half Day">
+                              {stats.halfDay}
                             </span>
                           </div>
                         </td>
@@ -291,7 +308,7 @@ export default function HRAttendance() {
                 ) : (
                   <tr>
                     <td
-                      colSpan="5"
+                      colSpan="6"
                       className="text-center p-8 text-[var(--text-secondary)]"
                     >
                       No users found
@@ -306,3 +323,4 @@ export default function HRAttendance() {
     </div>
   );
 }
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                     

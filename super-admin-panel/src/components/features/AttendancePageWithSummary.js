@@ -343,13 +343,13 @@ export default function AttendancePage() {
               <StatTile
                 bg="bg-green-500"
                 border="border-green-600"
-                label="Productivity"
+                label="Productivity Ratio"
                 value={`${summary.productivity}%`}
               />
               <StatTile
                 bg="bg-green-700"
                 border="border-green-800"
-                label="On Leave"
+                label="Total PL Leaves"
                 value={summary.leaves || 0}
               />
             </div>
