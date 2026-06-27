@@ -43,3 +43,6 @@ export const addBreaksToRecordApi = (recordId, breaks) =>
 // Admin: Create a new break entry for any user (optionally creates attendance record)
 export const adminCreateBreakEntryApi = (userId, date, breaks) =>
   API.post(`/attendance/user/${userId}/create-break`, { userId, date, breaks });
+
+export const adminCreateAttendanceEntryApi = (userId, date, checkIn, checkOut, breaks = []) =>
+  API.post(`/attendance/user/${userId}/create`, { date, checkIn, checkOut, breaks });

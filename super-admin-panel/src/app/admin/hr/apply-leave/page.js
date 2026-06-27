@@ -21,6 +21,8 @@ const EMPTY_FORM = {
   toDate: "",
   reason: "",
   isHalfDay: false,
+  halfDayPeriod: "FIRST_HALF",
+  usesCarriedPL: false,
 };
 
 export default function HRLeaveDashboard() {
@@ -30,6 +32,7 @@ export default function HRLeaveDashboard() {
   const [filteredLeaves, setFilteredLeaves] = useState([]);
   const [leaveBalance, setLeaveBalance] = useState(null);
   const [dlEligibility, setDlEligibility] = useState(null);
+  const [hasProbationStarted, setHasProbationStarted] = useState(true);
   const [statusFilter, setStatusFilter] = useState("ALL");
   const [search, setSearch] = useState("");
   const [loading, setLoading] = useState(false);
@@ -51,6 +54,7 @@ export default function HRLeaveDashboard() {
       setFilteredLeaves(allRes.data.data);
       setLeaveBalance(balanceRes.data.data);
       setDlEligibility(balanceRes.data.data.dlEligibility);
+      setHasProbationStarted(!!balanceRes.data.data.probationStartDate);
     } catch (err) {
       console.error(err);
     } finally {
@@ -75,24 +79,13 @@ export default function HRLeaveDashboard() {
     setFilteredLeaves(data);
   }, [statusFilter, search, allLeaves]);
 
-  // Monthly PL/SL usage for the selected fromDate month
-  const monthlyUsage = (() => {
-    const target = form.fromDate ? new Date(form.fromDate) : new Date();
-    const m = target.getMonth();
-    const y = target.getFullYear();
-    const count = (type) =>
-      userLeaves.filter((l) => {
-        const d = new Date(l.fromDate);
-        return (
-          l.leaveType === type &&
-          (l.status === "PENDING" || l.status === "APPROVED") &&
-          d.getMonth() === m &&
-          d.getFullYear() === y &&
-          (!editingLeave || l._id !== editingLeave._id)
-        );
-      }).length;
-    return { PL: count("PL"), SL: count("SL") };
-  })();
+  // Monthly usage from leave balance
+  const monthlyUsage = leaveBalance?.monthlyUsage || {
+    PL: 0,
+    SL: 0,
+    DL: 0,
+    carriedPL: 0,
+  };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -136,6 +129,8 @@ export default function HRLeaveDashboard() {
       }).format(new Date(leave.toDate)),
       reason: leave.reason,
       isHalfDay: leave.isHalfDay || false,
+      halfDayPeriod: leave.halfDayPeriod || "FIRST_HALF",
+      usesCarriedPL: leave.usesCarriedPL || false,
     });
     setShowForm(true);
     setActiveTab("personal");
@@ -166,12 +161,14 @@ export default function HRLeaveDashboard() {
     }
   };
 
-  const isLeaveDatePassed = (fromDate) => {
-    const today = new Date();
-    today.setHours(0, 0, 0, 0);
-    const d = new Date(fromDate);
-    d.setHours(0, 0, 0, 0);
-    return d < today;
+  const isLeaveDatePassed = (fromDate, toDate) => {
+    const todayStr = new Intl.DateTimeFormat("en-CA", {
+      timeZone: "Asia/Kolkata",
+    }).format(new Date());
+    const toDateStr = new Intl.DateTimeFormat("en-CA", {
+      timeZone: "Asia/Kolkata",
+    }).format(new Date(toDate || fromDate));
+    return toDateStr < todayStr;
   };
 
   const statusColor = (s) =>
@@ -292,11 +289,12 @@ export default function HRLeaveDashboard() {
                   setForm={setForm}
                   editingLeave={editingLeave}
                   leaveBalance={leaveBalance}
-                  dlEligibility={dlEligibility}
+                  dlInfo={dlEligibility}
                   monthlyUsage={monthlyUsage}
                   formLoading={formLoading}
                   onSubmit={handleSubmit}
                   onCancel={handleCancel}
+                  hasProbationStarted={hasProbationStarted}
                 />
               )}
 
@@ -361,27 +359,42 @@ export default function HRLeaveDashboard() {
                             <td className="p-4">
                               <div className="flex gap-2">
                                 {leave.status === "PENDING" &&
-                                  !isLeaveDatePassed(leave.fromDate) && (
-                                    <button
-                                      onClick={() => handleEdit(leave)}
-                                      className="px-3 py-1 bg-blue-500 text-white text-sm rounded hover:bg-blue-600 transition"
-                                    >
-                                      Edit
-                                    </button>
+                                  !isLeaveDatePassed(
+                                    leave.fromDate,
+                                    leave.toDate,
+                                  ) && (
+                                    <>
+                                      <button
+                                        onClick={() => handleEdit(leave)}
+                                        className="px-3 py-1 bg-blue-500 text-white text-sm rounded hover:bg-blue-600 transition"
+                                      >
+                                        Edit
+                                      </button>
+                                      <button
+                                        onClick={() => handleDelete(leave._id)}
+                                        className="px-3 py-1 bg-red-500 text-white text-sm rounded hover:bg-red-600 transition"
+                                      >
+                                        Delete
+                                      </button>
+                                    </>
                                   )}
-                                {!isLeaveDatePassed(leave.fromDate) && (
-                                  <button
-                                    onClick={() => handleDelete(leave._id)}
-                                    className="px-3 py-1 bg-red-500 text-white text-sm rounded hover:bg-red-600 transition"
-                                  >
-                                    Delete
-                                  </button>
-                                )}
-                                {isLeaveDatePassed(leave.fromDate) && (
+                                {isLeaveDatePassed(
+                                  leave.fromDate,
+                                  leave.toDate,
+                                ) && (
                                   <span className="text-sm text-gray-400 italic">
                                     Past
                                   </span>
                                 )}
+                                {!isLeaveDatePassed(
+                                  leave.fromDate,
+                                  leave.toDate,
+                                ) &&
+                                  leave.status !== "PENDING" && (
+                                    <span className="text-sm text-gray-500">
+                                      {leave.status}
+                                    </span>
+                                  )}
                               </div>
                             </td>
                           </tr>
@@ -480,7 +493,7 @@ export default function HRLeaveDashboard() {
                               {leave.leaveType}
                             </td>
                             <td className="p-4">
-                              {leave.isHalfDay ? (  
+                              {leave.isHalfDay ? (
                                 <span className="px-2 py-0.5 bg-blue-100 text-blue-700 rounded-full text-xs font-semibold">
                                   Half Day
                                 </span>
@@ -526,12 +539,9 @@ export default function HRLeaveDashboard() {
                                   </button>
                                 </>
                               ) : (
-                                <button
-                                  className="bg-red-600 rounded p-1 text-white gap-6"
-                                  onClick={() => handleDelete(leave._id)}
-                                >
-                                  Delete
-                                </button>
+                                <span className="text-sm text-gray-500">
+                                  {leave.status}
+                                </span>
                               )}
                             </td>
                           </tr>

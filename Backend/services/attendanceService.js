@@ -6,7 +6,7 @@ import User from "../models/User.models.js";
 import { canUserCheckIn } from "./leaveService.js";
 import { emitEvent, SocketEvents } from "../utils/socketEmitter.js";
 
-// ─── Timezone helpers (IST = UTC+5:30) ───────────────────────────────────────
+//  Timezone helpers (IST = UTC+5:30) 
 
 /**
  * Returns today's date string in YYYY-MM-DD format using IST timezone.
@@ -53,6 +53,36 @@ const toDateStr = (d) =>
   `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
 
 /**
+ * First day the employee should be counted for attendance (IST).
+ * Uses joiningDate when set, otherwise account creation date.
+ */
+const getUserEmploymentStartStr = (user) => {
+  if (!user) return null;
+  const raw = user.joiningDate || user.createdAt;
+  if (!raw) return null;
+  return new Intl.DateTimeFormat("en-CA", {
+    timeZone: "Asia/Kolkata",
+  }).format(new Date(raw));
+};
+
+const emptySummary = () => ({
+  totalDays: 0,
+  present: 0,
+  pending: 0,
+  absent: 0,
+  halfDay: 0,
+  totalOffice: 0,
+  totalWorkHours: 0,
+  totalOfficeHours: 0,
+  productivity: 0,
+  leaves: 0,
+  lateCount: 0,
+  attendanceRate: 0,
+  avgWorkHours: 0,
+  expectedWorkingDays: 0,
+});
+
+/**
  * Returns the date string (YYYY-MM-DD) of the last Saturday in a given month and year.
  * Saturdays are day-of-week 6. We start from the last day of the month and walk backwards
  * until we find a Saturday.
@@ -66,7 +96,7 @@ const getLastSaturday = (year, month) => {
   return toDateStr(lastDay);
 };
 
-// ─── Internal populate helpers ────────────────────────────────────────────────
+//  Internal populate helpers 
 
 const populateUser = (id) =>
   Attendance.findById(id).populate("userId", "email name _id");
@@ -78,11 +108,15 @@ const populateRecord = (id) =>
     populate: { path: "role department", select: "name" },
   });
 
-// ─── Employee actions ─────────────────────────────────────────────────────────
+//  Employee actions 
 
 export const performCheckIn = async (userId) => {
   const today = getToday();
-  if (await Attendance.findOne({ userId, date: today }))
+  const existingRecord = await Attendance.findOne({ userId, date: today });
+  if (
+    existingRecord &&
+    !["ON_LEAVE", "HALF_DAY_LEAVE"].includes(existingRecord.status)
+  )
     throw Object.assign(new Error("Already checked in"), {
       status: 400,
       code: 11000,
@@ -106,13 +140,23 @@ export const performCheckIn = async (userId) => {
   const min = Number(istParts.find((p) => p.type === "minute").value);
   const isLate = hour > 10 || (hour === 10 && min >= 15);
 
-  const record = await Attendance.create({
-    userId: new mongoose.Types.ObjectId(userId),
-    date: today,
-    checkIn: now,
-    status: isLate ? "LATE" : "CHECKED_IN",
-    isLate,
-  });
+  let record;
+  if (existingRecord) {
+    // Update existing leave record to checked in
+    existingRecord.checkIn = now;
+    existingRecord.status = isLate ? "LATE" : "CHECKED_IN";
+    existingRecord.isLate = isLate;
+    await existingRecord.save();
+    record = existingRecord;
+  } else {
+    record = await Attendance.create({
+      userId: new mongoose.Types.ObjectId(userId),
+      date: today,
+      checkIn: now,
+      status: isLate ? "LATE" : "CHECKED_IN",
+      isLate,
+    });
+  }
   const populatedRecord = await populateUser(record._id);
   emitEvent(
     SocketEvents.ATTENDANCE_UPDATED,
@@ -212,7 +256,7 @@ export const fetchTodayStatus = async (userId) => {
     : { status: "NOT_CHECKED_IN" };
 };
 
-// ─── Queries ──────────────────────────────────────────────────────────────────
+//  Queries 
 
 export const fetchByDateRange = async (userId, startDate, endDate, date) => {
   const filter = { userId };
@@ -221,11 +265,13 @@ export const fetchByDateRange = async (userId, startDate, endDate, date) => {
   if (startDate && endDate) {
     const effectiveEnd = endDate > todayStr ? todayStr : endDate;
     filter.date = { $gte: startDate, $lte: effectiveEnd };
+    await syncLeaveAttendanceForRange(userId, startDate, effectiveEnd);
   } else if (date) {
     if (date > todayStr) {
       return [];
     }
     filter.date = date;
+    await syncLeaveAttendanceForRange(userId, date, date);
   } else {
     throw Object.assign(new Error("Date or date range is required"), {
       status: 400,
@@ -286,7 +332,7 @@ export const fetchAllUsersAttendance = async (
   };
 };
 
-// ─── Admin record update
+//  Admin record update
 
 export const updateRecord = async (
   id,
@@ -355,7 +401,11 @@ export const updateRecord = async (
  * Determines and assigns the correct status for an attendance record
  * based on checks for checkIn, checkOut, and active breaks.
  */
-const recalculateRecordStatus = (record) => {
+const recalculateRecordStatus = (record, forceStatus = null) => {
+  if (forceStatus) {
+    record.status = forceStatus;
+    return;
+  }
   if (!record.checkIn) {
     record.status = null;
     record.isLate = false;
@@ -378,6 +428,134 @@ const recalculateRecordStatus = (record) => {
     return;
   }
   record.status = record.isLate ? "LATE" : "CHECKED_IN";
+};
+
+/**
+ * Keeps leave-related attendance rows aligned with approved leaves:
+ * - removes orphaned HALF_DAY_LEAVE / ON_LEAVE rows (no matching approved leave)
+ * - creates missing markers for approved leaves without attendance rows
+ */
+export const syncLeaveAttendanceForRange = async (
+  userId,
+  startDate,
+  endDate,
+) => {
+  const todayStr = getToday();
+  const effectiveEnd = endDate > todayStr ? todayStr : endDate;
+
+  const approvedLeaves = await Leave.find({
+    user: userId,
+    status: "APPROVED",
+    fromDate: { $lte: new Date(`${effectiveEnd}T23:59:59.999Z`) },
+    toDate: { $gte: new Date(`${startDate}T00:00:00.000Z`) },
+  });
+
+  const validLeaveByDate = new Map();
+  for (const leave of approvedLeaves) {
+    const lc = localDate(toDateStr(new Date(leave.fromDate)));
+    const le = localDate(toDateStr(new Date(leave.toDate)));
+    while (lc <= le) {
+      const ds = toDateStr(lc);
+      if (ds >= startDate && ds <= effectiveEnd) {
+        validLeaveByDate.set(ds, leave.isHalfDay);
+      }
+      lc.setDate(lc.getDate() + 1);
+    }
+  }
+
+  const leaveRecords = await Attendance.find({
+    userId,
+    date: { $gte: startDate, $lte: effectiveEnd },
+    status: { $in: ["HALF_DAY_LEAVE", "ON_LEAVE"] },
+  });
+
+  for (const record of leaveRecords) {
+    if (!validLeaveByDate.has(record.date)) {
+      if (!record.checkIn) {
+        await Attendance.deleteOne({ _id: record._id });
+      } else {
+        recalculateRecordStatus(record);
+        await record.save();
+      }
+    }
+  }
+
+  for (const [dateStr, isHalfDay] of validLeaveByDate) {
+    const existing = await Attendance.findOne({ userId, date: dateStr });
+    if (!existing) {
+      await Attendance.create({
+        userId,
+        date: dateStr,
+        checkIn: null,
+        checkOut: null,
+        breaks: [],
+        status: isHalfDay ? "HALF_DAY_LEAVE" : "ON_LEAVE",
+      });
+    }
+  }
+};
+
+/**
+ * Admin/Super Admin: Create or update attendance with check-in/check-out for a date.
+ */
+export const adminCreateOrUpdateAttendance = async (
+  userId,
+  date,
+  { checkIn, checkOut, breaks },
+) => {
+  if (!mongoose.Types.ObjectId.isValid(userId))
+    throw Object.assign(new Error("Invalid user ID"), { status: 400 });
+
+  if (!date || typeof date !== "string")
+    throw Object.assign(new Error("Date string (YYYY-MM-DD) is required"), {
+      status: 400,
+    });
+
+  if (!checkIn)
+    throw Object.assign(new Error("Check-in time is required"), { status: 400 });
+
+  const checkInDate = new Date(checkIn);
+  if (isNaN(checkInDate.getTime()))
+    throw Object.assign(new Error("Invalid check-in timestamp"), { status: 400 });
+
+  let checkOutDate = null;
+  if (checkOut) {
+    checkOutDate = new Date(checkOut);
+    if (isNaN(checkOutDate.getTime()))
+      throw Object.assign(new Error("Invalid check-out timestamp"), {
+        status: 400,
+      });
+    if (checkOutDate <= checkInDate)
+      throw Object.assign(new Error("Check-out must be after check-in"), {
+        status: 400,
+      });
+  }
+
+  let record = await Attendance.findOne({ userId, date });
+  const isNewRecord = !record;
+
+  if (!record) {
+    record = new Attendance({
+      userId: new mongoose.Types.ObjectId(userId),
+      date,
+      breaks: [],
+    });
+  }
+
+  record.checkIn = checkInDate;
+  record.checkOut = checkOutDate;
+
+  if (breaks !== undefined && Array.isArray(breaks)) {
+    record.breaks = breaks.map((b) => ({
+      breakIn: b.breakIn ? new Date(b.breakIn) : null,
+      breakOut: b.breakOut ? new Date(b.breakOut) : null,
+    }));
+  }
+
+  recalculateRecordStatus(record);
+  await record.save();
+
+  return { record: await populateRecord(record._id), isNewRecord };
 };
 
 export const finishBreak = async (id, breakIndex, breakOut) => {
@@ -533,7 +711,7 @@ export const adminCreateBreak = async (
   return { record: populated, isNewRecord };
 };
 
-// ─── Summary
+//  Summary
 /**
  * Builds the working-day list for [startDate, endDate], capped at today (IST).
  * Working days = Mon–Fri (excluding weekends) + the last Saturday of each month,
@@ -593,6 +771,17 @@ export const computeSummary = async (userId, startDate, endDate) => {
   const todayStr = getToday();
   const effectiveEnd = endDate > todayStr ? todayStr : endDate;
 
+  const user = await User.findById(userId).select("joiningDate createdAt");
+  const employmentStartStr = getUserEmploymentStartStr(user);
+  const effectiveStart =
+    employmentStartStr && employmentStartStr > startDate
+      ? employmentStartStr
+      : startDate;
+
+  if (effectiveStart > effectiveEnd) {
+    return emptySummary();
+  }
+
   const [records, approvedLeaves, holidays] = await Promise.all([
     Attendance.find({
       userId,
@@ -618,7 +807,11 @@ export const computeSummary = async (userId, startDate, endDate) => {
     holidays.map((h) => toDateStr(new Date(h.date))),
   );
 
-  const workingDays = buildWorkingDays(startDate, effectiveEnd, holidayDates);
+  const workingDays = buildWorkingDays(
+    effectiveStart,
+    effectiveEnd,
+    holidayDates,
+  );
 
   // Build sets of approved leave dates: PL only for On Leave, all for Absent
   const approvedHalfDayDates = new Set(); // All half-day leaves
@@ -711,7 +904,9 @@ export const computeSummary = async (userId, startDate, endDate) => {
     workingDays.length - approvedFullDayDates.size,
   );
 
-  const lateCount = records.filter((r) => r.isLate).length;
+  const lateCount = records.filter(
+    (r) => r.isLate && r.date >= effectiveStart,
+  ).length;
   const totalWorkHours = parseFloat((totalWorkMinutes / 60).toFixed(1));
   const REQUIRED_DAILY_HOURS = 8.5;
   const totalOfficeHours = present * REQUIRED_DAILY_HOURS;
@@ -743,7 +938,7 @@ export const computeSummary = async (userId, startDate, endDate) => {
   };
 };
 
-// ─── Dashboard status
+//  Dashboard status
 
 export const computeDashboardStats = async (userId) => {
   const today = getToday();
@@ -893,7 +1088,7 @@ export const computeDashboardStats = async (userId) => {
   };
 };
 
-// ─── Weekly stats (all users, current week)
+//  Weekly stats (all users, current week)
 
 export const computeWeeklyStats = async () => {
   const today = new Date();
@@ -944,7 +1139,7 @@ export const computeWeeklyStats = async () => {
   };
 };
 
-// ─── All-users monthly summary (admin list page)
+//  All-users monthly summary (admin list page)
 
 export const computeAllUsersSummary = async (year, month) => {
   const firstDay = monthFirstDay(year, month);
@@ -968,8 +1163,13 @@ export const computeAllUsersSummary = async (year, month) => {
   const workingDaysCount = workingDays.length;
 
   // Fetch all active users first
-  const activeUsers = await User.find({ isActive: true }).select("_id");
+  const activeUsers = await User.find({ isActive: true }).select(
+    "_id joiningDate createdAt",
+  );
   const activeUserIds = new Set(activeUsers.map((u) => u._id.toString()));
+  const userEmploymentStart = new Map(
+    activeUsers.map((u) => [u._id.toString(), getUserEmploymentStartStr(u)]),
+  );
 
   // Fetch all records for the month in one query
   const [allRecords, todayRecords, allApprovedLeaves] = await Promise.all([
@@ -1053,6 +1253,12 @@ export const computeAllUsersSummary = async (year, month) => {
 
   // Now process each active user
   for (const userId of activeUserIds) {
+    const employmentStartStr = userEmploymentStart.get(userId);
+    const userWorkingDays = employmentStartStr
+      ? workingDays.filter((ds) => ds >= employmentStartStr)
+      : workingDays;
+    const userWorkingDaysCount = userWorkingDays.length;
+
     const userLeaves = userLeaveDays.get(userId) || {
       fullDay: new Set(),
       halfDay: new Set(),
@@ -1064,7 +1270,7 @@ export const computeAllUsersSummary = async (year, month) => {
     let present = 0;
     let halfDay = 0;
 
-    for (const ds of workingDays) {
+    for (const ds of userWorkingDays) {
       // First check if date is an approved half-day leave
       if (userLeaves.halfDay.has(ds)) {
         halfDay++;
@@ -1087,13 +1293,13 @@ export const computeAllUsersSummary = async (year, month) => {
       present++;
     }
 
-    // Absent = Total Working Days − Present
-    const absent = Math.max(0, workingDaysCount - present);
+    // Absent = eligible working days since joining − present
+    const absent = Math.max(0, userWorkingDaysCount - present);
 
-    // Expected working days = total working days minus approved full-day leaves (any type)
+    // Expected working days = eligible days minus approved full-day leaves
     const expectedWorkingDays = Math.max(
       0,
-      workingDaysCount - userLeaves.fullDay.size,
+      userWorkingDaysCount - userLeaves.fullDay.size,
     );
 
     // Determine today's status
@@ -1109,11 +1315,15 @@ export const computeAllUsersSummary = async (year, month) => {
     }
 
     userMap.set(userId, {
-      totalDays: workingDaysCount,
+      totalDays: userWorkingDaysCount,
       present,
       absent,
       halfDay,
-      lateCount: userRecords.filter((r) => r.isLate).length,
+      lateCount: userRecords.filter(
+        (r) =>
+          r.isLate &&
+          (!employmentStartStr || r.date >= employmentStartStr),
+      ).length,
       expectedWorkingDays,
       todayStatus,
     });
@@ -1160,7 +1370,7 @@ export const computeAllUsersSummary = async (year, month) => {
   };
 };
 
-// ─── Per-user summary for admin (by userId)
+//  Per-user summary for admin (by userId)
 
 export const computeUserSummary = async (userId, year, month) => {
   return computeSummary(
@@ -1170,7 +1380,7 @@ export const computeUserSummary = async (userId, year, month) => {
   );
 };
 
-// ─── User attendance by ID (admin)
+//  User attendance by ID (admin)
 
 export const fetchUserAttendanceById = async (
   userId,
@@ -1187,11 +1397,14 @@ export const fetchUserAttendanceById = async (
       return { data: [], total: 0 };
     }
     filter.date = date;
+    await syncLeaveAttendanceForRange(userId, date, date);
   } else if (startDate && endDate) {
     const effectiveEnd = endDate > todayStr ? todayStr : endDate;
     filter.date = { $gte: startDate, $lte: effectiveEnd };
+    await syncLeaveAttendanceForRange(userId, startDate, effectiveEnd);
   } else {
     filter.date = todayStr;
+    await syncLeaveAttendanceForRange(userId, todayStr, todayStr);
   }
 
   const records = await Attendance.find(filter)

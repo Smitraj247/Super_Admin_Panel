@@ -23,7 +23,7 @@ const AttendanceOverview = memo(({ overview, attendanceRate, mounted }) => {
   return (
     <SectionCard title="Attendance Overview">
       <div className="flex justify-center mb-5 text-cyan-600">
-        <div className="relative w-44 h-44">
+        <div className="relative w-44 h-44" style={{ minWidth: 0, minHeight: 0 }}>
           {mounted && (
             <ResponsiveContainer width="100%" height="100%">
               <RechartsPie>

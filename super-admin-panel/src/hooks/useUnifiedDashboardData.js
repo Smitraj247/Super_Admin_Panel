@@ -1,4 +1,4 @@
-/**
+  /**
  * useUnifiedDashboardData Hook
  * Manages all unified dashboard data fetching and state
  */
@@ -60,10 +60,12 @@ export const useUnifiedDashboardData = () => {
 
         const normalizedData = normalizeApiResponses(dashboardResponses);
 
-        // Transform break data for display
+        // Map backend field (todayStatus) to frontend field (userStatus)
+        const rawStats = normalizedData.stats;
         const transformedStats = {
-          ...normalizedData.stats,
-          breaks: transformBreakData(normalizedData.stats.breaks || []),
+          ...rawStats,
+          userStatus: rawStats.todayStatus || rawStats.userStatus || "NOT_CHECKED_IN",
+          breaks: transformBreakData(rawStats.breaks || []),
         };
 
         setData({

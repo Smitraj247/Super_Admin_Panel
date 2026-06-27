@@ -59,7 +59,9 @@ export default function ProfilePage() {
     designation: "",
     batch: "",
     joiningDate: "",
+    probationStartDate: "",
     probationEndDate: "",
+
     address: {
       street: "",
       city: "",
@@ -100,9 +102,13 @@ export default function ProfilePage() {
         designation: data?.designation || "",
         batch: data?.batch || "",
         joiningDate: data?.joiningDate ? data.joiningDate.split("T")[0] : "",
+        probationStartDate: data?.probationStartDate
+          ? data.probationStartDate.split("T")[0]
+          : "",
         probationEndDate: data?.probationEndDate
           ? data.probationEndDate.split("T")[0]
           : "",
+
         address: {
           street: data?.address?.street || "",
           city: data?.address?.city || "",
@@ -193,9 +199,13 @@ export default function ProfilePage() {
         joiningDate: profileData.joiningDate
           ? toISTDateStr(profileData.joiningDate)
           : "",
+        probationStartDate: profileData.probationStartDate
+          ? toISTDateStr(profileData.probationStartDate)
+          : "",
         probationEndDate: profileData.probationEndDate
           ? toISTDateStr(profileData.probationEndDate)
           : "",
+
         address: {
           street: profileData?.address?.street || "",
           city: profileData?.address?.city || "",
@@ -608,6 +618,18 @@ export default function ProfilePage() {
                           </div>
                           <div>
                             <label className="block text-sm font-semibold text-slate-700 mb-2">
+                              Probation Start Date
+                            </label>
+                            <input
+                              type="date"
+                              name="probationStartDate"
+                              value={formData.probationStartDate}
+                              onChange={handleChange}
+                              className="w-full px-4 py-2 bg-slate-50 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                            />
+                          </div>
+                          <div>
+                            <label className="block text-sm font-semibold text-slate-700 mb-2">
                               Probation End Date
                             </label>
                             <input
@@ -843,6 +865,18 @@ export default function ProfilePage() {
                           </div>
                           <div>
                             <p className="text-sm text-gray-400">
+                              Probation Start Date
+                            </p>
+                            <p className="font-medium ">
+                              {profileData?.probationStartDate
+                                ? new Date(
+                                    profileData.probationStartDate,
+                                  ).toLocaleDateString()
+                                : "-"}
+                            </p>
+                          </div>
+                          <div>
+                            <p className="text-sm text-gray-400">
                               Probation End Date
                             </p>
                             <p className="font-medium ">
@@ -853,6 +887,7 @@ export default function ProfilePage() {
                                 : "-"}
                             </p>
                           </div>
+
                           <div>
                             <p className="text-sm text-gray-400">
                               Work Duration

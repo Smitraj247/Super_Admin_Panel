@@ -1,322 +1,189 @@
 import User from "../models/User.models.js";
 import Department from "../models/Department.models.js";
 import Role from "../models/Roles.models.js";
-import { isHRAdmin } from "../utils/roleUtils.js";
-import { deleteUserById } from "./userService.js";
-// ─── Department helpers
+import Attendance from "../models/Attendance.js";
+import Leave from "../models/Leave.js";
 
-export const listDepartments = () => Department.find();
+// ─── Departments
+export const listDepartments = async () => {
+  return await Department.find().select("_id name");
+};
 
-export const addDepartment = (name) => Department.create({ name });
-
-export const removeDepartment = (id) => Department.findByIdAndDelete(id);
-
-export const editDepartment = async (id, name) => {
-  const dept = await Department.findByIdAndUpdate(id, { name }, { new: true });
-  if (!dept)
-    throw Object.assign(new Error("Department not found"), { status: 404 });
+export const addDepartment = async (name) => {
+  const dept = new Department({ name });
+  await dept.save();
   return dept;
 };
 
-// ─── Role helpers
-export const listRoles = () => Role.find();
+export const removeDepartment = async (id) => {
+  const dept = await Department.findByIdAndDelete(id);
+  if (!dept) throw new Error("Department not found");
+  return dept;
+};
 
-export const addRole = (name, permissions = []) =>
-  Role.create({ name, permissions });
+export const editDepartment = async (id, name) => {
+  const dept = await Department.findByIdAndUpdate(id, { name }, { new: true });
+  if (!dept) throw new Error("Department not found");
+  return dept;
+};
 
-export const editRole = async (id, name, permissions) => {
-  const role = await Role.findByIdAndUpdate(
-    id,
-    { name, permissions },
-    { new: true },
-  );
-  if (!role) throw Object.assign(new Error("Role not found"), { status: 404 });
+// ─── Roles
+export const listRoles = async () => {
+  return await Role.find().select("_id name permissions");
+};
+
+export const addRole = async (name, permissions) => {
+  const role = new Role({ name, permissions });
+  await role.save();
   return role;
 };
 
-export const removeRole = (id) => Role.findByIdAndDelete(id);
-
-// ─── User helpers
-export const listUsers = async (requestingUser, departmentFilter) => {
-  const userRole = await Role.findOne({ name: "USER" });
-  if (!userRole)
-    throw Object.assign(new Error("USER role not found"), { status: 400 });
-
-  const filter = { role: userRole._id, isActive: true };
-  if (departmentFilter && !isHRAdmin(requestingUser)) {
-    Object.assign(filter, departmentFilter);
-  }
-
-  return User.find(filter)
-    .populate("role", "name")
-    .populate("department", "name")
-    .select("-password");
+export const editRole = async (id, name, permissions) => {
+  const role = await Role.findByIdAndUpdate(id, { name, permissions }, { new: true });
+  if (!role) throw new Error("Role not found");
+  return role;
 };
 
-export const addUser = async (body, requestingUser) => {
-  const { name, email, password, department, sidebarPermissions } = body;
-  if (!name || !email)
-    throw Object.assign(new Error("Name and email are required"), {
-      status: 400,
-    });
+export const removeRole = async (id) => {
+  const role = await Role.findByIdAndDelete(id);
+  if (!role) throw new Error("Role not found");
+  return role;
+};
 
-  const role = await Role.findOne({ name: "USER" });
-  if (!role)
-    throw Object.assign(new Error("User role not found"), { status: 400 });
-
-  if (
-    requestingUser.role.name === "ADMIN" &&
-    requestingUser.department &&
-    !isHRAdmin(requestingUser)
-  ) {
-    if (department && department !== requestingUser.department._id.toString()) {
-      throw Object.assign(
-        new Error("Admins can only create users in their own department"),
-        { status: 403 },
-      );
-    }
-    body.department = requestingUser.department._id;
+// ─── Users
+export const listUsers = async (user, departmentFilter) => {
+  const query = { role: { $ne: null } };
+  
+  // If admin (not super admin), filter by department
+  if (user && user.role && departmentFilter) {
+    query.department = departmentFilter;
   }
 
-  if (await User.findOne({ email })) {
-    throw Object.assign(new Error("Email already exists"), { status: 400 });
+  const users = await User.find(query)
+    .select("-password")
+    .populate("role", "name")
+    .populate("department", "name")
+    .lean();
+
+  return { data: users };
+};
+
+export const addUser = async (userData, createdBy) => {
+  const user = new User({
+    ...userData,
+    createdBy,
+  });
+  await user.save();
+  await user.populate("role", "name");
+  await user.populate("department", "name");
+  return user;
+};
+
+export const editUser = async (id, userData, createdBy, departmentFilter) => {
+  const user = await User.findByIdAndUpdate(id, userData, { new: true })
+    .populate("role", "name")
+    .populate("department", "name");
+
+  if (!user) throw new Error("User not found");
+  return user;
+};
+
+export const removeUser = async (id, user) => {
+  const removedUser = await User.findByIdAndDelete(id);
+  if (!removedUser) throw new Error("User not found");
+  return removedUser;
+};
+
+// ─── Admins (Users with ADMIN or SUPER_ADMIN role)
+export const listAdmins = async (user) => {
+  const adminRole = await Role.findOne({ name: "ADMIN" }).select("_id");
+  const superAdminRole = await Role.findOne({ name: "SUPER_ADMIN" }).select("_id");
+
+  const roleIds = [];
+  if (adminRole) roleIds.push(adminRole._id);
+  if (superAdminRole) roleIds.push(superAdminRole._id);
+
+  const admins = await User.find({ role: { $in: roleIds } })
+    .select("-password")
+    .populate("role", "name")
+    .populate("department", "name")
+    .lean();
+
+  return { data: admins };
+};
+
+export const addAdmin = async (adminData, createdBy) => {
+  const adminRole = await Role.findOne({ name: "ADMIN" });
+  if (!adminRole) throw new Error("ADMIN role not found");
+
+  const admin = new User({
+    ...adminData,
+    role: adminRole._id,
+    createdBy,
+  });
+  await admin.save();
+  await admin.populate("role", "name");
+  await admin.populate("department", "name");
+  return admin;
+};
+
+export const editAdmin = async (id, adminData, createdBy) => {
+  const admin = await User.findByIdAndUpdate(id, adminData, { new: true })
+    .populate("role", "name")
+    .populate("department", "name");
+
+  if (!admin) throw new Error("Admin not found");
+  return admin;
+};
+
+export const removeAdmin = async (id, user) => {
+  const admin = await User.findByIdAndDelete(id);
+  if (!admin) throw new Error("Admin not found");
+  return admin;
+};
+
+// ─── Dashboard Stats
+export const getDashboardStats = async (user) => {
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  const tomorrow = new Date(today);
+  tomorrow.setDate(tomorrow.getDate() + 1);
+
+  const todayStr = today.toISOString().split("T")[0];
+
+  const query = {};
+  if (user.role && user.department) {
+    query.department = user.department;
   }
 
-  const pwd = password || "123456";
-  if (pwd.length < 6)
-    throw Object.assign(new Error("Password must be at least 6 characters"), {
-      status: 400,
-    });
+  // Get user stats
+  const totalUsers = await User.countDocuments(query);
+  const activeUsers = await User.countDocuments({ ...query, isActive: true });
 
-  const user = await User.create({
-    name,
-    email,
-    password: pwd,
-    role: role._id,
-    department: body.department,
-    createdBy: requestingUser._id,
-    sidebarPermissions: sidebarPermissions || [],
+  // Get today's attendance
+  const todayAttendance = await Attendance.find({ date: todayStr }).countDocuments();
+  const presentToday = await Attendance.find({
+    date: todayStr,
+    status: { $in: ["CHECKED_IN", "CHECKED_OUT"] },
+  }).countDocuments();
+
+  const lateToday = await Attendance.find({
+    date: todayStr,
+    isLate: true,
+  }).countDocuments();
+
+  // Get pending leaves
+  const pendingLeaves = await Leave.countDocuments({
+    status: "PENDING",
+    ...(query.department && { department: query.department }),
   });
 
-  return User.findById(user._id)
-    .populate("role", "name")
-    .populate("department", "name")
-    .select("-password");
-};
-
-export const editUser = async (id, body, requestingUser, departmentFilter) => {
-  const { name, email, department, sidebarPermissions } = body;
-  const user = await User.findById(id);
-  if (!user) throw Object.assign(new Error("User not found"), { status: 404 });
-
-  if (
-    requestingUser.role.name === "ADMIN" &&
-    requestingUser.department &&
-    !isHRAdmin(requestingUser)
-  ) {
-    if (
-      user.department.toString() !== requestingUser.department._id.toString()
-    ) {
-      throw Object.assign(
-        new Error("You can only manage users in your own department"),
-        { status: 403 },
-      );
-    }
-    if (department && department !== requestingUser.department._id.toString()) {
-      throw Object.assign(
-        new Error("Cannot change user to a different department"),
-        { status: 403 },
-      );
-    }
-  }
-
-  user.name = name || user.name;
-  user.email = email || user.email;
-  if (sidebarPermissions) user.sidebarPermissions = sidebarPermissions;
-  if (!departmentFilter || requestingUser.role.name === "SUPER_ADMIN") {
-    user.department = department || user.department;
-  }
-  await user.save();
-
-  return User.findById(user._id)
-    .populate("role", "name")
-    .populate("department", "name")
-    .select("-password");
-};
-
-export const removeUser = async (id, requestingUser) => {
-  const user = await User.findById(id);
-  if (!user) throw Object.assign(new Error("User not found"), { status: 404 });
-
-  if (
-    requestingUser.role.name === "ADMIN" &&
-    requestingUser.department &&
-    !isHRAdmin(requestingUser)
-  ) {
-    if (
-      user.department.toString() !== requestingUser.department._id.toString()
-    ) {
-      throw Object.assign(
-        new Error("You can only delete users in your own department"),
-        { status: 403 },
-      );
-    }
-  }
-
-  await deleteUserById(id);
-};
-
-// ─── Admin helpers
-export const listAdmins = async (requestingUser) => {
-  const adminRole = await Role.findOne({ name: "ADMIN" });
-  if (!adminRole)
-    throw Object.assign(new Error("ADMIN role not found"), { status: 404 });
-
-  const filter = { role: adminRole._id, isActive: true };
-  if (
-    requestingUser.role.name === "ADMIN" &&
-    requestingUser.department &&
-    !isHRAdmin(requestingUser)
-  ) {
-    filter.department = requestingUser.department._id;
-  }
-
-  return User.find(filter)
-    .populate("role", "name")
-    .populate("department", "name")
-    .select("-password");
-};
-
-export const addAdmin = async (body, requestingUser) => {
-  const { name, email, password, department, sidebarPermissions } = body;
-
-  if (
-    requestingUser.role.name === "ADMIN" &&
-    requestingUser.department &&
-    !isHRAdmin(requestingUser)
-  ) {
-    if (department !== requestingUser.department._id.toString()) {
-      throw Object.assign(
-        new Error("You can only create admins in your own department"),
-        { status: 403 },
-      );
-    }
-  }
-
-  const { createUser } = await import("./userService.js");
-  const user = await createUser(
-    name,
-    email,
-    password || "123456",
-    "ADMIN",
-    department,
-    requestingUser._id,
-  );
-
-  if (sidebarPermissions) {
-    user.sidebarPermissions = sidebarPermissions;
-    await user.save();
-  }
-
-  return User.findById(user._id)
-    .populate("role", "name")
-    .populate("department", "name")
-    .select("-password");
-};
-
-export const editAdmin = async (id, body, requestingUser) => {
-  const { name, email, department, sidebarPermissions } = body;
-  const admin = await User.findById(id);
-  if (!admin)
-    throw Object.assign(new Error("Admin not found"), { status: 404 });
-
-  if (
-    requestingUser.role.name === "ADMIN" &&
-    requestingUser.department &&
-    !isHRAdmin(requestingUser)
-  ) {
-    if (
-      admin.department.toString() !== requestingUser.department._id.toString()
-    ) {
-      throw Object.assign(
-        new Error("You can only update admins in your own department"),
-        { status: 403 },
-      );
-    }
-  }
-
-  const updateData = { name, email, department };
-  if (sidebarPermissions !== undefined)
-    updateData.sidebarPermissions = sidebarPermissions;
-
-  return User.findByIdAndUpdate(id, updateData, { new: true })
-    .populate("role", "name")
-    .populate("department", "name")
-    .select("-password");
-};
-
-export const removeAdmin = async (id, requestingUser) => {
-  const admin = await User.findById(id);
-  if (!admin)
-    throw Object.assign(new Error("Admin not found"), { status: 404 });
-
-  if (
-    requestingUser.role.name === "ADMIN" &&
-    requestingUser.department &&
-    !isHRAdmin(requestingUser)
-  ) {
-    if (
-      admin.department.toString() !== requestingUser.department._id.toString()
-    ) {
-      throw Object.assign(
-        new Error("You can only delete admins in your own department"),
-        { status: 403 },
-      );
-    }
-  }
-
-  const { deleteUserById } = await import("./userService.js");
-  await deleteUserById(id);
-};
-
-// ─── Dashboard stats ──────────────────────────────────────────────────────────
-
-export const getDashboardStats = async (requestingUser) => {
-  const userRole = await Role.findOne({ name: "USER" });
-
-  const filter = { role: userRole?._id, isActive: true };
-  if (
-    requestingUser.role.name === "ADMIN" &&
-    requestingUser.department &&
-    !isHRAdmin(requestingUser)
-  ) {
-    filter.department = requestingUser.department._id;
-  }
-
-  const userCount = await User.countDocuments(filter);
-  const roleCount = await Role.countDocuments();
-
-  let departmentCount = 1;
-  let departmentName = "All Departments";
-
-  if (requestingUser.role.name === "ADMIN" && requestingUser.department) {
-    if (isHRAdmin(requestingUser)) {
-      departmentCount = await Department.countDocuments();
-      departmentName = "All Departments (HR)";
-    } else {
-      const dept = await Department.findById(requestingUser.department._id);
-      departmentName = dept?.name || "Unknown";
-      departmentCount = 1;
-    }
-  } else if (requestingUser.role.name === "SUPER_ADMIN") {
-    departmentCount = await Department.countDocuments();
-  }
-
   return {
-    totalUsers: userCount,
-    departments: departmentCount,
-    activeToday: Math.floor(userCount * 0.3),
-    roles: roleCount,
-    departmentName,
+    totalUsers,
+    activeUsers,
+    todayAttendance,
+    presentToday,
+    lateToday,
+    pendingLeaves,
   };
 };

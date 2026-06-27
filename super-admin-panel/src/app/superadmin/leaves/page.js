@@ -238,19 +238,14 @@ export default function SuperAdminLeaves() {
   const downloadReport = () => {
     const reportData = filteredUsers.map((user) => ({
       Name: user.name || "-",
-      TotalOfficeHours: user.totalHour?.toFixed(1) || "0.0",
-      TotalWorkedHours: user.workingHour?.toFixed(1) || "0.0",
-
-      PLUsed: user.leaveBalance?.usedPL || 0,
-      PLTotal: user.leaveBalance?.PLTotal || 0,
-
-      SLUsed: user.leaveBalance?.usedSL || 0,
-      SLTotal: user.leaveBalance?.SLTotal || 0,
-
-      DLUsed: user.leaveBalance?.usedDL || 0,
-      DLTotal: user.leaveBalance?.DLTotal || 0,
-
-      PendingLeaves: userPendingLeaves[user._id] || 0,
+      "Total Office Hours": user.totalHour?.toFixed(1) || "0.0",
+      "Total Worked Hours": user.workingHour?.toFixed(1) || "0.0",
+      "Total Leaves Applied": user.totalLeavesApplied || 0,
+      "PL (Monthly Used)": user.leaveBalance?.usedPL || 0,
+      "SL (Monthly Used)": user.leaveBalance?.usedSL || 0,
+      "CL (Used)": user.leaveBalance?.monthlyUsedCL || 0,
+      "CL(PL Remaining Used)": user.leaveBalance?.monthlyUsedDL || 0,
+      "PL (Remaining)": user.leaveBalance?.DL || 0,
     }));
 
     const worksheet = XLSX.utils.json_to_sheet(reportData);
@@ -269,7 +264,7 @@ export default function SuperAdminLeaves() {
 
     saveAs(
       fileData,
-      `Employee_Report_${new Date().toISOString().split("T")[0]}.xlsx`,
+      `Employee_Leave_Report_${selectedMonth}_${selectedYear}_${new Date().toISOString().split("T")[0]}.xlsx`,
     );
   };
 
@@ -407,6 +402,9 @@ export default function SuperAdminLeaves() {
                         Total Worked
                       </th>
                       <th className="p-4 text-left text-sm font-semibold text-[var(--text-primary)]">
+                        Total Leaves Applied
+                      </th>
+                      <th className="p-4 text-left text-sm font-semibold text-[var(--text-primary)]">
                         Leave Balance
                       </th>
                       <th className="p-4 text-left text-sm font-semibold text-[var(--text-primary)]">
@@ -453,25 +451,32 @@ export default function SuperAdminLeaves() {
                                 ? `${user.totalHour.toFixed(1)}h`
                                 : "0.0h"}
                             </td>
-                            <td className="p-4">
+                            <td className="p-4 ">
                               {typeof user.workingHour === "number"
                                 ? `${user.workingHour.toFixed(1)}h`
                                 : "0.0h"}
                             </td>
+                            <td className="p-4">{user.totalLeavesApplied}</td>
                             <td className="p-4 text-sm text-[var(--text-primary)]">
                               {user.leaveBalance ? (
-                                <div className="flex gap-2">
+                                <div className="flex gap-2 flex-wrap">
                                   <span className="px-2 py-1 bg-blue-50 text-blue-700 text-xs rounded">
                                     PL: {user.leaveBalance.usedPL || 0}/
+                                    {user.leaveBalance.monthlyPLTotal || 1}
+                                  </span>
+                                  <span className="px-2 py-1 bg-teal-50 text-teal-700 text-xs rounded">
+                                    Remaining PL: {user.leaveBalance.DL || 0}/
                                     {user.leaveBalance.PLTotal || 0}
                                   </span>
                                   <span className="px-2 py-1 bg-green-50 text-green-700 text-xs rounded">
                                     SL: {user.leaveBalance.usedSL || 0}/
-                                    {user.leaveBalance.SLTotal || 0}
+                                    {user.leaveBalance.monthlySLTotal || 1}
+                                  </span>
+                                  <span className="px-2 py-1 bg-orange-50 text-orange-700 text-xs rounded">
+                                    CL: {user.leaveBalance.usedCL || 0}
                                   </span>
                                   <span className="px-2 py-1 bg-purple-50 text-purple-700 text-xs rounded">
-                                    DL: {user.leaveBalance.usedDL || 0}/
-                                    {user.leaveBalance.DLTotal || 0}
+                                    DL: {user.leaveBalance.DL || 0}
                                   </span>
                                 </div>
                               ) : (
@@ -578,7 +583,7 @@ export default function SuperAdminLeaves() {
 
                 {/* Leave Balance */}
                 {selectedUser.leaveBalance && (
-                  <div className="grid grid-cols-4 gap-4 mt-4">
+                  <div className="grid grid-cols-2 md:grid-cols-5 gap-4 mt-4">
                     <div className="bg-blue-50 p-4 rounded-lg">
                       <p className="text-sm text-blue-600 font-semibold">
                         Privilege Leave
@@ -586,13 +591,19 @@ export default function SuperAdminLeaves() {
                       <p className="text-2xl font-bold text-blue-700">
                         {selectedUser.leaveBalance.PL || 0}
                       </p>
+                      <p className="text-xs text-gray-500 mt-1">
+                        Used: {selectedUser.leaveBalance.usedPL || 0}
+                      </p>
                     </div>
                     <div className="bg-green-50 p-4 rounded-lg">
                       <p className="text-sm text-green-600 font-semibold">
                         Casual Leave
                       </p>
                       <p className="text-2xl font-bold text-green-700">
-                        {selectedUser.leaveBalance.CL || 0}
+                        {selectedUser.leaveBalance.usedCL || 0}
+                      </p>
+                      <p className="text-xs text-gray-500 mt-1">
+                        Used: {selectedUser.leaveBalance.usedCL || 0}
                       </p>
                     </div>
                     <div className="bg-yellow-50 p-4 rounded-lg">
@@ -602,6 +613,9 @@ export default function SuperAdminLeaves() {
                       <p className="text-2xl font-bold text-yellow-700">
                         {selectedUser.leaveBalance.SL || 0}
                       </p>
+                      <p className="text-xs text-gray-500 mt-1">
+                        Used: {selectedUser.leaveBalance.usedSL || 0}
+                      </p>
                     </div>
                     <div className="bg-purple-50 p-4 rounded-lg">
                       <p className="text-sm text-purple-600 font-semibold">
@@ -609,6 +623,9 @@ export default function SuperAdminLeaves() {
                       </p>
                       <p className="text-2xl font-bold text-purple-700">
                         {selectedUser.leaveBalance.DL || 0}
+                      </p>
+                      <p className="text-xs text-gray-500 mt-1">
+                        Used: {selectedUser.leaveBalance.usedDL || 0}
                       </p>
                     </div>
                   </div>

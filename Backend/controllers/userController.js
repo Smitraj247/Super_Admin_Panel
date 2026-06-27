@@ -168,7 +168,18 @@ export const createUserController = async (req, res) => {
 };
 
 export const updateUser = async (req, res) => {
+  // Only HR/Super Admin can edit onboarding/leave-relevant dates (probation/joining/leave)
+  // Routes that call updateUser should already enforce role, but we keep an extra server-side guard.
+  if (
+    !req.user ||
+    !["SUPER_ADMIN", "ADMIN"].includes(req.user.role?.name) ||
+    (req.user.role?.name === "ADMIN" && req.user.department?.name !== "HR")
+  ) {
+    return res.status(403).json({ message: "Access denied" });
+  }
+
   const { error } = updateUserValidation(req.body);
+
 
   if (error) {
     return res.status(400).json({

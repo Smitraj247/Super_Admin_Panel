@@ -1,15 +1,10 @@
-import Department from "../models/Department.models.js";
+// Placeholder Department Service
+// TODO: Implement department service functions
 
-export const createDepartmentService = async (name, description, createdBy) => {
-  const department = await Department.create({
-    name,
-    description,
-    createdBy,
-  });
-
-  return department;
+export const createDepartmentService = async (name, description) => {
+  throw new Error("createDepartmentService not implemented");
 };
 
 export const getDepartmentsService = async () => {
-  return await Department.find();
+  throw new Error("getDepartmentsService not implemented");
 };

@@ -8,7 +8,7 @@ import { emitEvent, SocketEvents } from "../utils/socketEmitter.js";
 
 /**
  * Get the current time of day in IST to determine which half-day it is
- * @returns {number} - 0 for FIRST_HALF (before 12:30), 1 for SECOND_HALF (after 12:30)
+ * @returns {string} - 'FIRST_HALF' (before 12:30) or 'SECOND_HALF' (after 12:30)
  */
 const getCurrentHalfDayPeriod = () => {
   const now = new Date();
@@ -20,7 +20,7 @@ const getCurrentHalfDayPeriod = () => {
   }).formatToParts(now);
   const hour = Number(istParts.find((p) => p.type === "hour").value);
   const minute = Number(istParts.find((p) => p.type === "minute").value);
-  // Assume 8.5h day: FIRST_HALF is up to 12:30, SECOND_HALF after
+
   if (hour < 12 || (hour === 12 && minute < 30)) {
     return "FIRST_HALF";
   }
@@ -39,7 +39,6 @@ export const canUserCheckIn = async (userId) => {
   const todayStart = new Date(todayStr + "T00:00:00.000Z");
   const todayEnd = new Date(todayStr + "T23:59:59.999Z");
 
-  // Find any approved leave that includes today
   const todayLeaves = await Leave.find({
     user: userId,
     status: "APPROVED",
@@ -51,17 +50,14 @@ export const canUserCheckIn = async (userId) => {
     return { canCheckIn: true, reason: null };
   }
 
-  // Check each leave
   for (const leave of todayLeaves) {
     if (!leave.isHalfDay) {
-      // Full-day leave: cannot check in
       return {
         canCheckIn: false,
         reason: "You are on full-day leave today.",
       };
     }
 
-    // Half-day leave: check which period it's for
     const currentPeriod = getCurrentHalfDayPeriod();
     if (leave.halfDayPeriod === currentPeriod) {
       return {
@@ -113,28 +109,37 @@ export const checkOverlap = async (
 /**
  * Adjust (deduct or restore) a user's leave balance.
  * direction: -1 to deduct, +1 to restore
+ * if usesCarriedPL is true, deduct/restore from PL balance instead of CL
+ * DL is deducted from PL balance
  */
 export const adjustLeaveBalance = async (
   userId,
   leaveType,
   days,
   direction,
+  usesCarriedPL = false,
 ) => {
   const user = await User.findById(userId);
   if (!user) throw new Error("User not found");
 
-  if (user.leaveBalance[leaveType] === undefined) {
-    throw new Error(`Invalid leave type: ${leaveType}`);
+  // If it's CL using carried PL OR DL, adjust PL balance instead
+  const actualLeaveType =
+    (leaveType === "CL" && usesCarriedPL) || leaveType === "DL"
+      ? "PL"
+      : leaveType;
+
+  if (user.leaveBalance[actualLeaveType] === undefined) {
+    throw new Error(`Invalid leave type: ${actualLeaveType}`);
   }
 
-  // CL is unlimited (sentinel 9999) — never adjust its numeric balance
-  if (leaveType === "CL") return user;
+  // Regular CL is unlimited (sentinel 9999) — never adjust its numeric balance
+  if (leaveType === "CL" && !usesCarriedPL) return user;
 
-  if (direction === -1 && user.leaveBalance[leaveType] < days) {
-    throw new Error(`Insufficient leave balance for user`);
+  if (direction === -1 && user.leaveBalance[actualLeaveType] < days) {
+    throw new Error(`Insufficient ${actualLeaveType} balance for user`);
   }
 
-  user.leaveBalance[leaveType] += direction * days;
+  user.leaveBalance[actualLeaveType] += direction * days;
   await user.save();
   return user;
 };
@@ -204,24 +209,19 @@ export const notifyNewLeave = async (
 };
 
 /**
- * Check monthly PL/SL application limit (max 1 day per month).
+ * Get monthly usage stats (PL used, carried PL used as CL, etc.)
  */
-export const checkMonthlyLimit = async (
+export const getMonthlyUsageStats = async (
   userId,
-  leaveType,
-  fromDate,
-  leaveDays = 0,
+  year,
+  month,
   excludeId = null,
 ) => {
-  if (leaveType !== "PL" && leaveType !== "SL") return null;
-
-  const from = new Date(fromDate);
-  const startOfMonth = new Date(from.getFullYear(), from.getMonth(), 1);
-  const endOfMonth = new Date(from.getFullYear(), from.getMonth() + 1, 0);
+  const startOfMonth = new Date(year, month, 1);
+  const endOfMonth = new Date(year, month + 1, 0);
 
   const query = {
     user: userId,
-    leaveType,
     status: { $in: ["PENDING", "APPROVED"] },
     fromDate: { $gte: startOfMonth, $lte: endOfMonth },
   };
@@ -229,27 +229,115 @@ export const checkMonthlyLimit = async (
   if (excludeId) query._id = { $ne: excludeId };
 
   const leaves = await Leave.find(query);
-  const totalDaysUsed = leaves.reduce(
-    (sum, l) => sum + calcLeaveDays(l.fromDate, l.toDate, l.isHalfDay),
-    0,
+
+  let plUsed = 0;
+  let carriedPLUsed = 0;
+
+  for (const leave of leaves) {
+    const days = calcLeaveDays(leave.fromDate, leave.toDate, leave.isHalfDay);
+    if (leave.leaveType === "PL") {
+      plUsed += days;
+    }
+    if (leave.leaveType === "CL" && leave.usesCarriedPL) {
+      carriedPLUsed += days;
+    }
+  }
+
+  return { plUsed, carriedPLUsed };
+};
+
+/**
+ * Check monthly leave limits (PL:1, SL:1, DL:1, carried PL as CL:1 per month)
+ */
+export const checkMonthlyLimit = async (
+  userId,
+  leaveType,
+  fromDate,
+  leaveDays = 0,
+  excludeId = null,
+  usesCarriedPL = false,
+) => {
+  const from = new Date(fromDate);
+  const year = from.getFullYear();
+  const month = from.getMonth();
+
+  const { plUsed, carriedPLUsed } = await getMonthlyUsageStats(
+    userId,
+    year,
+    month,
+    excludeId,
   );
 
-  if (totalDaysUsed + leaveDays > 1) {
-    return `Maximum 1 ${leaveType} day allowed per month. Already applied ${totalDaysUsed} day(s) this month.`;
+  if (leaveType === "PL" && plUsed + leaveDays > 1) {
+    return `Maximum 1 PL day allowed per month. Already applied ${plUsed} day(s) this month.`;
   }
+
+    if (leaveType === "SL") {
+      const slQuery = {
+        user: userId,
+        leaveType: "SL",
+        status: { $in: ["PENDING", "APPROVED"] },
+        fromDate: {
+          $gte: new Date(year, month, 1),
+          $lte: new Date(year, month + 1, 0),
+        },
+      };
+      if (excludeId) slQuery._id = { $ne: excludeId };
+
+      const slLeaves = await Leave.find(slQuery);
+      const slUsed = slLeaves.reduce(
+        (sum, l) => sum + calcLeaveDays(l.fromDate, l.toDate, l.isHalfDay),
+        0,
+      );
+      if (slUsed + leaveDays > 1) {
+        return `Maximum 1 SL day allowed per month. Already applied ${slUsed} day(s) this month.`;
+      }
+    }
+
+    if (leaveType === "DL") {
+      const dlQuery = {
+        user: userId,
+        leaveType: "DL",
+        status: { $in: ["PENDING", "APPROVED"] },
+        fromDate: {
+          $gte: new Date(year, month, 1),
+          $lte: new Date(year, month + 1, 0),
+        },
+      };
+      if (excludeId) dlQuery._id = { $ne: excludeId };
+
+      const dlLeaves = await Leave.find(dlQuery);
+      const dlUsed = dlLeaves.reduce(
+        (sum, l) => sum + calcLeaveDays(l.fromDate, l.toDate, l.isHalfDay),
+        0,
+      );
+      if (dlUsed + leaveDays > 1) {
+        return `Maximum 1 DL day allowed per month. Already applied ${dlUsed} day(s) this month.`;
+      }
+    }
+
+    if (leaveType === "CL" && usesCarriedPL && carriedPLUsed + leaveDays > 1) {
+    return `Maximum 1 carried forward PL day can be used as CL per month. Already used ${carriedPLUsed} day(s) this month.`;
+  }
+
   return null;
 };
 
 /**
  * Calculate DL balance dynamically on-the-fly.
- * It checks the missed months in the current cycle from joining date up to the start of the specified month (or current month if not provided).
+ * Uses probation start date to determine when leave credits begin.
+ * DL is earned from unused PL months.
  */
 export const calculateDynamicDL = async (userId, year, month) => {
   const user = await User.findById(userId);
   if (!user) throw new Error("User not found");
 
+  // DL/PL/SL eligibility is tied to probation start date.
+  if (!user.probationStartDate) {
+    return { netDL: 0, grossDL: 0, dlUsed: 0, breakdown: { PL: [], SL: [] } };
+  }
+
   const now = new Date();
-  // Use provided year/month if available, otherwise current
   const targetYear = year || now.getFullYear();
   const targetMonth = month || now.getMonth() + 1;
   const targetMonthStart = new Date(targetYear, targetMonth - 1, 1);
@@ -258,12 +346,12 @@ export const calculateDynamicDL = async (userId, year, month) => {
       ? new Date(targetYear, 0, 1)
       : new Date(targetYear, 6, 1);
 
-  const joiningDate = user.joiningDate
-    ? new Date(user.joiningDate)
-    : new Date(user.createdAt);
+  // Leave credits start after probation (bonding) begins - use probationStartDate
+  const effectiveDate = new Date(user.probationStartDate);
+
   const joiningMonthStart = new Date(
-    joiningDate.getFullYear(),
-    joiningDate.getMonth(),
+    effectiveDate.getFullYear(),
+    effectiveDate.getMonth(),
     1,
   );
 
@@ -316,100 +404,136 @@ export const calculateDynamicDL = async (userId, year, month) => {
         0,
       );
 
-    const slUsed = leaves
-      .filter(
-        (l) =>
-          l.leaveType === "SL" &&
-          new Date(l.fromDate) >= startOfMonth &&
-          new Date(l.fromDate) <= endOfMonth,
-      )
-      .reduce(
-        (acc, l) => acc + calcLeaveDays(l.fromDate, l.toDate, l.isHalfDay),
-        0,
-      );
-
     const unusedPL = Math.max(0, 1 - plUsed);
-    const unusedSL = Math.max(0, 1 - slUsed);
 
     if (unusedPL > 0) {
       grossDL += unusedPL;
       breakdown.PL.push(monthNames[month]);
     }
-    if (unusedSL > 0) {
-      grossDL += unusedSL;
-      breakdown.SL.push(monthNames[month]);
-    }
 
-    processDate = new Date(year, month + 1, 1);
+    processDate.setMonth(processDate.getMonth() + 1);
   }
 
-  const dlLeaves = leaves.filter(
-    (l) => l.leaveType === "DL" && new Date(l.fromDate) >= cycleStart,
-  );
-  const dlUsed = dlLeaves.reduce(
-    (acc, l) => acc + calcLeaveDays(l.fromDate, l.toDate, l.isHalfDay),
-    0,
-  );
+  const dlUsed = leaves
+    .filter((l) => l.leaveType === "DL")
+    .reduce(
+      (acc, l) => acc + calcLeaveDays(l.fromDate, l.toDate, l.isHalfDay),
+      0,
+    );
 
-  const netDL = Math.max(0, grossDL - dlUsed);
-
-  return { netDL, grossDL, dlUsed, breakdown };
+  return {
+    netDL: grossDL - dlUsed,
+    grossDL,
+    dlUsed,
+    breakdown,
+  };
 };
 
 /**
- * Check DL eligibility.
- * DL is an accumulated balance credited dynamically from unused PL+SL each month.
- *
- * @param {ObjectId} userId
- * @param {Date}     fromDate
- * @param {number}   days  - number of DL days requested
+ * Check DL eligibility — verify user has enough DL balance
  */
 export const checkDLEligibility = async (userId, fromDate, days = 1) => {
   const { netDL } = await calculateDynamicDL(userId);
   if (netDL < days) {
-    return `Insufficient DL balance. Available: ${netDL}, Required: ${days}. DL is credited from unused monthly PL and SL allowances.`;
+    return `Insufficient DL balance. Available: ${netDL}, Required: ${days}. DL is credited from unused monthly PL allowances.`;
   }
   return null;
 };
 
 /**
- * When a half-day leave is approved, upsert an attendance record
- * with status HALF_DAY_LEAVE for that date so it appears in
- * attendance pages and summary counts.
- *
- * When a half-day leave is un-approved (rejected/cancelled), remove
- * the HALF_DAY_LEAVE attendance record if no real check-in exists.
- *
- * @param {ObjectId} userId
- * @param {Date}     leaveDate  - the date of the half-day leave
- * @param {'mark'|'unmark'} action
+ * Helper to convert Date to YYYY-MM-DD string (local time)
  */
-export const markHalfDayAttendance = async (userId, leaveDate, action) => {
-  const dateStr = new Intl.DateTimeFormat("en-CA", {
-    timeZone: "Asia/Kolkata",
-  }).format(new Date(leaveDate));
+const toDateStr = (d) => {
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+};
 
-  if (action === "mark") {
-    // Upsert: if a real check-in exists keep it, just set status
-    await Attendance.findOneAndUpdate(
-      { userId, date: dateStr },
-      {
-        $set: { status: "HALF_DAY_LEAVE" },
-        $setOnInsert: { userId, date: dateStr },
-      },
-      { upsert: true, new: true },
-    );
-  } else {
-    // Only remove/revert if no real check-in is recorded
-    const record = await Attendance.findOne({ userId, date: dateStr });
-    if (record) {
-      if (!record.checkIn) {
-        await Attendance.deleteOne({ _id: record._id });
+/**
+ * Helper to create Date from YYYY-MM-DD string (local time, no timezone shift)
+ */
+const localDate = (dateStr) => {
+  const [y, m, d] = dateStr.split("-").map(Number);
+  return new Date(y, m - 1, d);
+};
+
+// We need to import recalculateRecordStatus? Wait recalculateRecordStatus is in attendanceService.js, but we can't import it here due to circular dependency! Let's replicate the logic for unmark, or fix!
+
+/**
+ * Mark/Unmark leave in attendance records (handles both full-day and half-day)
+ */
+export const markLeaveAttendance = async (
+  userId,
+  fromDate,
+  toDate,
+  isHalfDay,
+  halfDayPeriod,
+  action,
+) => {
+  const lc = localDate(toDateStr(new Date(fromDate)));
+  const le = localDate(toDateStr(new Date(toDate)));
+
+  while (lc <= le) {
+    const dateStr = toDateStr(lc);
+
+    if (action === "mark") {
+      const existingAttendance = await Attendance.findOne({
+        userId,
+        date: dateStr,
+      });
+
+      if (existingAttendance) {
+        if (isHalfDay) {
+          existingAttendance.status = "HALF_DAY_LEAVE";
+        } else {
+          existingAttendance.checkIn = null;
+          existingAttendance.checkOut = null;
+          existingAttendance.breaks = [];
+          existingAttendance.status = "ON_LEAVE";
+        }
+        await existingAttendance.save();
       } else {
-        // Real check-in exists — revert status back to CHECKED_OUT or CHECKED_IN
-        record.status = record.checkOut ? "CHECKED_OUT" : "CHECKED_IN";
-        await record.save();
+        await Attendance.create({
+          userId,
+          date: dateStr,
+          checkIn: null,
+          checkOut: null,
+          breaks: [],
+          status: isHalfDay ? "HALF_DAY_LEAVE" : "ON_LEAVE",
+        });
+      }
+    } else {
+      // Unmark action
+      const record = await Attendance.findOne({ userId, date: dateStr });
+      if (record) {
+        if (!record.checkIn) {
+          await Attendance.deleteOne({ _id: record._id });
+        } else {
+          // Recalculate status properly
+          if (record.checkOut) {
+            record.status = "CHECKED_OUT";
+          } else {
+            const hasActiveBreak = (record.breaks || []).some(
+              (b) => b.breakIn && !b.breakOut,
+            );
+            if (hasActiveBreak) {
+              record.status = "ON_BREAK";
+            } else if ((record.breaks || []).length > 0) {
+              record.status = "BACK_TO_WORK";
+            } else {
+              record.status = record.isLate ? "LATE" : "CHECKED_IN";
+            }
+          }
+          await record.save();
+        }
       }
     }
+
+    lc.setDate(lc.getDate() + 1);
   }
+};
+
+/**
+ * Mark/Unmark half-day leave in attendance records (backward compatible)
+ */
+export const markHalfDayAttendance = async (userId, leaveDate, action) => {
+  await markLeaveAttendance(userId, leaveDate, leaveDate, true, null, action);
 };

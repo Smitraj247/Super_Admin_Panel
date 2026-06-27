@@ -558,29 +558,9 @@ export const getAllUsersWithLeaves = async (req, res) => {
       }
     });
 
-    // Fetch all leaves for the specified period
-    const leaves = await Leave.find({
-      ...leaveQuery,
+    // Fetch all leaves (for all cycles) to calculate total used
+    const allLeaves = await Leave.find({
       status: { $in: ["APPROVED", "PENDING"] },
-    });
-    const userLeaveStats = {};
-    leaves.forEach((leave) => {
-      const uid = leave.user.toString();
-      if (!userLeaveStats[uid]) {
-        userLeaveStats[uid] = { usedPL: 0, usedSL: 0, usedDL: 0 };
-      }
-      const leaveDays = calcLeaveDays(
-        leave.fromDate,
-        leave.toDate,
-        leave.isHalfDay,
-      );
-      if (leave.leaveType === "PL") {
-        userLeaveStats[uid].usedPL += leaveDays;
-      } else if (leave.leaveType === "SL") {
-        userLeaveStats[uid].usedSL += leaveDays;
-      } else if (leave.leaveType === "DL") {
-        userLeaveStats[uid].usedDL += leaveDays;
-      }
     });
 
     // Get pending leave counts for each user and calculate leave balances with used/total
@@ -614,10 +594,12 @@ export const getAllUsersWithLeaves = async (req, res) => {
         const isFirstHalf = targetMonth < 6;
         const cycleStartMonth = isFirstHalf ? 0 : 6;
         const cycleEndMonth = isFirstHalf ? 5 : 11;
+        const cycleStart = new Date(targetYear, cycleStartMonth, 1);
+        const cycleEnd = new Date(targetYear, cycleEndMonth + 1, 0);
 
         // Calculate allocated PL/SL
-        const joiningDate = user.joiningDate
-          ? new Date(user.joiningDate)
+        const joiningDate = user.probationStartDate
+          ? new Date(user.probationStartDate)
           : new Date(user.createdAt);
         const joiningYear = joiningDate.getFullYear();
         const joiningMonth = joiningDate.getMonth();
@@ -628,39 +610,97 @@ export const getAllUsersWithLeaves = async (req, res) => {
           (joiningYear < targetYear && cycleStartMonth === 0) ||
           (joiningYear > targetYear && cycleStartMonth === 6);
 
-        let allocatedPL = 6;
-        let allocatedSL = 6;
+        let allocatedCyclePL = 6;
+        let allocatedCycleSL = 6;
 
         if (userJoinedInCurrentCycle && joiningYear === targetYear) {
           const monthsRemaining = cycleEndMonth - joiningMonth + 1;
-          allocatedPL = monthsRemaining;
-          allocatedSL = monthsRemaining;
+          allocatedCyclePL = monthsRemaining;
+          allocatedCycleSL = monthsRemaining;
         }
 
-        // Get used leaves for this user
-        const usedStats = userLeaveStats[user._id.toString()] || {
-          usedPL: 0,
-          usedSL: 0,
-          usedDL: 0,
-        };
+        // Calculate monthly used PL/SL for the selected month
+        const monthlyStart =
+          year && month
+            ? new Date(parseInt(year), parseInt(month) - 1, 1)
+            : null;
+        const monthlyEnd =
+          year && month
+            ? new Date(parseInt(year), parseInt(month), 0, 23, 59, 59)
+            : null;
+
+        let monthlyUsedPL = 0;
+        let monthlyUsedSL = 0;
+        let monthlyUsedDL = 0;
+        let monthlyUsedCL = 0;
+        let monthlyLeavesApplied = 0;
+        let cycleUsedPL = 0;
+        let cycleUsedSL = 0;
+        let cycleUsedDL = 0;
+        let cycleUsedCL = 0;
+        let cycleUsedCarriedPLAsCL = 0;
+        let totalLeavesApplied = 0;
+
+        for (const leave of allLeaves) {
+          if (leave.user.toString() !== user._id.toString()) continue;
+          totalLeavesApplied += 1;
+          const leaveDays = calcLeaveDays(
+            leave.fromDate,
+            leave.toDate,
+            leave.isHalfDay,
+          );
+
+          // Monthly used (selected year/month)
+          if (monthlyStart && monthlyEnd) {
+            const leaveFrom = new Date(leave.fromDate);
+            if (leaveFrom >= monthlyStart && leaveFrom <= monthlyEnd) {
+              monthlyLeavesApplied += 1;
+              if (leave.leaveType === "PL") monthlyUsedPL += leaveDays;
+              if (leave.leaveType === "SL") monthlyUsedSL += leaveDays;
+              if (leave.leaveType === "DL") monthlyUsedDL += leaveDays;
+              if (leave.leaveType === "CL") monthlyUsedCL += leaveDays;
+            }
+          }
+
+          // Cycle used
+          const leaveFromCycle = new Date(leave.fromDate);
+          if (leaveFromCycle >= cycleStart && leaveFromCycle <= cycleEnd) {
+            if (leave.leaveType === "PL") cycleUsedPL += leaveDays;
+            if (leave.leaveType === "SL") cycleUsedSL += leaveDays;
+            if (leave.leaveType === "DL") cycleUsedDL += leaveDays;
+            if (leave.leaveType === "CL") {
+              cycleUsedCL += leaveDays;
+              if (leave.usesCarriedPL) cycleUsedCarriedPLAsCL += leaveDays;
+            }
+          }
+        }
 
         return {
           ...user.toObject(),
           pendingLeaveCount: pendingCount,
           workingHour,
           totalHour,
+          totalLeavesApplied: monthlyStart
+            ? monthlyLeavesApplied
+            : totalLeavesApplied,
           leaveBalance: {
-            PL: user.leaveBalance?.PL || 0,
+            PL: user.leaveBalance?.PL || 0, // Remaining PL balance
             CL: user.leaveBalance?.CL || 0,
             SL: user.leaveBalance?.SL || 0,
             DL: dlStats.netDL,
-            usedPL: usedStats.usedPL,
-            usedSL: usedStats.usedSL,
-            usedDL: usedStats.usedDL,
-            PLTotal: allocatedPL,
+            usedPL: monthlyUsedPL,
+            usedSL: monthlyUsedSL,
+            monthlyUsedCL,
+            monthlyUsedDL,
+            usedDL: cycleUsedDL,
+            usedCL: cycleUsedCL,
+            usedCarriedPLAsCL: cycleUsedCarriedPLAsCL,
+            PLTotal: allocatedCyclePL,
             CLTotal: 9999, // unlimited
-            SLTotal: allocatedSL,
+            SLTotal: allocatedCycleSL,
             DLTotal: dlStats.grossDL,
+            monthlyPLTotal: 1, // Always 1 per month
+            monthlySLTotal: 1, // Always 1 per month
           },
         };
       }),
@@ -741,8 +781,8 @@ export const getUserLeaveHistory = async (req, res) => {
       allocatedSL = monthsRemaining;
     }
 
-    // Calculate used PL/SL
-    const [cyclePLLeaves, cycleSLLeaves] = await Promise.all([
+    // Calculate used PL/SL/CL
+    const [cyclePLLeaves, cycleSLLeaves, cycleCLLeaves] = await Promise.all([
       Leave.find({
         user: user._id,
         leaveType: "PL",
@@ -752,6 +792,12 @@ export const getUserLeaveHistory = async (req, res) => {
       Leave.find({
         user: user._id,
         leaveType: "SL",
+        status: { $in: ["PENDING", "APPROVED"] },
+        fromDate: { $gte: cycleStart, $lte: cycleEnd },
+      }),
+      Leave.find({
+        user: user._id,
+        leaveType: "CL",
         status: { $in: ["PENDING", "APPROVED"] },
         fromDate: { $gte: cycleStart, $lte: cycleEnd },
       }),
@@ -765,6 +811,18 @@ export const getUserLeaveHistory = async (req, res) => {
     const usedSL = cycleSLLeaves.reduce(
       (acc, leave) =>
         acc + calcLeaveDays(leave.fromDate, leave.toDate, leave.isHalfDay),
+      0,
+    );
+    const usedCL = cycleCLLeaves.reduce(
+      (acc, leave) =>
+        acc + calcLeaveDays(leave.fromDate, leave.toDate, leave.isHalfDay),
+      0,
+    );
+    const usedCarriedPLAsCL = cycleCLLeaves.reduce(
+      (acc, leave) =>
+        leave.usesCarriedPL
+          ? acc + calcLeaveDays(leave.fromDate, leave.toDate, leave.isHalfDay)
+          : acc,
       0,
     );
     const remainingPL = user.leaveBalance?.PL || 0;
@@ -787,15 +845,50 @@ export const getUserLeaveHistory = async (req, res) => {
       DL: dlStats.netDL,
     };
 
+    // Calculate monthly used PL/SL for selected month
+    const monthlyStart =
+      year && month ? new Date(parseInt(year), parseInt(month) - 1, 1) : null;
+    const monthlyEnd =
+      year && month
+        ? new Date(parseInt(year), parseInt(month), 0, 23, 59, 59)
+        : null;
+
+    let monthlyUsedPL = 0;
+    let monthlyUsedSL = 0;
+
+    if (monthlyStart && monthlyEnd) {
+      const monthlyLeaves = await Leave.find({
+        user: user._id,
+        status: { $in: ["APPROVED", "PENDING"] },
+        fromDate: { $gte: monthlyStart, $lte: monthlyEnd },
+      });
+
+      for (const leave of monthlyLeaves) {
+        const leaveDays = calcLeaveDays(
+          leave.fromDate,
+          leave.toDate,
+          leave.isHalfDay,
+        );
+        if (leave.leaveType === "PL") monthlyUsedPL += leaveDays;
+        if (leave.leaveType === "SL") monthlyUsedSL += leaveDays;
+      }
+    }
+
     // Update user's leaveBalance to include totals and dynamic DL
     const userWithLeaveInfo = {
       ...user.toObject(),
       leaveBalance: {
         ...remaining,
+        usedPL: monthlyUsedPL,
+        usedSL: monthlyUsedSL,
+        usedCL: usedCL,
+        usedCarriedPLAsCL: usedCarriedPLAsCL,
         PLTotal: leaveTotals.PL,
         CLTotal: leaveTotals.CL,
         SLTotal: leaveTotals.SL,
         DLTotal: leaveTotals.DL,
+        monthlyPLTotal: 1,
+        monthlySLTotal: 1,
       },
       cycleInfo: {
         cycleLabel: `${new Date(targetYear, cycleStartMonth).toLocaleString("en-US", { month: "long" })}–${new Date(targetYear, cycleEndMonth).toLocaleString("en-US", { month: "long", year: "numeric" })}`,
@@ -805,6 +898,8 @@ export const getUserLeaveHistory = async (req, res) => {
         allocatedSL,
         usedPL,
         usedSL,
+        usedCL,
+        usedCarriedPLAsCL,
         remainingPL,
         remainingSL,
         carriedForwardPL,

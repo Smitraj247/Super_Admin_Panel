@@ -61,9 +61,32 @@ export const autoRefillLeaves = async (req, res, next) => {
 
     const now = new Date();
     const currentCycleStart = getCurrentCycleStart(now);
-    const joiningDate = user.joiningDate
-      ? new Date(user.joiningDate)
-      : new Date(user.createdAt);
+
+    // Leaves (PL/SL/DL) are available only after probation bonding starts.
+    // If probationStartDate is missing, user can only take CL.
+    const isLeavesOnboarded = !!user.probationStartDate;
+
+    if (!isLeavesOnboarded) {
+      user.leaveBalance.PL = 0;
+      user.leaveBalance.SL = 0;
+      user.leaveBalance.DL = 0;
+      user.leaveBalance.CL = 9999;
+
+      // Save to database to ensure consistency
+      await user.save();
+
+      // Do not advance lastCycleRefill while not onboarded.
+      req.user.leaveBalance = user.leaveBalance;
+      return next();
+    }
+
+    // Leave credits start after probation (bonding) begins.
+    const effectiveDate = user.probationStartDate
+      ? new Date(user.probationStartDate)
+      : user.joiningDate
+        ? new Date(user.joiningDate)
+        : new Date(user.createdAt);
+
     const userLastCycleRefill = user.lastCycleRefill
       ? new Date(user.lastCycleRefill)
       : null;
@@ -71,12 +94,13 @@ export const autoRefillLeaves = async (req, res, next) => {
     // If user has no lastCycleRefill, or lastCycleRefill is before the user's joining date!
     if (
       !user.lastCycleRefill ||
-      (userLastCycleRefill && userLastCycleRefill < joiningDate)
+      (userLastCycleRefill && userLastCycleRefill < effectiveDate)
     ) {
       // Pro-rate PL/SL for the current cycle
-      const joiningMonth = joiningDate.getMonth();
+      const joiningMonth = effectiveDate.getMonth();
       const cycleStartMonth = currentCycleStart.getMonth();
       const proRated = getProRatedLeave(joiningMonth, cycleStartMonth);
+
       user.leaveBalance.PL = proRated;
       user.leaveBalance.SL = proRated;
       user.lastCycleRefill = currentCycleStart;

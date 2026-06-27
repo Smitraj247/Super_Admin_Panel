@@ -16,6 +16,7 @@ import {
   fetchUserAttendanceById,
   adminAddBreaks,
   adminCreateBreak,
+  adminCreateOrUpdateAttendance,
 } from "../services/attendanceService.js";
 import AuditLog from "../models/AuditLogs.models.js";
 
@@ -240,7 +241,7 @@ export const getUserAttendanceById = async (req, res) => {
   }
 };
 
-// ─── Admin Break Management                                                                                                     
+// ─── Admin Break Management
 /**
  * POST /attendance/:id/breaks
  * Super Admin / HR Admin: Add break entries to an existing attendance record
@@ -288,6 +289,40 @@ export const adminCreateBreakEntry = async (req, res) => {
     res
       .status(err.status || 500)
       .json({ message: err.message || "Error creating break entry" });
+  }
+};
+
+/**
+ * POST /attendance/user/:userId/create
+ * Super Admin / HR Admin: Create or update attendance with check-in/check-out.
+ */
+export const adminCreateAttendanceEntry = async (req, res) => {
+  try {
+    const { userId } = req.params;
+    const { date, checkIn, checkOut, breaks } = req.body;
+    const result = await adminCreateOrUpdateAttendance(userId, date, {
+      checkIn,
+      checkOut,
+      breaks,
+    });
+    await createAuditLog(req, "CREATE_ATTENDANCE_ENTRY", {
+      targetUserId: userId,
+      date,
+      checkIn,
+      checkOut,
+      isNewRecord: result.isNewRecord,
+    });
+    res.json({
+      message: result.isNewRecord
+        ? "Attendance record created successfully"
+        : "Attendance record updated successfully",
+      record: result.record,
+      isNewRecord: result.isNewRecord,
+    });
+  } catch (err) {
+    res
+      .status(err.status || 500)
+      .json({ message: err.message || "Error creating attendance entry" });
   }
 };
 

@@ -4,6 +4,7 @@ import bcrypt from "bcryptjs";
 const userSchema = new mongoose.Schema(
   {
     name: { type: String, required: true, trim: true },
+
     email: {
       type: String,
       required: true,
@@ -41,14 +42,16 @@ const userSchema = new mongoose.Schema(
     isActive: { type: Boolean, default: true },
     lastLogin: { type: Date },
     joiningDate: { type: Date },
+    // probationStartDate = bonding/onboarding start. After this, PL/SL/DL are enabled.
+    probationStartDate: { type: Date },
     probationEndDate: { type: Date },
+
     totalHour: { type: Number, default: 0 },
     workingHour: { type: Number, default: 0 },
     leaveBalance: {
-      PL: { type: Number, default: 6 },
-      // 9999 is the sentinel value meaning "unlimited" for CL
+      PL: { type: Number, default: 0 },
       CL: { type: Number, default: 9999 },
-      SL: { type: Number, default: 6 },
+      SL: { type: Number, default: 0 },
       DL: { type: Number, default: 0 },
     },
     lastLeaveRefill: { type: Date, default: Date.now },
@@ -87,14 +90,10 @@ const userSchema = new mongoose.Schema(
 
 userSchema.pre("save", async function () {
   // Only hash password if modified
-  if (!this.isModified("password")) {
-    return;
-  }
+  if (!this.isModified("password")) return;
 
-  // Skip if already hashed
-  if (this.password && this.password.startsWith("$2")) {
-    return;
-  }
+  // Skip if already hashed (bcrypt hashes start with $2a/$2b/$2y)
+  if (this.password && /^\$2[aby]\$/.test(this.password)) return;
 
   try {
     const salt = await bcrypt.genSalt(10);

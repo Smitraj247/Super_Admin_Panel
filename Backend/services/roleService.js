@@ -1,30 +1,18 @@
-import Role from "../models/Roles.models.js";
+// Placeholder Role Service
+// TODO: Implement role service functions
 
-export const createRoleService = async (name, permissions) => {
-  const role = await Role.create({
-    name,
-    permissions,
-  });
-
-  return role;
+export const createRoleService = async (roleData) => {
+  throw new Error("createRoleService not implemented");
 };
 
 export const getAllRoles = async () => {
-  return await Role.find();
+  throw new Error("getAllRoles not implemented");
 };
 
-export const updateRoleService = async (id, name, permissions) => {
-  const role = await Role.findByIdAndUpdate(
-    id,
-    { name, permissions },
-    { new: true },
-  );
-
-  return role;
+export const updateRoleService = async (id, roleData) => {
+  throw new Error("updateRoleService not implemented");
 };
 
 export const deleteRoleService = async (id) => {
-  const role = await Role.findByIdAndDelete(id);
-
-  return role;
+  throw new Error("deleteRoleService not implemented");
 };

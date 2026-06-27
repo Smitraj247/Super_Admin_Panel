@@ -23,16 +23,16 @@ const localDate = (dateStr) => {
 
 async function cleanUpAttendance() {
   try {
-    console.log("🚀 Starting Attendance Cleanup\n");
+    console.log(" Starting Attendance Cleanup\n");
 
     await mongoose.connect(process.env.MONGO_URL);
-    console.log("✅ Connected to MongoDB\n");
+    console.log(" Connected to MongoDB\n");
 
     const todayStr = getToday();
-    console.log("📅 Today is:", todayStr);
+    console.log(" Today is:", todayStr);
 
     // 1. Delete future attendance records
-    console.log("📌 Step 1: Finding future attendance records...");
+    console.log(" Step 1: Finding future attendance records...");
     const futureRecords = await Attendance.find({
       date: { $gt: todayStr },
     });
@@ -40,18 +40,18 @@ async function cleanUpAttendance() {
 
     if (futureRecords.length > 0) {
       await Attendance.deleteMany({ date: { $gt: todayStr } });
-      console.log("✅ Deleted future records\n");
+      console.log(" Deleted future records\n");
     }
 
     // 2. Find all attendance records marked as HALF_DAY_LEAVE or ON_LEAVE
-    console.log("📌 Step 2: Finding leave attendance records...");
+    console.log(" Step 2: Finding leave attendance records...");
     const leaveAttendanceRecords = await Attendance.find({
       status: { $in: ["HALF_DAY_LEAVE", "ON_LEAVE"] },
     });
     console.log(`  Found ${leaveAttendanceRecords.length} leave records\n`);
 
     // 3. Get all approved leaves
-    console.log("📌 Step 3: Fetching approved leaves...");
+    console.log(" Step 3: Fetching approved leaves...");
     const approvedLeaves = await Leave.find({ status: "APPROVED" });
     console.log(`  Found ${approvedLeaves.length} approved leaves\n`);
 
@@ -75,7 +75,7 @@ async function cleanUpAttendance() {
     }
 
     // 5. Find invalid leave attendance records to delete
-    console.log("📌 Step 4: Checking validity of leave records...");
+    console.log(" Step 4: Checking validity of leave records...");
     let invalidRecords = [];
 
     for (const record of leaveAttendanceRecords) {
@@ -88,7 +88,7 @@ async function cleanUpAttendance() {
 
       const validDates = validLeaveDatesPerUser.get(userId);
       if (!validDates || !validDates.has(record.date)) {
-        console.log(`  ❌ Invalid record: ${record.date} for user ${userId}`);
+        console.log(`  Invalid record: ${record.date} for user ${userId}`);
         invalidRecords.push(record);
       }
     }
@@ -99,13 +99,13 @@ async function cleanUpAttendance() {
       await Attendance.deleteMany({
         _id: { $in: invalidRecords.map((r) => r._id) },
       });
-      console.log("✅ Deleted invalid leave records\n");
+      console.log("Deleted invalid leave records\n");
     }
 
     console.log("✨ Cleanup complete!");
     process.exit(0);
   } catch (error) {
-    console.error("\n❌ Cleanup failed:", error);
+    console.error("\n Cleanup failed:", error);
     process.exit(1);
   }
 }

@@ -15,6 +15,7 @@ export default function LeaveForm({
   formLoading,
   onSubmit,
   onCancel,
+  hasProbationStarted = true,
 }) {
   const handleChange = (e) => {
     const { name, value, type, checked } = e.target;
@@ -61,12 +62,20 @@ export default function LeaveForm({
 
   const plLimitReached = monthlyUsage.PL >= 1;
   const slLimitReached = monthlyUsage.SL >= 1;
+  const dlLimitReached = (monthlyUsage.DL ?? 0) >= 1;
 
   return (
     <div className="bg-white p-6 rounded-lg shadow-lg border border-blue-200">
       <h3 className="text-xl font-bold mb-4">
         {editingLeave ? "Edit Leave" : "Apply for Leave"}
       </h3>
+
+      {/* Probation warning - only CL available */}
+      {!hasProbationStarted && (
+        <div className="mb-4 p-3 bg-red-100 border border-red-400 text-red-700 rounded text-sm">
+          ⚠️ Your probation bonding period has not started yet. Only Casual Leave (CL) is available. Privilege Leave (PL), Sick Leave (SL), and Duty Leave (DL) will be available after probation starts.
+        </div>
+      )}
 
       {/* Monthly limit warnings */}
       {plLimitReached && slLimitReached && (
@@ -89,8 +98,14 @@ export default function LeaveForm({
       )}
       {!dlAvailable && (
         <div className="mb-4 p-3 bg-orange-100 border border-orange-400 text-orange-700 rounded text-sm">
-          ⚠️ No DL balance. DL is credited from unused PL + SL at the start of
+          ⚠️ No DL balance. DL is credited from unused PL at the start of
           each new month.
+        </div>
+      )}
+      {dlLimitReached && dlAvailable && (
+        <div className="mb-4 p-3 bg-yellow-100 border border-yellow-400 text-yellow-700 rounded text-sm">
+          ⚠️ Monthly limit reached for DL for {monthLabel()} (
+          {monthlyUsage.DL}/1 used).
         </div>
       )}
 
@@ -108,8 +123,8 @@ export default function LeaveForm({
             >
               <option value="">Select Leave Type</option>
 
-              {/* PL — disabled if monthly limit reached */}
-              <option value="PL" disabled={plLimitReached}>
+              {/* PL — disabled if monthly limit reached OR probation not started */}
+              <option value="PL" disabled={plLimitReached || !hasProbationStarted}>
                 Privilege Leave (PL) — Balance: {bal.PL ?? 0}
                 {plLimitReached
                   ? ` (Limit reached for ${monthShort()})`
@@ -121,20 +136,29 @@ export default function LeaveForm({
                 Casual Leave (CL) — Balance: {clDisplay}
               </option>
 
-              {/* SL — disabled if monthly limit reached */}
-              <option value="SL" disabled={slLimitReached}>
+              {/* SL — disabled if monthly limit reached OR probation not started */}
+              <option value="SL" disabled={slLimitReached || !hasProbationStarted}>
                 Sick Leave (SL) — Balance: {bal.SL ?? 0}
                 {slLimitReached
                   ? ` (Limit reached for ${monthShort()})`
                   : ` (${monthlyUsage.SL}/1 used this month · ${cycSL}/6 this cycle)`}
               </option>
 
-              {/* DL — disabled if no balance */}
-              <option value="DL" disabled={!dlAvailable}>
+              {/* DL — disabled if no balance, monthly limit, or probation not started */}
+              <option
+                value="DL"
+                disabled={
+                  !dlAvailable ||
+                  dlLimitReached ||
+                  !hasProbationStarted
+                }
+              >
                 Duty Leave (DL) — Balance: {dlBalance}
-                {dlAvailable
-                  ? " (Available)"
-                  : " (No balance — earn DL from unused PL/SL)"}
+                {dlLimitReached
+                  ? ` (Limit reached for ${monthShort()})`
+                  : dlAvailable
+                    ? ` (${monthlyUsage.DL ?? 0}/1 used this month)`
+                    : " (No balance — earn DL from unused PL)"}
               </option>
             </select>
           </div>
@@ -191,6 +215,28 @@ export default function LeaveForm({
                   : ""}
               </span>
             </label>
+
+            {/* Use Carried PL as CL (only if CL selected)
+            {form.leaveType === "CL" && (
+              <label className="flex items-center gap-3 cursor-pointer select-none w-fit">
+                <div className="relative">
+                  <input
+                    type="checkbox"
+                    name="usesCarriedPL"
+                    checked={form.usesCarriedPL || false}
+                    onChange={handleChange}
+                    className="sr-only peer"
+                  />
+                  <div className="w-10 h-5 bg-gray-300 rounded-full peer-checked:bg-blue-500 transition-colors" />
+                  <div className="absolute top-0.5 left-0.5 w-4 h-4 bg-white rounded-full shadow transition-transform peer-checked:translate-x-5" />
+                </div>
+                <span className="text-sm font-medium text-gray-700">
+                  Use Carried Forward Privilege Leave (PL)
+                  {monthlyUsage?.carriedPL !== undefined &&
+                    ` (${monthlyUsage.carriedPL}/1 used this month)`}
+                </span>
+              </label>
+            )} */}
 
             {/* Half-day Period Selector */}
             {form.isHalfDay && (

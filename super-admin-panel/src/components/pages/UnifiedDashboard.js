@@ -142,7 +142,7 @@ export default function UnifiedDashboard() {
                 hasCheckedInToday={hasCheckedInToday}
                 userStatus={stats.userStatus}
                 onAction={handleAttendanceAction}
-                canCheckIn={canCheckIn}
+                canCheckIn={canCheckIn} 
               />
               <AttendanceHistory records={history} />
             </div>

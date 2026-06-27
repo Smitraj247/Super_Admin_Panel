@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { getUsersApi, getAdminsApi } from "@/services/adminApi";
+import { getUsersApi, getAdminsApi } from "@/services/superAdminApi";
 import { getAllUsersSummaryApi } from "@/services/attandanceApi";
 import Navbar from "@/components/layout/Navbar";
 import Sidebar from "@/components/Sidebar";
@@ -51,8 +51,13 @@ export default function HRAttendance() {
         getAllUsersSummaryApi(year, month),
       ]);
 
-      const allUsers = [...(usersRes.data || []), ...(adminsRes.data || [])];
+      const usersData = Array.isArray(usersRes?.data?.users)
+        ? usersRes.data.users
+        : [];
+      const adminsData = Array.isArray(adminsRes?.data) ? adminsRes.data : [];
+      const allUsers = [...usersData, ...adminsData];
       setUsers(allUsers);
+
       setFilteredUsers(allUsers);
 
       const { todayStats, userStats } = summaryRes.data;
@@ -152,7 +157,7 @@ export default function HRAttendance() {
               {/* Filters */}
               <div className="flex flex-wrap gap-3">
                 <select
-                  value={departmentFilter}      
+                  value={departmentFilter}
                   onChange={(e) => setDepartmentFilter(e.target.value)}
                   className="border p-2 rounded-lg"
                 >
@@ -163,7 +168,7 @@ export default function HRAttendance() {
                     </option>
                   ))}
                 </select>
-  
+
                 <select
                   value={roleFilter}
                   onChange={(e) => setRoleFilter(e.target.value)}
@@ -323,4 +328,3 @@ export default function HRAttendance() {
     </div>
   );
 }
-                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                     

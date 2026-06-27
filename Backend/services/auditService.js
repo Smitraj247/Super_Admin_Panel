@@ -1,24 +1,10 @@
-import AuditLog from "../models/AuditLogs.models.js";
+// Placeholder Audit Service
+// TODO: Implement audit service functions
 
-export const createAuditLog = async ({
-  action,
-  performedBy,
-  department,
-  metadata,
-  ipAddress,
-}) => {
-  return await AuditLog.create({
-    action,
-    performedBy,
-    department,
-    metadata,
-    ipAddress,
-  });
+export const getAuditLogsService = async (filters) => {
+  throw new Error("getAuditLogsService not implemented");
 };
 
-export const getAuditLogsService = async () => {
-  return await AuditLog.find()
-    .populate("performedBy", "name email")
-    .populate("department", "name")
-    .sort({ createdAt: -1 });
+export const createAuditLog = async (data) => {
+  throw new Error("createAuditLog not implemented");
 };

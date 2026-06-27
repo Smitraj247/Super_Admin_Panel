@@ -32,6 +32,11 @@ const leaveSchema = new mongoose.Schema(
       type: mongoose.Schema.Types.ObjectId,
       ref: "User",
     },
+    usesCarriedPL: {
+      type: Boolean,
+      default: false,
+      description: "Indicates if this CL leave uses carried forward PL",
+    },
   },
   { timestamps: true },
 );

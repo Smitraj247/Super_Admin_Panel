@@ -21,12 +21,14 @@ const EMPTY_FORM = {
   reason: "",
   isHalfDay: false,
   halfDayPeriod: "FIRST_HALF",
+  usesCarriedPL: false,
 };
 
 export default function EmployeeLeavePage() {
   const [userLeaves, setUserLeaves] = useState([]);
   const [leaveBalance, setLeaveBalance] = useState(null);
   const [dlInfo, setDlInfo] = useState(null);
+  const [hasProbationStarted, setHasProbationStarted] = useState(true);
   const [showForm, setShowForm] = useState(false);
   const [editingLeave, setEditingLeave] = useState(null);
   const [form, setForm] = useState(EMPTY_FORM);
@@ -41,6 +43,7 @@ export default function EmployeeLeavePage() {
       setUserLeaves(leavesRes.data.data);
       setLeaveBalance(balanceRes.data.data);
       setDlInfo(balanceRes.data.data.dlInfo);
+      setHasProbationStarted(!!balanceRes.data.data.probationStartDate);
     } catch (err) {
       console.error(err);
     }
@@ -75,7 +78,7 @@ export default function EmployeeLeavePage() {
         }
         return acc;
       }, 0);
-    return { PL: sum("PL"), SL: sum("SL") };
+    return { PL: sum("PL"), SL: sum("SL"), DL: sum("DL") };
   })();
 
   // Cycle PL/SL usage - use values from API
@@ -127,6 +130,7 @@ export default function EmployeeLeavePage() {
       reason: leave.reason,
       isHalfDay: leave.isHalfDay || false,
       halfDayPeriod: leave.halfDayPeriod || "FIRST_HALF",
+      usesCarriedPL: leave.usesCarriedPL || false,
     });
     setShowForm(true);
   };
@@ -141,18 +145,21 @@ export default function EmployeeLeavePage() {
     if (!confirm("Delete this leave request?")) return;
     try {
       await deleteUserLeaveApi(id);
+      toast.success("Leave deleted successfully");
       fetchLeaves();
     } catch (err) {
       toast.error(err.response?.data?.message || "Error deleting leave");
     }
   };
 
-  const isLeaveDatePassed = (fromDate) => {  
-    const today = new Date();
-    today.setHours(0, 0, 0, 0);
-    const d = new Date(fromDate);
-    d.setHours(0, 0, 0, 0);
-    return d < today;
+  const isLeaveDatePassed = (fromDate, toDate) => {
+    const todayStr = new Intl.DateTimeFormat("en-CA", {
+      timeZone: "Asia/Kolkata",
+    }).format(new Date());
+    const toDateStr = new Intl.DateTimeFormat("en-CA", {
+      timeZone: "Asia/Kolkata",
+    }).format(new Date(toDate || fromDate));
+    return toDateStr < todayStr;
   };
 
   const statusColor = (s) =>
@@ -181,7 +188,7 @@ export default function EmployeeLeavePage() {
                     )
                   </h2>
                 </div>
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4">
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
                   {[
                     {
                       label: "Privilege Leave (PL)",
@@ -221,11 +228,13 @@ export default function EmployeeLeavePage() {
                           ? dlInfo?.currentBalance
                           : dlInfo?.currentBalance.toFixed(1) || 0,
                       sub:
-                        dlInfo?.breakdown &&
-                        (dlInfo.breakdown.PL.length > 0 ||
-                          dlInfo.breakdown.SL.length > 0)
-                          ? `From Unused PL: ${dlInfo.breakdown.PL.join(", ") || "None"} | SL: ${dlInfo.breakdown.SL.join(", ") || "None"}`
-                          : "✗ No balance (earn DL from unused PL/SL)",
+                        monthlyUsage.DL >= 1
+                          ? `Monthly limit reached (${monthlyUsage.DL}/1 used this month)`
+                          : dlInfo?.breakdown && dlInfo.breakdown.PL.length > 0
+                            ? `✓ ${monthlyUsage.DL % 1 === 0 ? monthlyUsage.DL : monthlyUsage.DL.toFixed(1)}/1 this month · From unused PL: ${dlInfo.breakdown.PL.join(", ") || "None"}`
+                            : dlInfo?.currentBalance > 0
+                              ? `✓ ${monthlyUsage.DL % 1 === 0 ? monthlyUsage.DL : monthlyUsage.DL.toFixed(1)}/1 this month`
+                              : "✗ No balance (earn DL from unused PL)",
                     },
                   ].map(({ label, key, color, sub, displayValue }) => (
                     <div
@@ -243,21 +252,6 @@ export default function EmployeeLeavePage() {
                       <p className="text-xs opacity-75 mt-1">{sub}</p>
                     </div>
                   ))}
-
-                  <div className="p-4 bg-purple-50 rounded-lg border border-purple-100">
-                    <p className="text-sm text-purple-700 mb-1">
-                      Next Cycle Allocation
-                    </p>
-                    <p className="text-lg font-bold text-purple-800">
-                      PL:{" "}
-                      {leaveBalance.cycleInfo.nextCycleAllocation.PL % 1 === 0
-                        ? leaveBalance.cycleInfo.nextCycleAllocation.PL
-                        : leaveBalance.cycleInfo.nextCycleAllocation.PL.toFixed(
-                            1,
-                          )}{" "}
-                      | SL: {leaveBalance.cycleInfo.nextCycleAllocation.SL}
-                    </p>
-                  </div>
                 </div>
               </div>
             </div>
@@ -293,6 +287,7 @@ export default function EmployeeLeavePage() {
               formLoading={formLoading}
               onSubmit={handleSubmit}
               onCancel={handleCancel}
+              hasProbationStarted={hasProbationStarted}
             />
           )}
 
@@ -357,27 +352,39 @@ export default function EmployeeLeavePage() {
                         <td className="p-4">
                           <div className="flex gap-2">
                             {leave.status === "PENDING" &&
-                              !isLeaveDatePassed(leave.fromDate) && (
-                                <button
-                                  onClick={() => handleEdit(leave)}
-                                  className="px-3 py-1 bg-blue-500 text-white text-sm rounded hover:bg-blue-600 transition"
-                                >
-                                  Edit
-                                </button>
+                              !isLeaveDatePassed(
+                                leave.fromDate,
+                                leave.toDate,
+                              ) && (
+                                <>
+                                  <button
+                                    onClick={() => handleEdit(leave)}
+                                    className="px-3 py-1 bg-blue-500 text-white text-sm rounded hover:bg-blue-600 transition"
+                                  >
+                                    Edit
+                                  </button>
+                                  <button
+                                    onClick={() => handleDelete(leave._id)}
+                                    className="px-3 py-1 bg-red-500 text-white text-sm rounded hover:bg-red-600 transition"
+                                  >
+                                    Delete
+                                  </button>
+                                </>
                               )}
-                            {!isLeaveDatePassed(leave.fromDate) && (
-                              <button
-                                onClick={() => handleDelete(leave._id)}
-                                className="px-3 py-1 bg-red-500 text-white text-sm rounded hover:bg-red-600 transition"
-                              >
-                                Delete
-                              </button>
-                            )}
-                            {isLeaveDatePassed(leave.fromDate) && (
+                            {isLeaveDatePassed(
+                              leave.fromDate,
+                              leave.toDate,
+                            ) && (
                               <span className="text-sm text-gray-400 italic">
                                 Past
                               </span>
                             )}
+                            {!isLeaveDatePassed(leave.fromDate, leave.toDate) &&
+                              leave.status !== "PENDING" && (
+                                <span className="text-sm text-gray-500">
+                                  {leave.status}
+                                </span>
+                              )}
                           </div>
                         </td>
                       </tr>

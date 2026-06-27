@@ -300,7 +300,6 @@ export default function AdminsPage() {
                       />
                     </div>
                   )}
-
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-1">
                       Department *

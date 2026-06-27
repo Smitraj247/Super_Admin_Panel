@@ -11,6 +11,7 @@ import {
   updateAttendanceApi,
   getUserSummaryByIdApi,
   adminCreateBreakEntryApi,
+  adminCreateAttendanceEntryApi,
 } from "@/services/attandanceApi";
 
 import { getUsersApi, getAdminsApi } from "@/services/adminApi";
@@ -167,6 +168,13 @@ export default function HRUserAttendanceDetail() {
     breakOut: "",
   });
 
+  const [showAddAttendanceModal, setShowAddAttendanceModal] = useState(false);
+  const [addAttendanceForm, setAddAttendanceForm] = useState({
+    date: getTodayStr(),
+    checkIn: "",
+    checkOut: "",
+  });
+
   const years = useMemo(() => {
     return Array.from({ length: 5 }, (_, i) => new Date().getFullYear() - i);
   }, []);
@@ -297,17 +305,6 @@ export default function HRUserAttendanceDetail() {
     }
   };
 
-  // ADD BREAK HANDLERS
-
-  const openAddBreakModal = () => {
-    setAddBreakForm({
-      date: getTodayStr(),
-      breakIn: "",
-      breakOut: "",
-    });
-    setShowAddBreakModal(true);
-  };
-
   const handleAddBreak = async () => {
     try {
       if (!addBreakForm.breakIn) {
@@ -371,6 +368,64 @@ export default function HRUserAttendanceDetail() {
       console.error(error);
       toast.error(
         error.response?.data?.message || "Failed to create break entry",
+      );
+    }
+  };
+
+  const openAddBreakModal = () => {
+    setAddBreakForm({
+      date: getTodayStr(),
+      breakIn: "",
+      breakOut: "",
+    });
+    setShowAddBreakModal(true);
+  };
+
+  const openAddAttendanceModal = () => {
+    setAddAttendanceForm({
+      date: getTodayStr(),
+      checkIn: "",
+      checkOut: "",
+    });
+    setShowAddAttendanceModal(true);
+  };
+
+  const handleAddAttendance = async () => {
+    try {
+      if (!addAttendanceForm.date) {
+        toast.error("Date is required");
+        return;
+      }
+      if (!addAttendanceForm.checkIn) {
+        toast.error("Check-in time is required");
+        return;
+      }
+
+      if (addAttendanceForm.checkOut) {
+        const checkOutDate = new Date(addAttendanceForm.checkOut);
+        const checkInDate = new Date(addAttendanceForm.checkIn);
+        if (checkOutDate <= checkInDate) {
+          toast.error("Check-out must be after check-in");
+          return;
+        }
+      }
+
+      await adminCreateAttendanceEntryApi(
+        userId,
+        addAttendanceForm.date,
+        new Date(addAttendanceForm.checkIn).toISOString(),
+        addAttendanceForm.checkOut
+          ? new Date(addAttendanceForm.checkOut).toISOString()
+          : null,
+      );
+
+      await fetchAttendance();
+      toast.success("Attendance record saved successfully");
+      setShowAddAttendanceModal(false);
+    } catch (error) {
+      console.error(error);
+      toast.error(
+        error.response?.data?.message || "Failed to create attendance record",
       );
     }
   };
@@ -520,6 +575,14 @@ export default function HRUserAttendanceDetail() {
 
             {/* Right Side */}
             <div className="flex gap-4">
+              <button
+                onClick={openAddAttendanceModal}
+                className="flex items-center gap-2 px-3 py-2 rounded-xl bg-gradient-to-r from-blue-500 to-indigo-600 text-white hover:from-blue-600 hover:to-indigo-700 transition-all duration-200 shadow-md hover:shadow-lg"
+              >
+                <Plus size={18} />
+                Add Attendance
+              </button>
+
               <select
                 value={selectedMonth}
                 onChange={(e) => setSelectedMonth(e.target.value)}
@@ -851,6 +914,84 @@ export default function HRUserAttendanceDetail() {
                   </div>
                 </div>
               )}
+            </div>
+          </div>
+        )}
+
+        {showAddAttendanceModal && (
+          <div className="fixed inset-0 bg-black/40 flex justify-center items-center z-50 p-4">
+            <div className="bg-white rounded-3xl w-full max-w-lg p-6">
+              <h2 className="text-2xl font-bold mb-6">
+                Add Attendance for {user?.name || "Employee"}
+              </h2>
+
+              <div className="space-y-5">
+                <div>
+                  <label className="block mb-2 font-medium">Date</label>
+                  <input
+                    type="date"
+                    value={addAttendanceForm.date}
+                    onChange={(e) =>
+                      setAddAttendanceForm((prev) => ({
+                        ...prev,
+                        date: e.target.value,
+                      }))
+                    }
+                    className="w-full border p-3 rounded-xl"
+                  />
+                </div>
+
+                <div>
+                  <label className="block mb-2 font-medium">
+                    Check In <span className="text-red-500">*</span>
+                  </label>
+                  <input
+                    type="datetime-local"
+                    value={addAttendanceForm.checkIn}
+                    onChange={(e) =>
+                      setAddAttendanceForm((prev) => ({
+                        ...prev,
+                        checkIn: e.target.value,
+                      }))
+                    }
+                    className="w-full border p-3 rounded-xl"
+                  />
+                </div>
+
+                <div>
+                  <label className="block mb-2 font-medium">Check Out</label>
+                  <input
+                    type="datetime-local"
+                    value={addAttendanceForm.checkOut}
+                    onChange={(e) =>
+                      setAddAttendanceForm((prev) => ({
+                        ...prev,
+                        checkOut: e.target.value,
+                      }))
+                    }
+                    className="w-full border p-3 rounded-xl"
+                  />
+                  <p className="text-xs text-gray-500 mt-1">
+                    Optional. Leave empty if employee has not checked out yet.
+                  </p>
+                </div>
+
+                <div className="flex gap-3 pt-4">
+                  <button
+                    onClick={handleAddAttendance}
+                    className="flex-1 bg-blue-600 text-white py-3 rounded-xl hover:bg-blue-700"
+                  >
+                    Save Attendance
+                  </button>
+
+                  <button
+                    onClick={() => setShowAddAttendanceModal(false)}
+                    className="flex-1 bg-gray-200 py-3 rounded-xl"
+                  >
+                    Cancel
+                  </button>
+                </div>
+              </div>
             </div>
           </div>
         )}

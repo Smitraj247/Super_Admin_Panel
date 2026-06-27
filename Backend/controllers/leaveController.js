@@ -10,6 +10,7 @@ import {
   checkDLEligibility,
   calculateDynamicDL,
   markHalfDayAttendance,
+  markLeaveAttendance,
   canUserCheckIn,
 } from "../services/leaveService.js";
 import { emitEvent, SocketEvents } from "../utils/socketEmitter.js";
@@ -18,8 +19,15 @@ import { emitEvent, SocketEvents } from "../utils/socketEmitter.js";
 
 export const applyLeave = async (req, res) => {
   try {
-    const { leaveType, fromDate, toDate, reason, isHalfDay, halfDayPeriod } =
-      req.body;
+    const {
+      leaveType,
+      fromDate,
+      toDate,
+      reason,
+      isHalfDay,
+      halfDayPeriod,
+      usesCarriedPL,
+    } = req.body;
 
     if (!leaveType || !fromDate || !toDate || !reason) {
       return res.status(400).json({ message: "All fields are required" });
@@ -62,8 +70,17 @@ export const applyLeave = async (req, res) => {
       });
     }
 
-    // Leave balance check (CL is unlimited — skip balance validation)
+    // Leave balance check
     const user = await User.findById(req.user._id);
+
+    // Probation bonding start => PL/SL/DL allowed.
+    // Without probationStartDate, only CL can be applied.
+    if (!user.probationStartDate && leaveType !== "CL") {
+      return res.status(400).json({
+        message:
+          "PL/SL/DL are available only after probation bonding starts. You can apply for CL only.",
+      });
+    }
 
     if (!user.leaveBalance || user.leaveBalance[leaveType] === undefined) {
       return res
@@ -71,9 +88,21 @@ export const applyLeave = async (req, res) => {
         .json({ message: `Invalid leave type: ${leaveType}` });
     }
 
+    // If using carried PL as CL, check PL balance
+    if (
+      leaveType === "CL" &&
+      usesCarriedPL &&
+      user.leaveBalance.PL < leaveDays
+    ) {
+      return res.status(400).json({
+        message: `Insufficient carried forward PL balance. Available: ${user.leaveBalance.PL}, Required: ${leaveDays}`,
+      });
+    }
+
     if (
       leaveType !== "CL" &&
       leaveType !== "DL" &&
+      !(leaveType === "CL" && usesCarriedPL) &&
       user.leaveBalance[leaveType] < leaveDays
     ) {
       return res.status(400).json({
@@ -81,12 +110,14 @@ export const applyLeave = async (req, res) => {
       });
     }
 
-    // Monthly limit check for PL/SL
+    // Monthly limit check
     const limitError = await checkMonthlyLimit(
       req.user._id,
       leaveType,
       fromDate,
       leaveDays,
+      null,
+      usesCarriedPL,
     );
     if (limitError) return res.status(400).json({ message: limitError });
 
@@ -100,6 +131,7 @@ export const applyLeave = async (req, res) => {
       user: req.user._id,
       department: req.user.department?._id,
       createdBy: req.user._id,
+      usesCarriedPL: usesCarriedPL || false,
     });
 
     // Notify admins (non-blocking)
@@ -194,31 +226,61 @@ const handleLeaveStatusUpdate = async (req, res, approvedBy) => {
     );
 
     if (status === "APPROVED" && leave.status !== "APPROVED") {
-      await adjustLeaveBalance(leave.user._id, leave.leaveType, leaveDays, -1);
+      await adjustLeaveBalance(
+        leave.user._id,
+        leave.leaveType,
+        leaveDays,
+        -1,
+        leave.usesCarriedPL,
+      );
     }
 
     if (status === "REJECTED" && leave.status === "APPROVED") {
-      await adjustLeaveBalance(leave.user._id, leave.leaveType, leaveDays, +1);
+      await adjustLeaveBalance(
+        leave.user._id,
+        leave.leaveType,
+        leaveDays,
+        +1,
+        leave.usesCarriedPL,
+      );
     }
 
     leave.status = status;
     await leave.save();
 
-    // Mark / unmark half-day attendance record
-    if (leave.isHalfDay) {
-      const action = status === "APPROVED" ? "mark" : "unmark";
-      markHalfDayAttendance(leave.user._id, leave.fromDate, action).catch((e) =>
-        console.error("Half-day attendance mark error:", e),
-      );
+    // Mark / unmark leave attendance records (both full-day and half-day)
+    const action =
+      status === "APPROVED"
+        ? "mark"
+        : status === "REJECTED" && oldStatus === "APPROVED"
+          ? "unmark"
+          : null;
+    if (action) {
+      markLeaveAttendance(
+        leave.user._id,
+        leave.fromDate,
+        leave.toDate,
+        leave.isHalfDay,
+        leave.halfDayPeriod,
+        action,
+      ).catch((e) => console.error("Leave attendance mark error:", e));
     }
 
     notifyLeaveStatus(leave, status, approvedBy).catch((e) =>
       console.error("Notification error:", e),
     );
-    
+
     // Emit real-time events
-    emitEvent(SocketEvents.LEAVE_STATUS_CHANGED, { leave, oldStatus, newStatus: status }, leave.user._id.toString());
-    emitEvent(SocketEvents.LEAVE_STATUS_CHANGED, { leave, oldStatus, newStatus: status });
+    emitEvent(
+      SocketEvents.LEAVE_STATUS_CHANGED,
+      { leave, oldStatus, newStatus: status },
+      leave.user._id.toString(),
+    );
+    emitEvent(SocketEvents.LEAVE_STATUS_CHANGED, {
+      leave,
+      oldStatus,
+      newStatus: status,
+    });
     emitEvent(SocketEvents.LEAVE_UPDATED, { leave }, leave.user._id.toString());
     emitEvent(SocketEvents.LEAVE_UPDATED, { leave });
 
@@ -248,7 +310,7 @@ export const updateLeaveStatusBySuperAdmin = async (req, res) => {
 export const getUserLeaveBalance = async (req, res) => {
   try {
     const user = await User.findById(req.user._id).select(
-      "leaveBalance joiningDate probationEndDate lastLeaveRefill lastCycleRefill",
+      "leaveBalance joiningDate probationStartDate probationEndDate lastLeaveRefill lastCycleRefill",
     );
     if (!user) return res.status(404).json({ message: "User not found" });
 
@@ -256,7 +318,12 @@ export const getUserLeaveBalance = async (req, res) => {
     const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
     const endOfMonth = new Date(now.getFullYear(), now.getMonth() + 1, 0);
 
-    const [monthlyPlLeaves, monthlySlLeaves] = await Promise.all([
+    const [
+      monthlyPlLeaves,
+      monthlySlLeaves,
+      monthlyDlLeaves,
+      monthlyCarriedPlLeaves,
+    ] = await Promise.all([
       Leave.find({
         user: req.user._id,
         leaveType: "PL",
@@ -266,6 +333,19 @@ export const getUserLeaveBalance = async (req, res) => {
       Leave.find({
         user: req.user._id,
         leaveType: "SL",
+        status: { $in: ["PENDING", "APPROVED"] },
+        fromDate: { $gte: startOfMonth, $lte: endOfMonth },
+      }),
+      Leave.find({
+        user: req.user._id,
+        leaveType: "DL",
+        status: { $in: ["PENDING", "APPROVED"] },
+        fromDate: { $gte: startOfMonth, $lte: endOfMonth },
+      }),
+      Leave.find({
+        user: req.user._id,
+        leaveType: "CL",
+        usesCarriedPL: true,
         status: { $in: ["PENDING", "APPROVED"] },
         fromDate: { $gte: startOfMonth, $lte: endOfMonth },
       }),
@@ -281,17 +361,27 @@ export const getUserLeaveBalance = async (req, res) => {
         acc + calcLeaveDays(leave.fromDate, leave.toDate, leave.isHalfDay),
       0,
     );
+    const dlCount = monthlyDlLeaves.reduce(
+      (acc, leave) =>
+        acc + calcLeaveDays(leave.fromDate, leave.toDate, leave.isHalfDay),
+      0,
+    );
+    const carriedPLCount = monthlyCarriedPlLeaves.reduce(
+      (acc, leave) =>
+        acc + calcLeaveDays(leave.fromDate, leave.toDate, leave.isHalfDay),
+      0,
+    );
 
     // Calculate dynamic DL balance and get breakdown
     const { netDL, breakdown } = await calculateDynamicDL(req.user._id);
 
     // Preview: how much DL will be credited next month
-    // = (1 - PL used this month) + (1 - SL used this month) capped by pool balance
+    // = (1 - PL used this month) capped by pool balance
     const unusedPLThisMonth = Math.max(0, 1 - plCount);
-    const unusedSLThisMonth = Math.max(0, 1 - slCount);
-    const nextMonthDLCredit =
-      Math.min(unusedPLThisMonth, user.leaveBalance.PL || 0) +
-      Math.min(unusedSLThisMonth, user.leaveBalance.SL || 0);
+    const nextMonthDLCredit = Math.min(
+      unusedPLThisMonth,
+      user.leaveBalance.PL || 0,
+    );
 
     // 6-month cycle info — fixed calendar windows: Jan–Jun and Jul–Dec
     const currentMonth = now.getMonth(); // 0-indexed
@@ -317,11 +407,15 @@ export const getUserLeaveBalance = async (req, res) => {
       `${cycleEnd.toLocaleString("en-US", { month: "long", year: "numeric" })}`;
 
     // Calculate allocated PL/SL for current cycle (pro-rated if joined mid-cycle)
-    const joiningDate = user.joiningDate
-      ? new Date(user.joiningDate)
-      : new Date(user.createdAt);
-    const joiningMonth = joiningDate.getMonth();
-    const joiningYear = joiningDate.getFullYear();
+    // Leave credits start after probation, not after joining date
+    const effectiveDate = user.probationEndDate
+      ? new Date(user.probationEndDate)
+      : user.joiningDate
+        ? new Date(user.joiningDate)
+        : new Date(user.createdAt);
+
+    const joiningMonth = effectiveDate.getMonth();
+    const joiningYear = effectiveDate.getFullYear();
 
     // Determine if user joined in current cycle
     const userJoinedInCurrentCycle =
@@ -378,18 +472,24 @@ export const getUserLeaveBalance = async (req, res) => {
         leaveBalance: {
           ...user.leaveBalance.toObject(),
           // Present CL as "Unlimited" label to the frontend
-          CL: user.leaveBalance.CL >= 9999 ? "Unlimited" : user.leaveBalance.CL,
+          CL: user.leaveBalance.CL >= 9999 ? "∞" : user.leaveBalance.CL,
         },
         joiningDate: user.joiningDate,
+        probationStartDate: user.probationStartDate,
         probationEndDate: user.probationEndDate,
-        monthlyUsage: { PL: plCount, SL: slCount },
+        monthlyUsage: {
+          PL: plCount,
+          SL: slCount,
+          DL: dlCount,
+          carriedPL: carriedPLCount,
+        },
         dlInfo: {
           currentBalance: netDL,
           nextMonthCredit: nextMonthDLCredit,
           breakdown,
           description:
             `At the start of next month, you will earn ${nextMonthDLCredit} DL ` +
-            `(from unused monthly PL and SL allowances).`,
+            `(from unused monthly PL allowances).`,
         },
         cycleInfo: {
           cycleLabel,
@@ -446,7 +546,12 @@ export const checkLeaveAvailability = async (req, res) => {
     const startOfMonth = new Date(targetYear, targetMonth, 1);
     const endOfMonth = new Date(targetYear, targetMonth + 1, 0);
 
-    const [monthlyPlLeaves, monthlySlLeaves] = await Promise.all([
+    const [
+      monthlyPlLeaves,
+      monthlySlLeaves,
+      monthlyDlLeaves,
+      monthlyCarriedPlLeaves,
+    ] = await Promise.all([
       Leave.find({
         user: req.user._id,
         leaveType: "PL",
@@ -459,6 +564,19 @@ export const checkLeaveAvailability = async (req, res) => {
         status: { $in: ["PENDING", "APPROVED"] },
         fromDate: { $gte: startOfMonth, $lte: endOfMonth },
       }),
+      Leave.find({
+        user: req.user._id,
+        leaveType: "DL",
+        status: { $in: ["PENDING", "APPROVED"] },
+        fromDate: { $gte: startOfMonth, $lte: endOfMonth },
+      }),
+      Leave.find({
+        user: req.user._id,
+        leaveType: "CL",
+        usesCarriedPL: true,
+        status: { $in: ["PENDING", "APPROVED"] },
+        fromDate: { $gte: startOfMonth, $lte: endOfMonth },
+      }),
     ]);
 
     const plCount = monthlyPlLeaves.reduce(
@@ -467,6 +585,16 @@ export const checkLeaveAvailability = async (req, res) => {
       0,
     );
     const slCount = monthlySlLeaves.reduce(
+      (acc, leave) =>
+        acc + calcLeaveDays(leave.fromDate, leave.toDate, leave.isHalfDay),
+      0,
+    );
+    const dlCount = monthlyDlLeaves.reduce(
+      (acc, leave) =>
+        acc + calcLeaveDays(leave.fromDate, leave.toDate, leave.isHalfDay),
+      0,
+    );
+    const carriedPLCount = monthlyCarriedPlLeaves.reduce(
       (acc, leave) =>
         acc + calcLeaveDays(leave.fromDate, leave.toDate, leave.isHalfDay),
       0,
@@ -496,6 +624,9 @@ export const checkLeaveAvailability = async (req, res) => {
             limit: "Unlimited",
             available: true,
             balance: "Unlimited",
+            carriedPLUsed: carriedPLCount,
+            carriedPLLimit: 1,
+            carriedPLAvailable: carriedPLCount < 1,
           },
           SL: {
             used: slCount,
@@ -504,14 +635,16 @@ export const checkLeaveAvailability = async (req, res) => {
             balance: user.leaveBalance.SL,
           },
           DL: {
-            used: 0,
-            limit: null,
-            available: dlBalance > 0,
+            used: dlCount,
+            limit: 1,
+            available: dlBalance > 0 && dlCount < 1,
             balance: dlBalance,
             eligibilityReason:
-              dlBalance > 0
-                ? `You have ${dlBalance} DL available (credited from unused PL+SL of previous months)`
-                : "No DL balance available. DL is credited from unused PL and SL at the start of each new month.",
+              dlCount >= 1
+                ? "Maximum 1 DL day allowed per month. Monthly limit reached."
+                : dlBalance > 0
+                  ? `You have ${dlBalance} DL available (credited from unused PL of previous months)`
+                  : "No DL balance available. DL is credited from unused PL at the start of each new month.",
           },
         },
       },
@@ -527,26 +660,30 @@ export const deleteUserLeave = async (req, res) => {
     const leave = await Leave.findById(req.params.id);
     if (!leave) return res.status(404).json({ message: "Leave not found" });
 
-    // if (leave.user.toString() !== req.user._id.toString()) {
-    //   return res
-    //     .status(403)
-    //     .json({ message: "Not authorized to delete this leave" });
-    // }
+    if (leave.user.toString() !== req.user._id.toString()) {
+      return res
+        .status(403)
+        .json({ message: "Not authorized to delete this leave" });
+    }
 
-    const today = new Date();
-    today.setHours(0, 0, 0, 0);
-    const leaveFrom = new Date(leave.fromDate);
-    leaveFrom.setHours(0, 0, 0, 0);
+    if (leave.status !== "PENDING") {
+      return res
+        .status(400)
+        .json({ message: "Only pending leaves can be deleted" });
+    }
 
-    // if (leaveFrom < today) {
-    //   return res.status(400).json({
-    //     message: "Cannot delete leave after the leave date has passed",
-    //   });
-    // }
+    const todayStr = new Intl.DateTimeFormat("en-CA", {
+      timeZone: "Asia/Kolkata",
+    }).format(new Date());
+    const toDateStr = new Intl.DateTimeFormat("en-CA", {
+      timeZone: "Asia/Kolkata",
+    }).format(new Date(leave.toDate));
 
-    if (leave.status === "APPROVED") {
-      const days = calcLeaveDays(leave.fromDate, leave.toDate, leave.isHalfDay);
-      await adjustLeaveBalance(req.user._id, leave.leaveType, days, +1);
+    // Only block deletion if leave date is in the past (before today)
+    if (toDateStr < todayStr) {
+      return res.status(400).json({
+        message: "Cannot delete leave that has already passed",
+      });
     }
 
     await Leave.findByIdAndDelete(req.params.id);
@@ -560,8 +697,15 @@ export const deleteUserLeave = async (req, res) => {
 
 export const updateUserLeave = async (req, res) => {
   try {
-    const { leaveType, fromDate, toDate, reason, isHalfDay, halfDayPeriod } =
-      req.body;
+    const {
+      leaveType,
+      fromDate,
+      toDate,
+      reason,
+      isHalfDay,
+      halfDayPeriod,
+      usesCarriedPL,
+    } = req.body;
     const leave = await Leave.findById(req.params.id);
 
     if (!leave) return res.status(404).json({ message: "Leave not found" });
@@ -578,14 +722,23 @@ export const updateUserLeave = async (req, res) => {
         .json({ message: "Only pending leaves can be edited" });
     }
 
-    const today = new Date();
-    today.setHours(0, 0, 0, 0);
-    const leaveFrom = new Date(leave.fromDate);
-    leaveFrom.setHours(0, 0, 0, 0);
-    if (leaveFrom < today) {
+    const todayStr = new Intl.DateTimeFormat("en-CA", {
+      timeZone: "Asia/Kolkata",
+    }).format(new Date());
+    const fromDateStr = new Intl.DateTimeFormat("en-CA", {
+      timeZone: "Asia/Kolkata",
+    }).format(new Date(leave.fromDate));
+
+    const toDateObj = new Date(leave.toDate);
+    const toDateStr = new Intl.DateTimeFormat("en-CA", {
+      timeZone: "Asia/Kolkata",
+    }).format(toDateObj);
+
+    // Only block editing if leave date is in the past (before today)
+    if (toDateStr < todayStr) {
       return res
         .status(400)
-        .json({ message: "Cannot edit leave after the leave date has passed" });
+        .json({ message: "Cannot edit leave that has already passed" });
     }
 
     if (
@@ -613,14 +766,36 @@ export const updateUserLeave = async (req, res) => {
     const leaveDays = calcLeaveDays(fromDate, toDate, isHalfDay);
     const user = await User.findById(req.user._id);
 
+    // Probation bonding start => PL/SL/DL allowed.
+    // Without probationStartDate, only CL can be applied.
+    if (!user.probationStartDate && leaveType !== "CL") {
+      return res.status(400).json({
+        message:
+          "PL/SL/DL are available only after probation bonding starts. You can apply for CL only.",
+      });
+    }
+
     if (!user.leaveBalance || user.leaveBalance[leaveType] === undefined) {
       return res
         .status(400)
         .json({ message: `Invalid leave type: ${leaveType}` });
     }
+
+    // If using carried PL as CL, check PL balance
+    if (
+      leaveType === "CL" &&
+      usesCarriedPL &&
+      user.leaveBalance.PL < leaveDays
+    ) {
+      return res.status(400).json({
+        message: `Insufficient carried forward PL balance. Available: ${user.leaveBalance.PL}, Required: ${leaveDays}`,
+      });
+    }
+
     if (
       leaveType !== "CL" &&
       leaveType !== "DL" &&
+      !(leaveType === "CL" && usesCarriedPL) &&
       user.leaveBalance[leaveType] < leaveDays
     ) {
       return res.status(400).json({
@@ -643,6 +818,7 @@ export const updateUserLeave = async (req, res) => {
       fromDate,
       leaveDays,
       req.params.id,
+      usesCarriedPL,
     );
     if (limitError) return res.status(400).json({ message: limitError });
 
@@ -652,6 +828,7 @@ export const updateUserLeave = async (req, res) => {
     leave.reason = reason;
     leave.isHalfDay = isHalfDay || false;
     leave.halfDayPeriod = isHalfDay ? halfDayPeriod : null;
+    leave.usesCarriedPL = usesCarriedPL || false;
     await leave.save();
 
     res.json({

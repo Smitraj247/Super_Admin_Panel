@@ -18,6 +18,7 @@ import {
   getUserAttendanceById,
   addBreaksToRecord,
   adminCreateBreakEntry,
+  adminCreateAttendanceEntry,
 } from "../controllers/attendanceController.js";
 import authMiddleware from "../middleware/authMiddleware.js";
 import roleMiddleware from "../middleware/roleMiddleware.js";
@@ -48,6 +49,7 @@ router.put("/:id/complete-break", roleMiddleware(["ADMIN", "SUPER_ADMIN"]), depa
 // Admin break management
 router.post("/:id/breaks",                roleMiddleware(["ADMIN", "SUPER_ADMIN"]), departmentScope, addBreaksToRecord);
 router.post("/user/:userId/create-break", roleMiddleware(["ADMIN", "SUPER_ADMIN"]), departmentScope, adminCreateBreakEntry);
+router.post("/user/:userId/create", roleMiddleware(["ADMIN", "SUPER_ADMIN"]), departmentScope, adminCreateAttendanceEntry);
 
 router.get("/user/:userId",         roleMiddleware(["ADMIN", "SUPER_ADMIN"]), departmentScope, getUserAttendanceById);
 router.get("/user/:userId/summary", roleMiddleware(["ADMIN", "SUPER_ADMIN"]), departmentScope, getUserSummaryById);
