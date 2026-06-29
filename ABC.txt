@@ -8,7 +8,7 @@
 
 
 
-//////////////////////////////////////////
+//
 
 ...  googleauth signup workflow below mentioned 
   
@@ -52,3 +52,18 @@ Frontend stores token
           │
           ▼
 User logged in
+
+
+
+//
+I have a Next.js frontend with a Node.js/Express backend using Socket.io for real-time chat. My chat panel is not updating in real-time — new messages only appear after a page refresh.
+Please analyze all my files and fix the real-time issue completely. I will share:
+
+ChatWindow.jsx — the chat UI component
+ChatsPage.jsx — the chat list page
+SocketContext.jsx — the socket provider/context
+server.js — Express + Socket.io server setup
+chatController.js — backend message handling
+socketEmitter.js — the socket IO utility
+
+For each file, give me the complete fixed file (not just snippets) so I can replace them directly. Explain exactly what was broken and why the fix works.

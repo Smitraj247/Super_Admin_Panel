@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, useCallback, useMemo } from "react";
+import { useEffect, useState, useCallback } from "react";
 import { useSearchParams } from "next/navigation";
 import Sidebar from "@/components/Sidebar";
 import Navbar from "@/components/layout/Navbar";
@@ -102,10 +102,20 @@ export default function ChatsPage({
     }
   }, [searchParams, chats, loading, currentUser]);
 
+  // FIX: Join the user's personal room so chatUpdated events are received.
+  // SocketContext already does this on connect, but we re-confirm here in case
+  // the socket connected before currentUser was available.
+  useEffect(() => {
+    if (!socket || !currentUser?._id) return;
+    socket.emit("joinUserRoom", currentUser._id);
+  }, [socket, currentUser?._id]);
+
   // Real-time chat list updates
   useEffect(() => {
     if (!socket) return;
-    const handle = (updatedChat) => {
+
+    const handleChatUpdated = (updatedChat) => {
+      // Update the sidebar chat list
       setChats((prev) => {
         const exists = prev.find((c) => c._id === updatedChat._id);
         const next = exists
@@ -115,16 +125,27 @@ export default function ChatsPage({
           (a, b) => new Date(b.lastMessageAt) - new Date(a.lastMessageAt),
         );
       });
+
+      // KEY FIX: propagate the updated chat into ChatWindow via selectedChat.
+      // This works for BOTH group chats and direct chats because ChatWindow's
+      // initialChat sync effect now depends on the full object reference.
+      setSelectedChat((prev) => {
+        if (prev && prev._id === updatedChat._id) return updatedChat;
+        return prev;
+      });
     };
+
     const handleUserChange = () => {
       loadChats();
     };
-    socket.on("chatUpdated", handle);
+
+    socket.on("chatUpdated", handleChatUpdated);
     socket.on("user:created", handleUserChange);
     socket.on("user:deleted", handleUserChange);
     socket.on("user:updated", handleUserChange);
+
     return () => {
-      socket.off("chatUpdated", handle);
+      socket.off("chatUpdated", handleChatUpdated);
       socket.off("user:created", handleUserChange);
       socket.off("user:deleted", handleUserChange);
       socket.off("user:updated", handleUserChange);
@@ -248,7 +269,7 @@ export default function ChatsPage({
       await deleteChatApi(chatId);
       setChats((prev) => prev.filter((c) => c._id !== chatId));
       setFilteredChats((prev) => prev.filter((c) => c._id !== chatId));
-      if (selectedChat?._id === chatId || selectedChat?.chatId === chatId) {
+      if (selectedChat?._id === chatId) {
         setSelectedChat(null);
       }
     } catch (err) {
@@ -576,6 +597,8 @@ export default function ChatsPage({
             setSelectedChat(null);
             loadChats();
           }}
+          // FIX: pass loadChats directly — it is already a stable useCallback
+          // so ChatWindow's socket effect won't re-fire on every render.
           onUpdate={loadChats}
         />
       )}

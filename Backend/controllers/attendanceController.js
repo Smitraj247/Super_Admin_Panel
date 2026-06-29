@@ -1,3 +1,4 @@
+import { emitToRoom, emitEvent, SocketEvents } from "../utils/socketEmitter.js";
 import {
   performCheckIn,
   performBreakIn,
@@ -138,6 +139,14 @@ export const getAllUsersAttendance = async (req, res) => {
 export const updateAttendanceRecord = async (req, res) => {
   try {
     const record = await updateRecord(req.params.id, req.body);
+    // Emit update to the user associated with this attendance record
+    if (record && record.userId) {
+      emitToRoom(
+        record.userId.toString(),
+        SocketEvents.ATTENDANCE_UPDATED,
+        record,
+      );
+    }
     res.json({ message: "Attendance updated successfully", record });
   } catch (err) {
     res
@@ -249,12 +258,20 @@ export const getUserAttendanceById = async (req, res) => {
 export const addBreaksToRecord = async (req, res) => {
   try {
     const { breaks: breaksToAdd } = req.body;
-    const record = await adminAddBreaks(req.params.id, breaksToAdd);
     await createAuditLog(req, "ADD_BREAKS_TO_RECORD", {
       targetAttendanceId: req.params.id,
       breaksAdded: breaksToAdd,
     });
-    res.json({ message: "Breaks added successfully", record });
+    // Emit real-time update for break addition
+    const updatedRecord = await adminAddBreaks(req.params.id, breaksToAdd);
+    if (updatedRecord && updatedRecord.userId) {
+      emitToRoom(
+        updatedRecord.userId.toString(),
+        SocketEvents.ATTENDANCE_UPDATED,
+        updatedRecord,
+      );
+    }
+    res.json({ message: "Breaks added successfully", record: updatedRecord });
   } catch (err) {
     res
       .status(err.status || 500)
@@ -272,13 +289,17 @@ export const adminCreateBreakEntry = async (req, res) => {
     const { userId } = req.params;
     const { date, breaks } = req.body;
     const result = await adminCreateBreak(userId, date, breaks, req.user);
+    // Emit real-time update for break creation
+    if (result && result.record) {
+      emitToRoom(userId, SocketEvents.ATTENDANCE_UPDATED, result.record);
+    }
     await createAuditLog(req, "CREATE_BREAK_ENTRY", {
       targetUserId: userId,
       date,
       breaksCreated: breaks,
       isNewRecord: result.isNewRecord,
     });
-    res.json({
+    res.json({   
       message: result.isNewRecord
         ? "Attendance record created with break entries"
         : "Break entries added successfully",
@@ -312,12 +333,15 @@ export const adminCreateAttendanceEntry = async (req, res) => {
       checkOut,
       isNewRecord: result.isNewRecord,
     });
+    // Emit real-time update for attendance creation or modification
+    if (result && result.record) {
+      emitToRoom(userId, SocketEvents.ATTENDANCE_UPDATED, result.record);
+      // Also broadcast globally as fallback
+      emitEvent(SocketEvents.ATTENDANCE_UPDATED, result.record);
+    }
     res.json({
-      message: result.isNewRecord
-        ? "Attendance record created successfully"
-        : "Attendance record updated successfully",
+      message: "Attendance updated successfully",
       record: result.record,
-      isNewRecord: result.isNewRecord,
     });
   } catch (err) {
     res
@@ -326,7 +350,7 @@ export const adminCreateAttendanceEntry = async (req, res) => {
   }
 };
 
-// ─── Audit Log Helper
+//  Audit Log Helper
 const createAuditLog = async (req, action, metadata = {}) => {
   try {
     const logData = {

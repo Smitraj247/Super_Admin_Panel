@@ -385,7 +385,7 @@ export default function SuperAdminLeaves() {
                     Reset Filters
                   </button>
                 </div>
-              </div>
+                      </div>
 
               {/* Table */}
               <div className="overflow-x-auto">
@@ -594,7 +594,7 @@ export default function SuperAdminLeaves() {
                       <p className="text-xs text-gray-500 mt-1">
                         Used: {selectedUser.leaveBalance.usedPL || 0}
                       </p>
-                    </div>
+                    </div>                                                                                                 
                     <div className="bg-green-50 p-4 rounded-lg">
                       <p className="text-sm text-green-600 font-semibold">
                         Casual Leave
@@ -836,7 +836,7 @@ export default function SuperAdminLeaves() {
                                   <X size={14} />
                                   Reject
                                 </button>
-                              </div>
+                              </div> 
                             )}
                           </td>
                         </tr>

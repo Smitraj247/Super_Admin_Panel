@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
+import { useAttendanceRealtime } from "../../../_socket/useAttendanceRealtime";
 
 import Navbar from "@/components/layout/Navbar";
 import Sidebar from "@/components/Sidebar";
@@ -33,104 +34,20 @@ import {
 } from "lucide-react";
 import { toast } from "react-toastify";
 
-//   CONSTANTS
-
-const STATUS = {
-  CHECKED_OUT: "CHECKED_OUT",
-  ON_BREAK: "ON_BREAK",
-  BACK_TO_WORK: "BACK_TO_WORK",
-};
-
-const MONTHS = [
-  { value: "01", label: "January" },
-  { value: "02", label: "February" },
-  { value: "03", label: "March" },
-  { value: "04", label: "April" },
-  { value: "05", label: "May" },
-  { value: "06", label: "June" },
-  { value: "07", label: "July" },
-  { value: "08", label: "August" },
-  { value: "09", label: "September" },
-  { value: "10", label: "October" },
-  { value: "11", label: "November" },
-  { value: "12", label: "December" },
-];
-
-//HELPER FUNCS
-
-// Build YYYY-MM-DD strings for a given month/year without timezone shifts
-const toDateStr = (d) =>
-  `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
-
-const getMonthRange = (month, year) => ({
-  firstDay: `${year}-${String(month).padStart(2, "0")}-01`,
-  lastDay: toDateStr(new Date(year, month, 0)),
-});
-
-const formatDateTimeLocal = (dateString) => {
-  if (!dateString) return "";
-
-  const date = new Date(dateString);
-
-  return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(
-    2,
-    "0",
-  )}-${String(date.getDate()).padStart(
-    2,
-    "0",
-  )}T${String(date.getHours()).padStart(2, "0")}:${String(
-    date.getMinutes(),
-  ).padStart(2, "0")}`;
-};
-
-const formatTime = (dateString) => {
-  if (!dateString) return "-";
-
-  return new Date(dateString).toLocaleTimeString("en-US", {
-    hour: "2-digit",
-    minute: "2-digit",
-  });
-};
-
-const calculateBreakMinutes = (breaks = []) => {
-  return breaks.reduce((total, brk) => {
-    if (brk.breakIn && brk.breakOut) {
-      return (
-        total + (new Date(brk.breakOut) - new Date(brk.breakIn)) / (1000 * 60)
-      );
-    }
-
-    return total;
-  }, 0);
-};
-
-const formatBreakTime = (breaks = []) => {
-  const mins = calculateBreakMinutes(breaks);
-
-  const hours = Math.floor(mins / 60);
-  const remaining = Math.floor(mins % 60);
-
-  return hours ? `${hours}h ${remaining}m` : `${remaining}m`;
-};
-
-const calculateWorkingHours = (checkIn, checkOut, breaks = []) => {
-  if (!checkIn || !checkOut) return "-";
-
-  const totalMinutes = (new Date(checkOut) - new Date(checkIn)) / (1000 * 60);
-
-  const workMinutes = totalMinutes - calculateBreakMinutes(breaks);
-
-  const hours = Math.floor(workMinutes / 60);
-  const mins = Math.floor(workMinutes % 60);
-
-  return `${hours}h ${mins}m`;
-};
-
-const getTodayStr = () => {
-  return new Intl.DateTimeFormat("en-CA", { timeZone: "Asia/Kolkata" }).format(
-    new Date(),
-  );
-};
+import { STATUS, MONTHS, ROWS_PER_PAGE_OPTIONS } from "@/constants/attendance";
+import {
+  toDateStr,
+  getMonthRange,
+  formatDateTimeLocal,
+  formatTime,
+  calculateBreakMinutes,
+  formatBreakTime,
+  calculateWorkingHours,
+  getTodayStr,
+} from "@/utils/attendanceHelpers";
+import SummaryCard from "@/components/features/attendance/SummaryCard";
+import TableHead from "@/components/features/attendance/TableHead";
+import StatusBadge from "@/components/features/attendance/StatusBadge";
 
 // MAIN COMPONENT
 
@@ -143,7 +60,7 @@ export default function HRUserAttendanceDetail() {
   const currentDate = new Date();
 
   const [user, setUser] = useState(null);
-  const [attendance, setAttendance] = useState([]);
+  const [attendance, setAttendance] = useAttendanceRealtime(userId, []);
   const [summary, setSummary] = useState(null);
 
   const [selectedMonth, setSelectedMonth] = useState(
@@ -214,7 +131,7 @@ export default function HRUserAttendanceDetail() {
         (a, b) => new Date(b.date) - new Date(a.date),
       );
 
-      setAttendance(records);
+      setAttendance(records); // updates realtime hook state
       setSummary(summaryRes.data);
     } catch (error) {
       console.error(error);
@@ -861,59 +778,3 @@ export default function HRUserAttendanceDetail() {
   );
 }
 
-// REUSABLE COMPONENTS
-
-function SummaryCard({ title, value, icon, color }) {
-  return (
-    <div
-      className={`bg-gradient-to-r ${color} text-white rounded-xl p-3  shadow-sm`}
-    >
-      <div className="flex justify-between items-center mb-3">{icon}</div>
-
-      <h2 className="text-3xl font-bold">{value}</h2>
-
-      <p className="text-sm opacity-90">{title}</p>
-    </div>
-  );
-}
-
-function TableHead({ icon, title }) {
-  return (
-    <th className="p-4 text-left font-semibold text-gray-700">
-      <div className="flex items-center gap-2">
-        {icon}
-        {title}
-      </div>
-    </th>
-  );
-}
-
-function StatusBadge({ status }) {
-  const statusStyles = {
-    CHECKED_OUT: "bg-green-100 text-green-700",
-    CHECKED_IN: "bg-blue-100 text-blue-700",
-    LATE: "bg-orange-100 text-orange-700",
-    ON_BREAK: "bg-yellow-100 text-yellow-700",
-    BACK_TO_WORK: "bg-blue-100 text-blue-700",
-    ON_LEAVE: "bg-red-100 text-red-700",
-    HALF_DAY_LEAVE: "bg-purple-100 text-purple-700",
-  };
-
-  const labels = {
-    CHECKED_OUT: "Checked Out",
-    CHECKED_IN: "Checked In",
-    LATE: "Late",
-    ON_BREAK: "On Break",
-    BACK_TO_WORK: "Back to Work",
-    ON_LEAVE: "On Leave",
-    HALF_DAY_LEAVE: "Half Day Leave",
-  };
-
-  return (
-    <span
-      className={`px-3 py-1 rounded-full text-xs font-semibold ${statusStyles[status] || "bg-gray-100 text-gray-700"}`}
-    >
-      {labels[status] || status}
-    </span>
-  );
-}

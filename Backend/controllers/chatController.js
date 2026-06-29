@@ -1,6 +1,6 @@
 import Chat from "../models/Chat.js";
 import User from "../models/User.models.js";
-import { getIO } from "../utils/socketEmitter.js";
+import { getIO, SocketEvents } from "../utils/socketEmitter.js";
 import { createNotificationHelper } from "./notificationController.js";
 
 // Get or create a chat between two users
@@ -124,11 +124,13 @@ export const sendMessage = async (req, res) => {
     // Emit real-time event to all participants in the chat room
     const io = getIO();
     if (io) {
-      io.to(chatId).emit("newMessage", updatedChat);
+      // Deliver the new message to everyone currently viewing this chat
+      io.to(chatId).emit(SocketEvents.CHAT_NEW_MESSAGE, updatedChat);
 
-      // Also notify each participant's personal room (for chat list updates)
+      // Also notify each participant's personal room so their chat list
+      // sidebar updates the preview / unread count in real-time
       updatedChat.participants.forEach((participant) => {
-        io.to(participant._id.toString()).emit("chatUpdated", updatedChat);
+        io.to(participant._id.toString()).emit(SocketEvents.CHAT_UPDATED, updatedChat);
       });
     }
 

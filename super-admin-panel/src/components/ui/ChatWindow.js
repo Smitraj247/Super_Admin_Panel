@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
 import {
   getOrCreateChatApi,
   sendMessageApi,
@@ -26,7 +26,12 @@ import {
 } from "lucide-react";
 import { toast } from "react-toastify";
 
-export default function ChatWindow({ user, chat: initialChat, onClose, onUpdate }) {
+export default function ChatWindow({
+  user,
+  chat: initialChat,
+  onClose,
+  onUpdate,
+}) {
   const { user: currentUser } = useAuth();
   const { socket } = useSocket();
   const [chat, setChat] = useState(initialChat || null);
@@ -40,47 +45,77 @@ export default function ChatWindow({ user, chat: initialChat, onClose, onUpdate 
   const messagesEndRef = useRef(null);
   const messageInputRef = useRef(null);
 
+  // KEY FIX: keep a ref to the current chatId so socket listeners
+  // always read the latest value without needing to re-register
+  const chatIdRef = useRef(chat?._id);
+  useEffect(() => {
+    chatIdRef.current = chat?._id;
+  }, [chat?._id]);
+
   const isGroupChat = chat?.isGroupChat || false;
   const isGroupAdmin = isGroupChat && chat?.groupAdmin?._id === currentUser._id;
 
+  // KEY FIX: Sync when parent passes a NEW initialChat object.
+  // Dependency must be `initialChat` (the object reference), NOT `initialChat?._id`.
+  // When ChatsPage receives a `chatUpdated` socket event it calls setSelectedChat()
+  // with a brand-new object — the _id is identical but the reference differs.
+  // Depending on _id meant this effect NEVER ran for new messages, keeping the
+  // window permanently stale until page refresh.
+  useEffect(() => {
+    if (initialChat) {
+      setChat(initialChat);
+    }
+  }, [initialChat]); // <-- full object reference, not just _id
+
+  // Load chat if opened via user object (no existing chat)
   useEffect(() => {
     if (user && !initialChat) {
       loadChat();
     }
   }, [user]);
 
-  // Join/leave the socket chat room when chat changes
+  // Join/leave the socket chat room
   useEffect(() => {
     if (!socket || !chat?._id) return;
     socket.emit("joinChat", chat._id);
-    return () => socket.emit("leaveChat", chat._id);
+    return () => {
+      socket.emit("leaveChat", chat._id);
+    };
   }, [socket, chat?._id]);
 
-  // Listen for incoming messages in this chat
+  // Register newMessage listener once per socket instance.
+  // Use chatIdRef to avoid stale closures — never add chat._id to the deps here.
+  // When this client is the SENDER, handleSendMessage already updates local state
+  // from the API response. When this client is the RECEIVER, the newMessage event
+  // carries the fully-populated updatedChat from the server.
   useEffect(() => {
     if (!socket) return;
+
     const handleNewMessage = (updatedChat) => {
-      if (updatedChat._id === chat?._id) {
+      // chatIdRef.current is always the latest id without needing to re-register
+      if (updatedChat._id === chatIdRef.current) {
         setChat(updatedChat);
-        // Mark as read since the window is open
         markAsReadApi(updatedChat._id).catch(() => {});
-        if (onUpdate) onUpdate(updatedChat);
+        // Notify ChatsPage to refresh its sidebar list so the last message preview updates
+        if (onUpdate) onUpdate();
       }
     };
-    socket.on("newMessage", handleNewMessage);
-    return () => socket.off("newMessage", handleNewMessage);
-  }, [socket, chat?._id, onUpdate]);
 
+    socket.on("newMessage", handleNewMessage);
+    return () => {
+      socket.off("newMessage", handleNewMessage);
+    };
+  }, [socket, onUpdate]); // onUpdate is a stable useCallback ref from ChatsPage
+
+  // Scroll to bottom on new messages
   useEffect(() => {
     scrollToBottom();
-  }, [chat?.messages]);
+  }, [chat?.messages?.length]);
 
+  // Mark as read when chat window opens
   useEffect(() => {
-    // Mark messages as read when chat is opened
-    if (chat && chat._id) {
-      markAsReadApi(chat._id).catch((err) =>
-        console.error("Mark as read error:", err)
-      );
+    if (chat?._id) {
+      markAsReadApi(chat._id).catch(() => {});
     }
   }, [chat?._id]);
 
@@ -102,12 +137,12 @@ export default function ChatWindow({ user, chat: initialChat, onClose, onUpdate 
 
   const handleSendMessage = async (e) => {
     e.preventDefault();
-
     if (!message.trim() || !chat) return;
 
     try {
       setSending(true);
       const res = await sendMessageApi(chat._id, message);
+      // Update local state immediately from API response (sender side)
       setChat(res.data.data);
       setMessage("");
       messageInputRef.current?.focus();
@@ -122,7 +157,6 @@ export default function ChatWindow({ user, chat: initialChat, onClose, onUpdate 
 
   const handleUpdateGroupName = async () => {
     if (!newGroupName.trim()) return;
-
     try {
       const res = await updateGroupNameApi(chat._id, newGroupName);
       setChat(res.data.data);
@@ -137,7 +171,6 @@ export default function ChatWindow({ user, chat: initialChat, onClose, onUpdate 
 
   const handleLeaveGroup = async () => {
     if (!window.confirm("Are you sure you want to leave this group?")) return;
-
     try {
       await leaveGroupChatApi(chat._id);
       if (onUpdate) onUpdate();
@@ -148,57 +181,53 @@ export default function ChatWindow({ user, chat: initialChat, onClose, onUpdate 
     }
   };
 
-  const formatTime = (date) => {
-    return new Date(date).toLocaleTimeString("en-US", {
+  const formatTime = (date) =>
+    new Date(date).toLocaleTimeString("en-US", {
       hour: "2-digit",
       minute: "2-digit",
     });
-  };
 
   const formatDate = (date) => {
     const messageDate = new Date(date);
     const today = new Date();
     const yesterday = new Date(today);
     yesterday.setDate(yesterday.getDate() - 1);
-
-    if (messageDate.toDateString() === today.toDateString()) {
-      return "Today";
-    } else if (messageDate.toDateString() === yesterday.toDateString()) {
+    if (messageDate.toDateString() === today.toDateString()) return "Today";
+    if (messageDate.toDateString() === yesterday.toDateString())
       return "Yesterday";
-    } else {
-      return messageDate.toLocaleDateString("en-US", {
-        month: "short",
-        day: "numeric",
-        year: "numeric",
-      });
-    }
+    return messageDate.toLocaleDateString("en-US", {
+      month: "short",
+      day: "numeric",
+      year: "numeric",
+    });
   };
 
-  // Group messages by date
   const groupMessagesByDate = (messages) => {
     const groups = {};
     messages.forEach((msg) => {
       const date = formatDate(msg.createdAt);
-      if (!groups[date]) {
-        groups[date] = [];
-      }
+      if (!groups[date]) groups[date] = [];
       groups[date].push(msg);
     });
     return groups;
   };
 
   const getChatTitle = () => {
-    if (isGroupChat) {
-      return chat.groupName;
-    }
-    return user?.name || "Chat";
+    if (isGroupChat) return chat.groupName;
+    return (
+      user?.name ||
+      chat?.participants?.find((p) => p._id !== currentUser._id)?.name ||
+      "Chat"
+    );
   };
 
   const getChatSubtitle = () => {
-    if (isGroupChat) {
-      return `${chat.participants.length} participants`;
-    }
-    return user?.email || "";
+    if (isGroupChat) return `${chat.participants.length} participants`;
+    return (
+      user?.email ||
+      chat?.participants?.find((p) => p._id !== currentUser._id)?.email ||
+      ""
+    );
   };
 
   return (
@@ -221,7 +250,9 @@ export default function ChatWindow({ user, chat: initialChat, onClose, onUpdate 
           </div>
           <div className="flex-1 min-w-0">
             <h3 className="font-semibold truncate">{getChatTitle()}</h3>
-            <p className="text-xs text-white/80 truncate">{getChatSubtitle()}</p>
+            <p className="text-xs text-white/80 truncate">
+              {getChatSubtitle()}
+            </p>
           </div>
         </div>
         <div className="flex items-center gap-2">
@@ -254,7 +285,6 @@ export default function ChatWindow({ user, chat: initialChat, onClose, onUpdate 
       {/* Group Settings Panel */}
       {showSettings && isGroupChat && (
         <div className="bg-slate-100 border-b border-slate-200 p-4 space-y-3">
-          {/* Group Name */}
           <div>
             <label className="text-xs font-semibold text-slate-600 mb-1 block">
               Group Name
@@ -302,7 +332,6 @@ export default function ChatWindow({ user, chat: initialChat, onClose, onUpdate 
             )}
           </div>
 
-          {/* Participants */}
           <div>
             <label className="text-xs font-semibold text-slate-600 mb-1 block">
               Participants ({chat.participants.length})
@@ -325,7 +354,6 @@ export default function ChatWindow({ user, chat: initialChat, onClose, onUpdate 
             </div>
           </div>
 
-          {/* Leave Group */}
           {!isGroupAdmin && (
             <button
               onClick={handleLeaveGroup}
@@ -348,14 +376,11 @@ export default function ChatWindow({ user, chat: initialChat, onClose, onUpdate 
           Object.entries(groupMessagesByDate(chat.messages)).map(
             ([date, messages]) => (
               <div key={date}>
-                {/* Date Separator */}
                 <div className="flex items-center justify-center my-4">
                   <div className="bg-slate-200 text-slate-600 text-xs px-3 py-1 rounded-full">
                     {date}
                   </div>
                 </div>
-
-                {/* Messages for this date */}
                 {messages.map((msg) => {
                   const isCurrentUser =
                     msg.sender?._id === currentUser._id ||
@@ -374,7 +399,7 @@ export default function ChatWindow({ user, chat: initialChat, onClose, onUpdate 
                             : "bg-white text-slate-900 border border-slate-200"
                         } rounded-2xl px-4 py-2 shadow-sm`}
                       >
-                        {!isCurrentUser && (
+                        {!isCurrentUser && isGroupChat && (
                           <p className="text-xs font-semibold text-indigo-600 mb-1">
                             {senderName}
                           </p>
@@ -392,7 +417,7 @@ export default function ChatWindow({ user, chat: initialChat, onClose, onUpdate 
                   );
                 })}
               </div>
-            )
+            ),
           )
         ) : (
           <div className="flex flex-col items-center justify-center h-full text-slate-400">

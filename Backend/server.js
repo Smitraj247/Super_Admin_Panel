@@ -45,31 +45,37 @@ const io = new Server(httpServer, {
 // Set the io instance in the socket emitter
 setSocketIO(io);
 
-// Socket.io connection handling
+// In your Socket.io server setup
 io.on("connection", (socket) => {
-  // Join a personal room using userId so we can target messages
-  socket.on("join", (userId) => {
-    socket.join(userId);
-  });
+  console.log(`[Socket.io] Client connected: ${socket.id}`);
 
-  // Join a specific chat room
+  // Lets a client join a specific chat room to receive newMessage events
   socket.on("joinChat", (chatId) => {
     socket.join(chatId);
+    console.log(`[Socket.io] Socket ${socket.id} joined chat room: ${chatId}`);
   });
 
-  // Leave a chat room
   socket.on("leaveChat", (chatId) => {
     socket.leave(chatId);
+    console.log(`[Socket.io] Socket ${socket.id} left chat room: ${chatId}`);
   });
 
-  socket.on("disconnect", () => {});
+  // Joins the user's personal room so chatUpdated / notification events are received
+  socket.on("joinUserRoom", (userId) => {
+    socket.join(userId);
+    console.log(`[Socket.io] Socket ${socket.id} joined user room: ${userId}`);
+  });
+
+  socket.on("disconnect", (reason) => {
+    console.log(`[Socket.io] Client disconnected: ${socket.id} — reason: ${reason}`);
+  });
 });
 
 app.use(
   cors({
     origin: allowedOrigins,
     credentials: true,
-    methods: ["GET", "POST", "PUT", "DELETE"],    
+    methods: ["GET", "POST", "PUT", "DELETE"],
     allowedHeaders: ["Content-Type", "Authorization"],
   }),
 );

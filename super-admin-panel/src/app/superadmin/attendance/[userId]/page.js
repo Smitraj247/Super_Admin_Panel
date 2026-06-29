@@ -20,11 +20,12 @@ import {
   ArrowLeft,
   Calendar,
   CheckCircle,
+  ChevronLeft,
+  ChevronRight,
   Clock,
   Coffee,
   Download,
   Edit,
-  Filter,
   PlayCircle,
   Plus,
   StopCircle,
@@ -34,104 +35,20 @@ import {
 } from "lucide-react";
 import { toast } from "react-toastify";
 
-//   CONSTANTS
-
-const STATUS = {
-  CHECKED_OUT: "CHECKED_OUT",
-  ON_BREAK: "ON_BREAK",
-  BACK_TO_WORK: "BACK_TO_WORK",
-};
-
-const MONTHS = [
-  { value: "01", label: "January" },
-  { value: "02", label: "February" },
-  { value: "03", label: "March" },
-  { value: "04", label: "April" },
-  { value: "05", label: "May" },
-  { value: "06", label: "June" },
-  { value: "07", label: "July" },
-  { value: "08", label: "August" },
-  { value: "09", label: "September" },
-  { value: "10", label: "October" },
-  { value: "11", label: "November" },
-  { value: "12", label: "December" },
-];
-
-//HELPER FUNCS
-
-// Build YYYY-MM-DD strings for a given month/year without timezone shifts
-const toDateStr = (d) =>
-  `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
-
-const getMonthRange = (month, year) => ({
-  firstDay: `${year}-${String(month).padStart(2, "0")}-01`,
-  lastDay: toDateStr(new Date(year, month, 0)),
-});
-
-const formatDateTimeLocal = (dateString) => {
-  if (!dateString) return "";
-
-  const date = new Date(dateString);
-
-  return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(
-    2,
-    "0",
-  )}-${String(date.getDate()).padStart(
-    2,
-    "0",
-  )}T${String(date.getHours()).padStart(2, "0")}:${String(
-    date.getMinutes(),
-  ).padStart(2, "0")}`;
-};
-
-const formatTime = (dateString) => {
-  if (!dateString) return "-";
-
-  return new Date(dateString).toLocaleTimeString("en-US", {
-    hour: "2-digit",
-    minute: "2-digit",
-  });
-};
-
-const calculateBreakMinutes = (breaks = []) => {
-  return breaks.reduce((total, brk) => {
-    if (brk.breakIn && brk.breakOut) {
-      return (
-        total + (new Date(brk.breakOut) - new Date(brk.breakIn)) / (1000 * 60)
-      );
-    }
-
-    return total;
-  }, 0);
-};
-
-const formatBreakTime = (breaks = []) => {
-  const mins = calculateBreakMinutes(breaks);
-
-  const hours = Math.floor(mins / 60);
-  const remaining = Math.floor(mins % 60);
-
-  return hours ? `${hours}h ${remaining}m` : `${remaining}m`;
-};
-
-const calculateWorkingHours = (checkIn, checkOut, breaks = []) => {
-  if (!checkIn || !checkOut) return "-";
-
-  const totalMinutes = (new Date(checkOut) - new Date(checkIn)) / (1000 * 60);
-
-  const workMinutes = totalMinutes - calculateBreakMinutes(breaks);
-
-  const hours = Math.floor(workMinutes / 60);
-  const mins = Math.floor(workMinutes % 60);
-
-  return `${hours}h ${mins}m`;
-};
-
-const getTodayStr = () => {
-  return new Intl.DateTimeFormat("en-CA", { timeZone: "Asia/Kolkata" }).format(
-    new Date(),
-  );
-};
+import { STATUS, MONTHS, ROWS_PER_PAGE_OPTIONS } from "@/constants/attendance";
+import {
+  toDateStr,
+  getMonthRange,
+  formatDateTimeLocal,
+  formatTime,
+  calculateBreakMinutes,
+  formatBreakTime,
+  calculateWorkingHours,
+  getTodayStr,
+} from "@/utils/attendanceHelpers";
+import SummaryCard from "@/components/features/attendance/SummaryCard";
+import TableHead from "@/components/features/attendance/TableHead";
+import StatusBadge from "@/components/features/attendance/StatusBadge";
 
 // MAIN COMPONENT
 
@@ -140,7 +57,6 @@ export default function HRUserAttendanceDetail() {
   const router = useRouter();
 
   const userId = params.userId;
-
   const currentDate = new Date();
 
   const [user, setUser] = useState(null);
@@ -150,17 +66,18 @@ export default function HRUserAttendanceDetail() {
   const [selectedMonth, setSelectedMonth] = useState(
     String(currentDate.getMonth() + 1).padStart(2, "0"),
   );
-
   const [selectedYear, setSelectedYear] = useState(
     String(currentDate.getFullYear()),
   );
-
   const [loading, setLoading] = useState(false);
+
+  // Pagination state
+  const [currentPage, setCurrentPage] = useState(1);
+  const [rowsPerPage, setRowsPerPage] = useState(10);
 
   const [showEditModal, setShowEditModal] = useState(false);
   const [editingRecord, setEditingRecord] = useState(null);
 
-  // Add Break Modal state
   const [showAddBreakModal, setShowAddBreakModal] = useState(false);
   const [addBreakForm, setAddBreakForm] = useState({
     date: getTodayStr(),
@@ -179,6 +96,19 @@ export default function HRUserAttendanceDetail() {
     return Array.from({ length: 5 }, (_, i) => new Date().getFullYear() - i);
   }, []);
 
+  // Pagination calculations
+  const totalRecords = attendance.length;
+  const totalPages = Math.max(1, Math.ceil(totalRecords / rowsPerPage));
+  const paginatedAttendance = useMemo(() => {
+    const start = (currentPage - 1) * rowsPerPage;
+    return attendance.slice(start, start + rowsPerPage);
+  }, [attendance, currentPage, rowsPerPage]);
+
+  // Reset to page 1 when filters or rows-per-page change
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [selectedMonth, selectedYear, rowsPerPage]);
+
   // FETCH USER DATA
 
   const fetchUserData = useCallback(async () => {
@@ -187,11 +117,16 @@ export default function HRUserAttendanceDetail() {
         getUsersApi(),
         getAdminsApi(),
       ]);
-
-      const allUsers = [...(usersRes.data || []), ...(adminsRes.data || [])];
-
+      const toArray = (res) => {
+        const d = res?.data;
+        if (Array.isArray(d)) return d;
+        if (Array.isArray(d?.data)) return d.data;
+        if (Array.isArray(d?.users)) return d.users;
+        if (Array.isArray(d?.admins)) return d.admins;
+        return [];
+      };
+      const allUsers = [...toArray(usersRes), ...toArray(adminsRes)];
       const foundUser = allUsers.find((u) => u._id === userId);
-
       setUser(foundUser);
     } catch (error) {
       console.error(error);
@@ -202,13 +137,10 @@ export default function HRUserAttendanceDetail() {
 
   const fetchAttendance = useCallback(async () => {
     if (!selectedMonth || !selectedYear) return;
-
     setLoading(true);
-
     try {
       const year = parseInt(selectedYear);
       const month = parseInt(selectedMonth);
-
       const [attendanceRes, summaryRes] = await Promise.all([
         getUserAttendanceByIdApi(
           userId,
@@ -217,11 +149,9 @@ export default function HRUserAttendanceDetail() {
         ),
         getUserSummaryByIdApi(userId, year, month),
       ]);
-
       const records = (attendanceRes.data?.data || []).sort(
         (a, b) => new Date(b.date) - new Date(a.date),
       );
-
       setAttendance(records);
       setSummary(summaryRes.data);
     } catch (error) {
@@ -236,42 +166,34 @@ export default function HRUserAttendanceDetail() {
   useEffect(() => {
     fetchUserData();
   }, [fetchUserData]);
-
   useEffect(() => {
     fetchAttendance();
   }, [fetchAttendance]);
 
   // AUTO REFRESH
-
   useEffect(() => {
     const interval = setInterval(() => {
       fetchAttendance();
     }, 30000);
-
     return () => clearInterval(interval);
   }, [fetchAttendance]);
 
-  // EDIT MODAL OPEN
+  // EDIT MODAL
 
   const openEditModal = (record) => {
     setEditingRecord({
       ...record,
-
       form: {
         checkIn: formatDateTimeLocal(record.checkIn),
         checkOut: formatDateTimeLocal(record.checkOut),
-
         breaks: (record.breaks || []).map((brk) => ({
           breakIn: formatDateTimeLocal(brk.breakIn),
           breakOut: formatDateTimeLocal(brk.breakOut),
         })),
       },
     });
-
     setShowEditModal(true);
   };
-
-  //   SAVE ATTENDANCE
 
   const handleSaveEdit = async () => {
     try {
@@ -279,24 +201,17 @@ export default function HRUserAttendanceDetail() {
         checkIn: editingRecord.form.checkIn
           ? new Date(editingRecord.form.checkIn).toISOString()
           : null,
-
         checkOut: editingRecord.form.checkOut
           ? new Date(editingRecord.form.checkOut).toISOString()
           : null,
-
         breaks: editingRecord.form.breaks.map((brk) => ({
           breakIn: brk.breakIn ? new Date(brk.breakIn).toISOString() : null,
-
           breakOut: brk.breakOut ? new Date(brk.breakOut).toISOString() : null,
         })),
       };
-
       await updateAttendanceApi(editingRecord._id, updates);
-
       await fetchAttendance();
-
       toast.success("Attendance updated successfully");
-
       setShowEditModal(false);
       setEditingRecord(null);
     } catch (error) {
@@ -315,13 +230,9 @@ export default function HRUserAttendanceDetail() {
         toast.error("Date is required");
         return;
       }
-
       const breaks = [
-        {
-          breakIn: new Date(addBreakForm.breakIn).toISOString(),
-        },
+        { breakIn: new Date(addBreakForm.breakIn).toISOString() },
       ];
-
       if (addBreakForm.breakOut) {
         const breakOutDate = new Date(addBreakForm.breakOut);
         const breakInDate = new Date(addBreakForm.breakIn);
@@ -331,13 +242,11 @@ export default function HRUserAttendanceDetail() {
         }
         breaks[0].breakOut = breakOutDate.toISOString();
       }
-
       const response = await adminCreateBreakEntryApi(
         userId,
         addBreakForm.date,
         breaks,
       );
-
       if (response.data?.record?.breaks && editingRecord) {
         setEditingRecord((prev) => ({
           ...prev,
@@ -350,20 +259,10 @@ export default function HRUserAttendanceDetail() {
           },
         }));
       }
-
-      console.log("Break API Response:", response.data);
-
       await fetchAttendance();
-
-      console.log("Updated attendance:", attendance);
-
       toast.success("Break entry created successfully");
       setShowAddBreakModal(false);
-      setAddBreakForm({
-        date: getTodayStr(),
-        breakIn: "",
-        breakOut: "",
-      });
+      setAddBreakForm({ date: getTodayStr(), breakIn: "", breakOut: "" });
     } catch (error) {
       console.error(error);
       toast.error(
@@ -373,20 +272,12 @@ export default function HRUserAttendanceDetail() {
   };
 
   const openAddBreakModal = () => {
-    setAddBreakForm({
-      date: getTodayStr(),
-      breakIn: "",
-      breakOut: "",
-    });
+    setAddBreakForm({ date: getTodayStr(), breakIn: "", breakOut: "" });
     setShowAddBreakModal(true);
   };
 
   const openAddAttendanceModal = () => {
-    setAddAttendanceForm({
-      date: getTodayStr(),
-      checkIn: "",
-      checkOut: "",
-    });
+    setAddAttendanceForm({ date: getTodayStr(), checkIn: "", checkOut: "" });
     setShowAddAttendanceModal(true);
   };
 
@@ -400,7 +291,6 @@ export default function HRUserAttendanceDetail() {
         toast.error("Check-in time is required");
         return;
       }
-
       if (addAttendanceForm.checkOut) {
         const checkOutDate = new Date(addAttendanceForm.checkOut);
         const checkInDate = new Date(addAttendanceForm.checkIn);
@@ -409,7 +299,6 @@ export default function HRUserAttendanceDetail() {
           return;
         }
       }
-
       await adminCreateAttendanceEntryApi(
         userId,
         addAttendanceForm.date,
@@ -418,7 +307,6 @@ export default function HRUserAttendanceDetail() {
           ? new Date(addAttendanceForm.checkOut).toISOString()
           : null,
       );
-
       await fetchAttendance();
       toast.success("Attendance record saved successfully");
       setShowAddAttendanceModal(false);
@@ -435,37 +323,46 @@ export default function HRUserAttendanceDetail() {
   const generateReport = () => {
     const csvContent = [
       ["Date", "Check In", "Check Out", "Break", "Work Hours", "Status"],
-
       ...attendance.map((record) => [
         new Date(record.date).toLocaleDateString(),
-
         formatTime(record.checkIn),
-
         formatTime(record.checkOut),
-
         formatBreakTime(record.breaks),
-
         calculateWorkingHours(record.checkIn, record.checkOut, record.breaks),
-
         record.status,
       ]),
     ]
       .map((row) => row.join(","))
       .join("\n");
 
-    const blob = new Blob([csvContent], {
-      type: "text/csv",
-    });
-
+    const blob = new Blob([csvContent], { type: "text/csv" });
     const url = window.URL.createObjectURL(blob);
-
     const a = document.createElement("a");
-
     a.href = url;
-
     a.download = `${user?.name}-attendance.csv`;
-
     a.click();
+  };
+
+  // PAGE RANGE for pagination buttons
+  const getPageNumbers = () => {
+    const delta = 2;
+    const range = [];
+    for (
+      let i = Math.max(1, currentPage - delta);
+      i <= Math.min(totalPages, currentPage + delta);
+      i++
+    ) {
+      range.push(i);
+    }
+    if (range[0] > 1) {
+      if (range[0] > 2) range.unshift("...");
+      range.unshift(1);
+    }
+    if (range[range.length - 1] < totalPages) {
+      if (range[range.length - 1] < totalPages - 1) range.push("...");
+      range.push(totalPages);
+    }
+    return range;
   };
 
   return (
@@ -475,7 +372,6 @@ export default function HRUserAttendanceDetail() {
 
       <div className="md:ml-64 p-4 md:p-8 pt-24">
         {/* HEADER */}
-
         <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-6 mb-8 mt-16">
           <div className="flex items-center gap-4">
             <div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-green-500 to-emerald-600 flex items-center justify-center shadow-lg">
@@ -485,11 +381,9 @@ export default function HRUserAttendanceDetail() {
               <h1 className="text-xl md:text-2xl font-bold text-gray-900">
                 {user?.name || "Employee Name"}
               </h1>
-
               <p className="text-gray-600 text-sm md:text-base">
                 {user?.email || "employee@email.com"}
               </p>
-
               <div className="flex flex-wrap gap-2 mt-2">
                 {user?.department && (
                   <span className="px-3 py-1 rounded-full text-xs font-medium bg-green-100 text-green-700">
@@ -498,7 +392,6 @@ export default function HRUserAttendanceDetail() {
                       : user.department}
                   </span>
                 )}
-
                 {user?.role && (
                   <span className="px-3 py-1 rounded-full text-xs font-medium bg-blue-100 text-blue-700">
                     {typeof user.role === "object"
@@ -518,7 +411,6 @@ export default function HRUserAttendanceDetail() {
               <ArrowLeft size={18} />
               Back
             </button>
-
             <button
               onClick={generateReport}
               className="flex items-center gap-2 px-3 py-2 rounded-xl bg-gradient-to-r from-green-500 to-emerald-600 text-white hover:from-green-600 hover:to-emerald-700 transition-all duration-200 shadow-md hover:shadow-lg"
@@ -530,7 +422,6 @@ export default function HRUserAttendanceDetail() {
         </div>
 
         {/* SUMMARY */}
-
         {summary && (
           <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4 mb-6">
             <SummaryCard
@@ -567,14 +458,11 @@ export default function HRUserAttendanceDetail() {
         )}
 
         {/* TABLE */}
-
-        <div className="bg-white border  border-blue-200 rounded-2xl shadow overflow-hidden">
-          <div className="flex items-center justify-between p-5 border-b">
-            {/* Left Side */}
+        <div className="bg-white border border-blue-200 rounded-2xl shadow overflow-hidden">
+          {/* Table Header Controls */}
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 p-5 border-b">
             <h2 className="text-xl font-bold">Attendance Records</h2>
-
-            {/* Right Side */}
-            <div className="flex gap-4">
+            <div className="flex flex-wrap items-center gap-3">
               <button
                 onClick={openAddAttendanceModal}
                 className="flex items-center gap-2 px-3 py-2 rounded-xl bg-gradient-to-r from-blue-500 to-indigo-600 text-white hover:from-blue-600 hover:to-indigo-700 transition-all duration-200 shadow-md hover:shadow-lg"
@@ -582,7 +470,6 @@ export default function HRUserAttendanceDetail() {
                 <Plus size={18} />
                 Add Attendance
               </button>
-
               <select
                 value={selectedMonth}
                 onChange={(e) => setSelectedMonth(e.target.value)}
@@ -594,7 +481,6 @@ export default function HRUserAttendanceDetail() {
                   </option>
                 ))}
               </select>
-
               <select
                 value={selectedYear}
                 onChange={(e) => setSelectedYear(e.target.value)}
@@ -631,19 +517,15 @@ export default function HRUserAttendanceDetail() {
                       Loading...
                     </td>
                   </tr>
-                ) : attendance.length ? (
-                  attendance.map((record) => (
+                ) : paginatedAttendance.length ? (
+                  paginatedAttendance.map((record) => (
                     <tr key={record._id} className="border-b hover:bg-gray-50">
                       <td className="p-4">
                         {new Date(record.date).toLocaleDateString()}
                       </td>
-
                       <td className="p-4">{formatTime(record.checkIn)}</td>
-
                       <td className="p-4">{formatTime(record.checkOut)}</td>
-
                       <td className="p-4">{formatBreakTime(record.breaks)}</td>
-
                       <td className="p-4">
                         {calculateWorkingHours(
                           record.checkIn,
@@ -651,11 +533,9 @@ export default function HRUserAttendanceDetail() {
                           record.breaks,
                         )}
                       </td>
-
                       <td className="p-4">
                         <StatusBadge status={record.status} />
                       </td>
-
                       <td className="p-4">
                         <button
                           onClick={() => openEditModal(record)}
@@ -677,64 +557,120 @@ export default function HRUserAttendanceDetail() {
               </tbody>
             </table>
           </div>
+
+          {/* PAGINATION FOOTER */}
+          {!loading && totalRecords > 0 && (
+            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 px-5 py-4 border-t bg-gray-50">
+              {/* Rows per page + record count */}
+              <div className="flex items-center gap-3 text-sm text-gray-600">
+                <span>Rows per page:</span>
+                <select
+                  value={rowsPerPage}
+                  onChange={(e) => setRowsPerPage(Number(e.target.value))}
+                  className="border border-gray-300 rounded-lg px-2 py-1 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-blue-300"
+                >
+                  {ROWS_PER_PAGE_OPTIONS.map((opt) => (
+                    <option key={opt} value={opt}>
+                      {opt}
+                    </option>
+                  ))}
+                </select>
+                <span className="text-gray-400">
+                  {(currentPage - 1) * rowsPerPage + 1}–
+                  {Math.min(currentPage * rowsPerPage, totalRecords)} of{" "}
+                  {totalRecords}
+                </span>
+              </div>
+
+              {/* Page buttons */}
+              <div className="flex items-center gap-1">
+                {/* Prev */}
+                <button
+                  onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
+                  disabled={currentPage === 1}
+                  className="p-2 rounded-lg border border-gray-300 bg-white text-gray-600 hover:bg-gray-100 disabled:opacity-40 disabled:cursor-not-allowed transition"
+                  aria-label="Previous page"
+                >
+                  <ChevronLeft size={16} />
+                </button>
+
+                {/* Page numbers */}
+                {getPageNumbers().map((page, idx) =>
+                  page === "..." ? (
+                    <span
+                      key={`ellipsis-${idx}`}
+                      className="px-2 text-gray-400 select-none"
+                    >
+                      …
+                    </span>
+                  ) : (
+                    <button
+                      key={page}
+                      onClick={() => setCurrentPage(page)}
+                      className={`min-w-[36px] h-9 rounded-lg border text-sm font-medium transition ${
+                        currentPage === page
+                          ? "bg-blue-600 border-blue-600 text-white shadow-sm"
+                          : "border-gray-300 bg-white text-gray-700 hover:bg-gray-100"
+                      }`}
+                    >
+                      {page}
+                    </button>
+                  ),
+                )}
+
+                {/* Next */}
+                <button
+                  onClick={() =>
+                    setCurrentPage((p) => Math.min(totalPages, p + 1))
+                  }
+                  disabled={currentPage === totalPages}
+                  className="p-2 rounded-lg border border-gray-300 bg-white text-gray-600 hover:bg-gray-100 disabled:opacity-40 disabled:cursor-not-allowed transition"
+                  aria-label="Next page"
+                >
+                  <ChevronRight size={16} />
+                </button>
+              </div>
+            </div>
+          )}
         </div>
 
         {/* EDIT MODAL */}
-
         {showEditModal && editingRecord && (
           <div className="fixed inset-0 bg-black/40 flex justify-center items-center z-50 p-4">
             <div className="bg-white rounded-3xl w-full max-w-2xl p-6 max-h-[90vh] overflow-y-auto">
               <h2 className="text-2xl font-bold mb-6">Edit Attendance</h2>
-
               <div className="space-y-5">
-                {/* CHECK IN */}
-
                 <div>
                   <label className="block mb-2 font-medium">Check In</label>
-
                   <input
                     type="datetime-local"
                     value={editingRecord.form.checkIn}
                     onChange={(e) =>
                       setEditingRecord((prev) => ({
                         ...prev,
-                        form: {
-                          ...prev.form,
-                          checkIn: e.target.value,
-                        },
+                        form: { ...prev.form, checkIn: e.target.value },
                       }))
                     }
                     className="w-full border p-3 rounded-xl"
                   />
                 </div>
-
-                {/* CHECK OUT */}
-
                 <div>
                   <label className="block mb-2 font-medium">Check Out</label>
-
                   <input
                     type="datetime-local"
                     value={editingRecord.form.checkOut}
                     onChange={(e) =>
                       setEditingRecord((prev) => ({
                         ...prev,
-                        form: {
-                          ...prev.form,
-                          checkOut: e.target.value,
-                        },
+                        form: { ...prev.form, checkOut: e.target.value },
                       }))
                     }
                     className="w-full border p-3 rounded-xl"
                   />
                 </div>
-
-                {/* BREAKS */}
-
                 <div>
                   <div className="flex items-center justify-between">
                     <label className="font-medium">Breaks</label>
-
                     <button
                       onClick={openAddBreakModal}
                       className="flex items-center gap-2 px-3 py-2 rounded-xl bg-gradient-to-r from-purple-500 to-indigo-600 text-white hover:from-purple-600 hover:to-indigo-700 transition-all duration-200 shadow-md hover:shadow-lg"
@@ -743,7 +679,6 @@ export default function HRUserAttendanceDetail() {
                       Add Break
                     </button>
                   </div>
-
                   <div className="space-y-4">
                     {editingRecord.form.breaks.map((brk, idx) => (
                       <div
@@ -757,20 +692,14 @@ export default function HRUserAttendanceDetail() {
                             const updatedBreaks = [
                               ...editingRecord.form.breaks,
                             ];
-
                             updatedBreaks[idx].breakIn = e.target.value;
-
                             setEditingRecord((prev) => ({
                               ...prev,
-                              form: {
-                                ...prev.form,
-                                breaks: updatedBreaks,
-                              },
+                              form: { ...prev.form, breaks: updatedBreaks },
                             }));
                           }}
                           className="border p-3 rounded-xl"
                         />
-
                         <input
                           type="datetime-local"
                           value={brk.breakOut}
@@ -778,15 +707,10 @@ export default function HRUserAttendanceDetail() {
                             const updatedBreaks = [
                               ...editingRecord.form.breaks,
                             ];
-
                             updatedBreaks[idx].breakOut = e.target.value;
-
                             setEditingRecord((prev) => ({
                               ...prev,
-                              form: {
-                                ...prev.form,
-                                breaks: updatedBreaks,
-                              },
+                              form: { ...prev.form, breaks: updatedBreaks },
                             }));
                           }}
                           className="border p-3 rounded-xl"
@@ -795,9 +719,6 @@ export default function HRUserAttendanceDetail() {
                     ))}
                   </div>
                 </div>
-
-                {/* ACTIONS */}
-
                 <div className="flex gap-3 pt-4">
                   <button
                     onClick={handleSaveEdit}
@@ -805,7 +726,6 @@ export default function HRUserAttendanceDetail() {
                   >
                     Save Changes
                   </button>
-
                   <button
                     onClick={() => {
                       setShowEditModal(false);
@@ -819,17 +739,13 @@ export default function HRUserAttendanceDetail() {
               </div>
 
               {/* ADD BREAK MODAL */}
-
               {showAddBreakModal && (
                 <div className="fixed inset-0 bg-black/40 flex justify-center items-center z-50 p-4">
                   <div className="bg-white rounded-3xl w-full max-w-lg p-6">
                     <h2 className="text-2xl font-bold mb-6">
                       Add Break for {user?.name || "Employee"}
                     </h2>
-
                     <div className="space-y-5">
-                      {/* DATE */}
-
                       <div>
                         <label className="block mb-2 font-medium">Date</label>
                         <input
@@ -844,9 +760,6 @@ export default function HRUserAttendanceDetail() {
                           className="w-full border p-3 rounded-xl"
                         />
                       </div>
-
-                      {/* BREAK IN */}
-
                       <div>
                         <label className="block mb-2 font-medium">
                           Break In <span className="text-red-500">*</span>
@@ -863,9 +776,6 @@ export default function HRUserAttendanceDetail() {
                           className="w-full border p-3 rounded-xl"
                         />
                       </div>
-
-                      {/* BREAK OUT */}
-
                       <div>
                         <label className="block mb-2 font-medium">
                           Break Out
@@ -885,9 +795,6 @@ export default function HRUserAttendanceDetail() {
                           Optional. Leave empty if break is ongoing.
                         </p>
                       </div>
-
-                      {/* ACTIONS */}
-
                       <div className="flex gap-3 pt-4">
                         <button
                           onClick={handleAddBreak}
@@ -895,7 +802,6 @@ export default function HRUserAttendanceDetail() {
                         >
                           Add Break
                         </button>
-
                         <button
                           onClick={() => {
                             setShowAddBreakModal(false);
@@ -918,13 +824,13 @@ export default function HRUserAttendanceDetail() {
           </div>
         )}
 
+        {/* ADD ATTENDANCE MODAL */}
         {showAddAttendanceModal && (
           <div className="fixed inset-0 bg-black/40 flex justify-center items-center z-50 p-4">
             <div className="bg-white rounded-3xl w-full max-w-lg p-6">
               <h2 className="text-2xl font-bold mb-6">
                 Add Attendance for {user?.name || "Employee"}
               </h2>
-
               <div className="space-y-5">
                 <div>
                   <label className="block mb-2 font-medium">Date</label>
@@ -940,7 +846,6 @@ export default function HRUserAttendanceDetail() {
                     className="w-full border p-3 rounded-xl"
                   />
                 </div>
-
                 <div>
                   <label className="block mb-2 font-medium">
                     Check In <span className="text-red-500">*</span>
@@ -957,7 +862,6 @@ export default function HRUserAttendanceDetail() {
                     className="w-full border p-3 rounded-xl"
                   />
                 </div>
-
                 <div>
                   <label className="block mb-2 font-medium">Check Out</label>
                   <input
@@ -975,7 +879,6 @@ export default function HRUserAttendanceDetail() {
                     Optional. Leave empty if employee has not checked out yet.
                   </p>
                 </div>
-
                 <div className="flex gap-3 pt-4">
                   <button
                     onClick={handleAddAttendance}
@@ -983,7 +886,6 @@ export default function HRUserAttendanceDetail() {
                   >
                     Save Attendance
                   </button>
-
                   <button
                     onClick={() => setShowAddAttendanceModal(false)}
                     className="flex-1 bg-gray-200 py-3 rounded-xl"
@@ -997,62 +899,5 @@ export default function HRUserAttendanceDetail() {
         )}
       </div>
     </div>
-  );
-}
-
-// REUSABLE COMPONENTS
-
-function SummaryCard({ title, value, icon, color }) {
-  return (
-    <div
-      className={`bg-gradient-to-r ${color} text-white rounded-xl p-3 shadow-sm`}
-    >
-      <div className="flex justify-between items-center mb-3">{icon}</div>
-
-      <h2 className="text-3xl font-bold">{value}</h2>
-
-      <p className="text-sm opacity-90">{title}</p>
-    </div>
-  );
-}
-
-function TableHead({ icon, title }) {
-  return (
-    <th className="p-4 text-left font-semibold text-gray-700">
-      <div className="flex items-center gap-2">
-        {icon}
-        {title}
-      </div>
-    </th>
-  );
-}
-
-function StatusBadge({ status }) {
-  const statusStyles = {
-    CHECKED_OUT: "bg-green-100 text-green-700",
-    CHECKED_IN: "bg-blue-100 text-blue-700",
-    LATE: "bg-orange-100 text-orange-700",
-    ON_BREAK: "bg-yellow-100 text-yellow-700",
-    BACK_TO_WORK: "bg-blue-100 text-blue-700",
-    ON_LEAVE: "bg-red-100 text-red-700",
-    HALF_DAY_LEAVE: "bg-purple-100 text-purple-700",
-  };
-
-  const labels = {
-    CHECKED_OUT: "Checked Out",
-    CHECKED_IN: "Checked In",
-    LATE: "Late",
-    ON_BREAK: "On Break",
-    BACK_TO_WORK: "Back to Work",
-    ON_LEAVE: "On Leave",
-    HALF_DAY_LEAVE: "Half Day Leave",
-  };
-
-  return (
-    <span
-      className={`px-3 py-1 rounded-full text-xs font-semibold ${statusStyles[status] || "bg-gray-100 text-gray-700"}`}
-    >
-      {labels[status] || status}
-    </span>
   );
 }
