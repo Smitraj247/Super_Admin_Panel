@@ -378,10 +378,10 @@ export default function HRUserAttendanceDetail() {
               <User className="text-white" size={26} />
             </div>
             <div>
-              <h1 className="text-xl md:text-2xl font-bold text-gray-900">
+              <h1 className="text-xl md:text-2xl font-bold">
                 {user?.name || "Employee Name"}
               </h1>
-              <p className="text-gray-600 text-sm md:text-base">
+              <p className="text-sm md:text-base">
                 {user?.email || "employee@email.com"}
               </p>
               <div className="flex flex-wrap gap-2 mt-2">
@@ -406,7 +406,7 @@ export default function HRUserAttendanceDetail() {
           <div className="flex flex-wrap items-center gap-3">
             <button
               onClick={() => router.push("/superadmin/attendance")}
-              className="flex items-center gap-2 px-3 py-2 rounded-xl border border-gray-300 bg-white text-gray-700 hover:bg-gray-100 transition-all duration-200 shadow-sm hover:shadow"
+              className="flex items-center gap-2 px-3 py-2 rounded-xl border border-gray-300 bg-white hover:bg-gray-100 transition-all duration-200 shadow-sm hover:shadow"
             >
               <ArrowLeft size={18} />
               Back
@@ -519,7 +519,7 @@ export default function HRUserAttendanceDetail() {
                   </tr>
                 ) : paginatedAttendance.length ? (
                   paginatedAttendance.map((record) => (
-                    <tr key={record._id} className="border-b hover:bg-gray-50">
+                    <tr key={record._id} className="border-b      ">
                       <td className="p-4">
                         {new Date(record.date).toLocaleDateString()}
                       </td>

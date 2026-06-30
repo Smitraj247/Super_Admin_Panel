@@ -34,3 +34,8 @@ export const updateUserApi = (id, data) =>
   axiosInstance.put(`/superadmin/users/${id}`, data);
 export const deleteUserApi = (id) =>
   axiosInstance.delete(`/superadmin/users/${id}`);
+
+export const uploadReportToDriveApi = (formData) =>
+  axiosInstance.post(`/reports/upload-to-drive`, formData, {
+    headers: { "Content-Type": "multipart/form-data" },
+  });

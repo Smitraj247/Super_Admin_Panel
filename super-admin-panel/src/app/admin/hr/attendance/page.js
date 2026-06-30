@@ -130,9 +130,22 @@ export default function HRAttendance() {
         getAllUsersSummaryApi(year, month),
       ]);
 
-      const allUsers = [...(usersRes.data || []), ...(adminsRes.data || [])];
-      setUsers(allUsers);
-      setFilteredUsers(allUsers);
+      // Merge users and admins, remove SUPER_ADMIN role and deduplicate by _id
+      const merged = [
+        ...(usersRes.data?.data || []),
+        ...(adminsRes.data?.data || []),
+      ];
+      const uniqueUsers = [];
+      const seenIds = new Set();
+      for (const u of merged) {
+        if (u.role?.name === 'SUPER_ADMIN') continue;
+        if (!seenIds.has(u._id)) {
+          seenIds.add(u._id);
+          uniqueUsers.push(u);
+        }
+      }
+      setUsers(uniqueUsers);
+      setFilteredUsers(uniqueUsers);
 
       const { todayStats, userStats } = summaryRes.data;
 
@@ -141,7 +154,7 @@ export default function HRAttendance() {
         lateCheckIns: todayStats.lateToday,
         onBreak: todayStats.onBreakToday,
         totalWorkHours: todayStats.totalWorkHours,
-        absentToday: Math.max(0, allUsers.length - todayStats.presentToday),
+        absentToday: Math.max(0, uniqueUsers.length - todayStats.presentToday),
       });
 
       setAttendanceStats(userStats);

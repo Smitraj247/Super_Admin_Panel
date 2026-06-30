@@ -1,272 +1,38 @@
 "use client";
 
-import { useEffect, useState } from "react";
-import {
-  getAllUsersWithLeavesApi,
-  getUserLeaveHistoryApi,
-  updateSuperAdminLeaveStatusApi,
-} from "@/services/leaveApi";
 import Navbar from "@/components/layout/Navbar";
 import Sidebar from "@/components/Sidebar";
-import {
-  Calendar,
-  Check,
-  X,
-  Download,
-  Filter,
-  Search,
-  ArrowLeft,
-  User as UserIcon,
-  Bell,
-  BellDot,
-} from "lucide-react";
-import { toast } from "react-toastify";
-import { useRealtime } from "@/hooks/useRealtime";
-import { useMemo } from "react";
-import * as XLSX from "xlsx";
-import { saveAs } from "file-saver";
+import { Calendar, ArrowLeft, User as UserIcon } from "lucide-react";
+import { useLeaves } from "@/hooks/useLeaves";
+import LeaveFilters from "@/components/features/leaves/LeaveFilters";
+import LeaveTable from "@/components/features/leaves/LeaveTable";
 
 export default function SuperAdminLeaves() {
-  const [users, setUsers] = useState([]);
-  const [filteredUsers, setFilteredUsers] = useState([]);
-  const [selectedUser, setSelectedUser] = useState(null);
-  const [userLeaves, setUserLeaves] = useState([]);
-  const [loading, setLoading] = useState(false);
-  const [searchQuery, setSearchQuery] = useState("");
-  const [roleFilter, setRoleFilter] = useState("");
-  const [departmentFilter, setDepartmentFilter] = useState("");
-  const [userPendingLeaves, setUserPendingLeaves] = useState({});
-
-  // Leave filters
-  const [selectedYear, setSelectedYear] = useState(new Date().getFullYear());
-  const [selectedMonth, setSelectedMonth] = useState(new Date().getMonth() + 1);
-  const [statusFilter, setStatusFilter] = useState("");
-
-  // Set up realtime event listeners
-  const eventHandlers = useMemo(
-    () => ({
-      "user:deleted": () => fetchUsers(),
-      "user:created": () => fetchUsers(),
-      "user:updated": () => fetchUsers(),
-    }),
-    [],
-  );
-
-  useRealtime(eventHandlers);
-
-  const fetchUsers = async () => {
-    setLoading(true);
-    try {
-      const res = await getAllUsersWithLeavesApi(selectedYear, selectedMonth);
-      const data = res.data?.data || res.data || [];
-      setUsers(data);
-      setFilteredUsers(data);
-
-      // Extract pending leave counts from user data
-      const pendingCounts = {};
-      data.forEach((user) => {
-        pendingCounts[user._id] = user.pendingLeaveCount || 0;
-      });
-      setUserPendingLeaves(pendingCounts);
-    } catch (error) {
-      console.error("Error fetching users:", error);
-      toast.error("Failed to fetch users");
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const fetchUserLeaves = async (userId) => {
-    setLoading(true);
-    try {
-      const res = await getUserLeaveHistoryApi(
-        userId,
-        selectedYear,
-        selectedMonth,
-      );
-      const data = res.data?.data || res.data || {};
-      setSelectedUser(data.user);
-      setUserLeaves(data.leaves || []);
-    } catch (error) {
-      console.error("Error fetching user leaves:", error);
-      toast.error("Failed to fetch leave history");
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  useEffect(() => {
-    fetchUsers();
-  }, [selectedYear, selectedMonth]);
-
-  useEffect(() => {
-    let filtered = users;
-
-    if (searchQuery) {
-      filtered = filtered.filter(
-        (user) =>
-          user.name?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-          user.email?.toLowerCase().includes(searchQuery.toLowerCase()),
-      );
-    }
-
-    if (roleFilter) {
-      filtered = filtered.filter((user) => user.role?.name === roleFilter);
-    }
-
-    if (departmentFilter) {
-      filtered = filtered.filter(
-        (user) => user.department?._id === departmentFilter,
-      );
-    }
-
-    setFilteredUsers(filtered);
-  }, [searchQuery, roleFilter, departmentFilter, users]);
-
-  useEffect(() => {
-    if (selectedUser) {
-      fetchUserLeaves(selectedUser._id);
-    }
-  }, [selectedYear, selectedMonth]);
-
-  const handleUserClick = (user) => {
-    setSelectedUser(user);
-    fetchUserLeaves(user._id);
-  };
-
-  const handleBackToList = () => {
-    setSelectedUser(null);
-    setUserLeaves([]);
-    setStatusFilter("");
-  };
-
-  const handleStatusUpdate = async (leaveId, newStatus) => {
-    try {
-      await updateSuperAdminLeaveStatusApi(leaveId, newStatus);
-      toast.success(`Leave ${newStatus.toLowerCase()} successfully`);
-      fetchUserLeaves(selectedUser._id);
-
-      // Update pending count for the user
-      if (newStatus !== "PENDING") {
-        setUserPendingLeaves((prev) => ({
-          ...prev,
-          [selectedUser._id]: Math.max(0, (prev[selectedUser._id] || 0) - 1),
-        }));
-      }
-    } catch (error) {
-      console.error("Error updating leave status:", error);
-      toast.error("Failed to update leave status");
-    }
-  };
-
-  const generateReport = () => {
-    const csvContent = [
-      [
-        "Name",
-        "Email",
-        "Department",
-        "Leave Type",
-        "From Date",
-        "To Date",
-        "Duration",
-        "Reason",
-        "Status",
-        "Applied On",
-      ],
-      ...filteredLeaves.map((leave) => [
-        leave.user?.name || "N/A",
-        leave.user?.email || "N/A",
-        leave.user?.department?.name || "N/A",
-        leave.leaveType,
-        new Date(leave.fromDate).toLocaleDateString(),
-        new Date(leave.toDate).toLocaleDateString(),
-        leave.isHalfDay ? "Half Day" : "Full Day",
-        leave.reason,
-        leave.status,
-        new Date(leave.createdAt).toLocaleDateString(),
-      ]),
-    ]
-      .map((row) => row.join(","))
-      .join("\n");
-
-    const blob = new Blob([csvContent], { type: "text/csv" });
-    const url = window.URL.createObjectURL(blob);
-    const a = document.createElement("a");
-    a.href = url;
-    a.download = `leave-report-${selectedUser?.name || "all"}-${new Intl.DateTimeFormat("en-CA", { timeZone: "Asia/Kolkata" }).format(new Date())}.csv`;
-    a.click();
-  };
-
-  const uniqueDepartments = Array.from(
-    new Set(users.map((u) => u.department?._id).filter(Boolean)),
-  ).map((id) => users.find((u) => u.department?._id === id)?.department);
-
-  const uniqueRoles = Array.from(
-    new Set(users.map((u) => u.role?.name).filter(Boolean)),
-  );
-
-  const filteredLeaves = userLeaves.filter(
-    (leave) => !statusFilter || leave.status === statusFilter,
-  );
-
-  const leaveStats = {
-    total: filteredLeaves.length,
-    pending: filteredLeaves.filter((l) => l.status === "PENDING").length,
-    approved: filteredLeaves.filter((l) => l.status === "APPROVED").length,
-    rejected: filteredLeaves.filter((l) => l.status === "REJECTED").length,
-  };
-
-  const years = Array.from(
-    { length: 5 },
-    (_, i) => new Date().getFullYear() - i,
-  );
-  const months = [
-    { value: 1, label: "January" },
-    { value: 2, label: "February" },
-    { value: 3, label: "March" },
-    { value: 4, label: "April" },
-    { value: 5, label: "May" },
-    { value: 6, label: "June" },
-    { value: 7, label: "July" },
-    { value: 8, label: "August" },
-    { value: 9, label: "September" },
-    { value: 10, label: "October" },
-    { value: 11, label: "November" },
-    { value: 12, label: "December" },
-  ];
-
-  const downloadReport = () => {
-    const reportData = filteredUsers.map((user) => ({
-      Name: user.name || "-",
-      "Total Office Hours": user.totalHour?.toFixed(1) || "0.0",
-      "Total Worked Hours": user.workingHour?.toFixed(1) || "0.0",
-      "Total Leaves Applied": user.totalLeavesApplied || 0,
-      "PL (Monthly Used)": user.leaveBalance?.usedPL || 0,
-      "SL (Monthly Used)": user.leaveBalance?.usedSL || 0,
-      "CL (Used)": user.leaveBalance?.monthlyUsedCL || 0,
-      "CL(PL Remaining Used)": user.leaveBalance?.monthlyUsedDL || 0,
-      "PL (Remaining)": user.leaveBalance?.DL || 0,
-    }));
-
-    const worksheet = XLSX.utils.json_to_sheet(reportData);
-
-    const workbook = XLSX.utils.book_new();
-    XLSX.utils.book_append_sheet(workbook, worksheet, "Employee Report");
-
-    const excelBuffer = XLSX.write(workbook, {
-      bookType: "xlsx",
-      type: "array",
-    });
-
-    const fileData = new Blob([excelBuffer], {
-      type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-    });
-
-    saveAs(
-      fileData,
-      `Employee_Leave_Report_${selectedMonth}_${selectedYear}_${new Date().toISOString().split("T")[0]}.xlsx`,
-    );
-  };
+  const {
+    filteredUsers,
+    selectedUser,
+    userLeaves,
+    loading,
+    searchQuery,
+    setSearchQuery,
+    selectedYear,
+    setSelectedYear,
+    selectedMonth,
+    setSelectedMonth,
+    statusFilter,
+    setStatusFilter,
+    handleUserClick,
+    handleBackToList,
+    handleStatusUpdate,
+    generateReport,
+    downloadReport,
+    filteredLeaves,
+    leaveStats,
+    years,
+    months,
+    totalPendingLeavesCount,
+    userPendingLeaves,
+  } = useLeaves();
 
   return (
     <div className="min-h-screen">
@@ -291,251 +57,25 @@ export default function SuperAdminLeaves() {
 
             {/* Combined Filters + Table */}
             <div className="bg-[var(--bg-surface)] rounded-2xl shadow-sm border border-[var(--border)] overflow-hidden">
-              {/* Toolbar */}
-              <div className="p-4 border-b border-[var(--border)] bg-[var(--bg-elevated)]">
-                {/* Top row: pending count + download */}
-                <div className="flex items-center justify-between mb-4">
-                  <div className="flex items-center gap-2 text-sm text-[var(--text-secondary)]">
-                    <BellDot className="text-orange-500" size={20} />
-                    <span className="font-semibold">
-                      Total Pending Leaves:{" "}
-                      {Object.values(userPendingLeaves).reduce(
-                        (sum, count) => sum + count,
-                        0,
-                      )}
-                    </span>
-                  </div>
-                  <button
-                    onClick={downloadReport}
-                    className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 text-sm"
-                  >
-                    Download Excel Report
-                  </button>
-                </div>
-
-                {/* Filter row */}
-                <div className="flex flex-wrap items-end gap-3">
-                  <div>
-                    <label className="block text-xs font-semibold text-[var(--text-primary)] mb-1">
-                      Year
-                    </label>
-                    <select
-                      value={selectedYear}
-                      onChange={(e) =>
-                        setSelectedYear(parseInt(e.target.value))
-                      }
-                      className="border-2 border-[var(--border-strong)] p-2 rounded-lg focus:outline-none focus:border-indigo-500 text-sm"
-                    >
-                      {years.map((year) => (
-                        <option key={year} value={year}>
-                          {year}
-                        </option>
-                      ))}
-                    </select>
-                  </div>
-
-                  <div>
-                    <label className="block text-xs font-semibold text-[var(--text-primary)] mb-1">
-                      Month
-                    </label>
-                    <select
-                      value={selectedMonth}
-                      onChange={(e) =>
-                        setSelectedMonth(parseInt(e.target.value))
-                      }
-                      className="border-2 border-[var(--border-strong)] p-2 rounded-lg focus:outline-none focus:border-indigo-500 text-sm"
-                    >
-                      {months.map((month) => (
-                        <option key={month.value} value={month.value}>
-                          {month.label}
-                        </option>
-                      ))}
-                    </select>
-                  </div>
-
-                  <div>
-                    <label className="block text-xs font-semibold text-[var(--text-primary)] mb-1">
-                      Search User
-                    </label>
-                    <div className="relative">
-                      <Search
-                        className="absolute left-3 top-2.5 text-slate-400"
-                        size={16}
-                      />
-                      <input
-                        type="text"
-                        value={searchQuery}
-                        onChange={(e) => setSearchQuery(e.target.value)}
-                        placeholder="Search by name or email"
-                        className="border-2 border-[var(--border-strong)] p-2 pl-9 rounded-lg focus:outline-none focus:border-indigo-500 text-sm w-56"
-                      />
-                    </div>
-                  </div>
-
-                  <button
-                    onClick={() => {
-                      setSearchQuery("");
-                      setRoleFilter("");
-                      setDepartmentFilter("");
-                      setSelectedYear(new Date().getFullYear());
-                      setSelectedMonth(new Date().getMonth() + 1);
-                    }}
-                    className="bg-slate-600 text-white px-4 py-2 rounded-lg hover:bg-slate-700 text-sm"
-                  >
-                    Reset Filters
-                  </button>
-                </div>
-                      </div>
-
-              {/* Table */}
-              <div className="overflow-x-auto">
-                <table className="w-full">
-                  <thead className="bg-[var(--bg-elevated)] border-b">
-                    <tr>
-                      <th className="p-4 text-left text-sm font-semibold text-[var(--text-primary)]">
-                        Name
-                      </th>
-                      <th className="p-4 text-left text-sm font-semibold text-[var(--text-primary)]">
-                        Total Office
-                      </th>
-                      <th className="p-4 text-left text-sm font-semibold text-[var(--text-primary)]">
-                        Total Worked
-                      </th>
-                      <th className="p-4 text-left text-sm font-semibold text-[var(--text-primary)]">
-                        Total Leaves Applied
-                      </th>
-                      <th className="p-4 text-left text-sm font-semibold text-[var(--text-primary)]">
-                        Leave Balance
-                      </th>
-                      <th className="p-4 text-left text-sm font-semibold text-[var(--text-primary)]">
-                        Notifications
-                      </th>
-                      <th className="p-4 text-left text-sm font-semibold text-[var(--text-primary)]">
-                        Actions
-                      </th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {loading ? (
-                      <tr>
-                        <td
-                          colSpan="6"
-                          className="text-center p-8 text-[var(--text-secondary)]"
-                        >
-                          Loading...
-                        </td>
-                      </tr>
-                    ) : filteredUsers.length > 0 ? (
-                      filteredUsers.map((user) => {
-                        const pendingCount = userPendingLeaves[user._id] || 0;
-                        return (
-                          <tr
-                            key={user._id}
-                            className="border-b hover:bg-[var(--bg-elevated)]"
-                          >
-                            <td className="p-4">
-                              <div className="flex items-center gap-3">
-                                <div className="w-10 h-10 bg-indigo-100 rounded-full flex items-center justify-center">
-                                  <UserIcon
-                                    className="text-indigo-600"
-                                    size={20}
-                                  />
-                                </div>
-                                <div className="font-semibold text-[var(--text-primary)]">
-                                  {user.name}
-                                </div>
-                              </div>
-                            </td>
-                            <td className="p-4">
-                              {typeof user.totalHour === "number"
-                                ? `${user.totalHour.toFixed(1)}h`
-                                : "0.0h"}
-                            </td>
-                            <td className="p-4 ">
-                              {typeof user.workingHour === "number"
-                                ? `${user.workingHour.toFixed(1)}h`
-                                : "0.0h"}
-                            </td>
-                            <td className="p-4">{user.totalLeavesApplied}</td>
-                            <td className="p-4 text-sm text-[var(--text-primary)]">
-                              {user.leaveBalance ? (
-                                <div className="flex gap-2 flex-wrap">
-                                  <span className="px-2 py-1 bg-blue-50 text-blue-700 text-xs rounded">
-                                    PL: {user.leaveBalance.usedPL || 0}/
-                                    {user.leaveBalance.monthlyPLTotal || 1}
-                                  </span>
-                                  <span className="px-2 py-1 bg-teal-50 text-teal-700 text-xs rounded">
-                                    Remaining PL: {user.leaveBalance.DL || 0}/
-                                    {user.leaveBalance.PLTotal || 0}
-                                  </span>
-                                  <span className="px-2 py-1 bg-green-50 text-green-700 text-xs rounded">
-                                    SL: {user.leaveBalance.usedSL || 0}/
-                                    {user.leaveBalance.monthlySLTotal || 1}
-                                  </span>
-                                  <span className="px-2 py-1 bg-orange-50 text-orange-700 text-xs rounded">
-                                    CL: {user.leaveBalance.usedCL || 0}
-                                  </span>
-                                  <span className="px-2 py-1 bg-purple-50 text-purple-700 text-xs rounded">
-                                    DL: {user.leaveBalance.DL || 0}
-                                  </span>
-                                </div>
-                              ) : (
-                                "N/A"
-                              )}
-                            </td>
-                            <td className="p-4">
-                              <div className="flex items-center justify-center">
-                                {pendingCount > 0 ? (
-                                  <div className="relative group cursor-pointer">
-                                    <BellDot
-                                      className="text-orange-500 animate-pulse"
-                                      size={24}
-                                    />
-                                    <span className="absolute -top-1 -right-1 bg-red-500 text-white text-xs font-bold rounded-full w-5 h-5 flex items-center justify-center">
-                                      {pendingCount}
-                                    </span>
-                                    <div className="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 px-3 py-1 bg-slate-900 text-white text-xs rounded opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap pointer-events-none">
-                                      {pendingCount} pending leave
-                                      {pendingCount > 1 ? "s" : ""}
-                                    </div>
-                                  </div>
-                                ) : (
-                                  <div className="relative group cursor-pointer">
-                                    <Bell
-                                      className="text-slate-300"
-                                      size={24}
-                                    />
-                                    <div className="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 px-3 py-1 bg-slate-900 text-white text-xs rounded opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap pointer-events-none">
-                                      No pending leaves
-                                    </div>
-                                  </div>
-                                )}
-                              </div>
-                            </td>
-                            <td className="p-4">
-                              <button
-                                onClick={() => handleUserClick(user)}
-                                className="bg-indigo-600 text-white px-4 py-2 rounded-lg text-sm hover:bg-indigo-700"
-                              >
-                                View Leaves
-                              </button>
-                            </td>
-                          </tr>
-                        );
-                      })
-                    ) : (
-                      <tr>
-                        <td
-                          colSpan="6"
-                          className="text-center p-8 text-[var(--text-secondary)]"
-                        >
-                          No users found
-                        </td>
-                      </tr>
-                    )}
-                  </tbody>
-                </table>
-              </div>
+              <LeaveFilters
+                selectedYear={selectedYear}
+                setSelectedYear={setSelectedYear}
+                selectedMonth={selectedMonth}
+                setSelectedMonth={setSelectedMonth}
+                years={years}
+                months={months}
+                searchQuery={searchQuery}
+                setSearchQuery={setSearchQuery}
+                downloadReport={downloadReport}
+                totalPendingCount={totalPendingLeavesCount}
+                resetFilters={handleBackToList}
+              />
+              <LeaveTable
+                users={filteredUsers}
+                loading={loading}
+                userPendingLeaves={userPendingLeaves}
+                onUserClick={handleUserClick}
+              />
             </div>
           </>
         ) : (
@@ -544,7 +84,7 @@ export default function SuperAdminLeaves() {
             <div className="mb-6">
               <button
                 onClick={handleBackToList}
-                className="flex items-center gap-2 text-indigo-600 hover:text-indigo-700 mb-4"
+                className="flex items-center gap-2 text-indigo-600 hover:text-indigo-700 mb-4 cursor-pointer font-semibold"
               >
                 <ArrowLeft size={20} />
                 Back to User List
@@ -594,7 +134,7 @@ export default function SuperAdminLeaves() {
                       <p className="text-xs text-gray-500 mt-1">
                         Used: {selectedUser.leaveBalance.usedPL || 0}
                       </p>
-                    </div>                                                                                                 
+                    </div>
                     <div className="bg-green-50 p-4 rounded-lg">
                       <p className="text-sm text-green-600 font-semibold">
                         Casual Leave
@@ -664,199 +204,29 @@ export default function SuperAdminLeaves() {
             </div>
 
             {/* Leave Filters */}
-            <div className="bg-[var(--bg-surface)] rounded-2xl shadow-sm border border-[var(--border)] p-6 mb-6">
-              <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-                <div>
-                  <label className="block text-sm font-semibold text-[var(--text-primary)] mb-2">
-                    Year
-                  </label>
-                  <select
-                    value={selectedYear}
-                    onChange={(e) => setSelectedYear(parseInt(e.target.value))}
-                    className="w-full border-2 border-[var(--border-strong)] p-2 rounded-lg focus:outline-none focus:border-indigo-500"
-                  >
-                    {years.map((year) => (
-                      <option key={year} value={year}>
-                        {year}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-
-                <div>
-                  <label className="block text-sm font-semibold text-[var(--text-primary)] mb-2">
-                    Month
-                  </label>
-                  <select
-                    value={selectedMonth}
-                    onChange={(e) => setSelectedMonth(parseInt(e.target.value))}
-                    className="w-full border-2 border-[var(--border-strong)] p-2 rounded-lg focus:outline-none focus:border-indigo-500"
-                  >
-                    {months.map((month) => (
-                      <option key={month.value} value={month.value}>
-                        {month.label}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-
-                <div>
-                  <label className="block text-sm font-semibold text-[var(--text-primary)] mb-2">
-                    Status
-                  </label>
-                  <select
-                    value={statusFilter}
-                    onChange={(e) => setStatusFilter(e.target.value)}
-                    className="w-full border-2 border-[var(--border-strong)] p-2 rounded-lg focus:outline-none focus:border-indigo-500"
-                  >
-                    <option value="">All Status</option>
-                    <option value="PENDING">Pending</option>
-                    <option value="APPROVED">Approved</option>
-                    <option value="REJECTED">Rejected</option>
-                  </select>
-                </div>
-
-                <div className="flex items-end">
-                  <button
-                    onClick={generateReport}
-                    className="w-full flex items-center justify-center gap-2 bg-green-600 text-white px-6 py-2 rounded-lg hover:bg-green-700"
-                  >
-                    <Download size={18} />
-                    Export CSV
-                  </button>
-                </div>
-              </div>
-            </div>
+            <LeaveFilters
+              isDetailView={true}
+              selectedYear={selectedYear}
+              setSelectedYear={setSelectedYear}
+              selectedMonth={selectedMonth}
+              setSelectedMonth={setSelectedMonth}
+              years={years}
+              months={months}
+              statusFilter={statusFilter}
+              setStatusFilter={setStatusFilter}
+              generateReport={generateReport}
+            />
 
             {/* Leaves Table */}
-            <div className="bg-[var(--bg-surface)] rounded-2xl shadow-sm border border-[var(--border)] overflow-hidden">
-              <div className="overflow-x-auto">
-                <table className="w-full">
-                  <thead className="bg-[var(--bg-elevated)] border-b">
-                    <tr>
-                      <th className="p-4 text-left text-sm font-semibold text-[var(--text-primary)]">
-                        Leave Type
-                      </th>
-                      <th className="p-4 text-left text-sm font-semibold text-[var(--text-primary)]">
-                        Duration
-                      </th>
-                      <th className="p-4 text-left text-sm font-semibold text-[var(--text-primary)]">
-                        From Date
-                      </th>
-                      <th className="p-4 text-left text-sm font-semibold text-[var(--text-primary)]">
-                        To Date
-                      </th>
-                      <th className="p-4 text-left text-sm font-semibold text-[var(--text-primary)]">
-                        Reason
-                      </th>
-                      <th className="p-4 text-left text-sm font-semibold text-[var(--text-primary)]">
-                        Status
-                      </th>
-                      <th className="p-4 text-left text-sm font-semibold text-[var(--text-primary)]">
-                        Applied On
-                      </th>
-                      <th className="p-4 text-left text-sm font-semibold text-[var(--text-primary)]">
-                        Actions
-                      </th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {loading ? (
-                      <tr>
-                        <td
-                          colSpan="8"
-                          className="text-center p-8 text-[var(--text-secondary)]"
-                        >
-                          Loading...
-                        </td>
-                      </tr>
-                    ) : filteredLeaves.length > 0 ? (
-                      filteredLeaves.map((leave) => (
-                        <tr
-                          key={leave._id}
-                          className="border-b hover:bg-[var(--bg-elevated)]"
-                        >
-                          <td className="p-4 text-sm font-semibold text-[var(--text-primary)]">
-                            {leave.leaveType}
-                          </td>
-                          <td className="p-4">
-                            {leave.isHalfDay ? (
-                              <span className="px-2 py-1 bg-blue-100 text-blue-800 text-xs rounded-full font-semibold">
-                                Half Day
-                              </span>
-                            ) : (
-                              <span className="px-2 py-1 bg-gray-100 text-gray-800 text-xs rounded-full font-semibold">
-                                Full Day
-                              </span>
-                            )}
-                          </td>
-                          <td className="p-4 text-sm text-[var(--text-primary)]">
-                            {new Date(leave.fromDate).toLocaleDateString()}
-                          </td>
-                          <td className="p-4 text-sm text-[var(--text-primary)]">
-                            {new Date(leave.toDate).toLocaleDateString()}
-                          </td>
-                          <td className="p-4 text-sm text-[var(--text-secondary)] max-w-xs truncate">
-                            {leave.reason}
-                          </td>
-                          <td className="p-4">
-                            <span
-                              className={`px-3 py-1 text-xs rounded-full font-semibold ${
-                                leave.status === "APPROVED"
-                                  ? "bg-green-100 text-green-800"
-                                  : leave.status === "REJECTED"
-                                    ? "bg-red-100 text-red-800"
-                                    : "bg-yellow-100 text-yellow-800"
-                              }`}
-                            >
-                              {leave.status}
-                            </span>
-                          </td>
-                          <td className="p-4 text-sm text-[var(--text-primary)]">
-                            {new Date(leave.createdAt).toLocaleDateString()}
-                          </td>
-                          <td className="p-4">
-                            {leave.status === "PENDING" && (
-                              <div className="flex gap-2">
-                                <button
-                                  onClick={() =>
-                                    handleStatusUpdate(leave._id, "APPROVED")
-                                  }
-                                  className="flex items-center gap-1 bg-green-600 text-white px-3 py-1 rounded-lg text-sm hover:bg-green-700"
-                                >
-                                  <Check size={14} />
-                                  Approve
-                                </button>
-                                <button
-                                  onClick={() =>
-                                    handleStatusUpdate(leave._id, "REJECTED")
-                                  }
-                                  className="flex items-center gap-1 bg-red-600 text-white px-3 py-1 rounded-lg text-sm hover:bg-red-700"
-                                >
-                                  <X size={14} />
-                                  Reject
-                                </button>
-                              </div> 
-                            )}
-                          </td>
-                        </tr>
-                      ))
-                    ) : (
-                      <tr>
-                        <td
-                          colSpan="8"
-                          className="text-center p-8 text-[var(--text-secondary)]"
-                        >
-                          No leave records found for{" "}
-                          {months.find((m) => m.value === selectedMonth)?.label}{" "}
-                          {selectedYear}
-                        </td>
-                      </tr>
-                    )}
-                  </tbody>
-                </table>
-              </div>
-            </div>
+            <LeaveTable
+              isDetailView={true}
+              leaves={filteredLeaves}
+              loading={loading}
+              onStatusUpdate={handleStatusUpdate}
+              selectedMonth={selectedMonth}
+              selectedYear={selectedYear}
+              months={months}
+            />
           </>
         )}
       </div>

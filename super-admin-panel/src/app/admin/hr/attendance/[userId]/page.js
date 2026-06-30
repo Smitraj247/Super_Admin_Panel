@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
-import { useAttendanceRealtime } from "../../../_socket/useAttendanceRealtime";
+import { useAttendanceRealtime } from "../../../../_socket/useAttendanceRealtime";
 
 import Navbar from "@/components/layout/Navbar";
 import Sidebar from "@/components/Sidebar";
@@ -777,4 +777,3 @@ export default function HRUserAttendanceDetail() {
     </div>
   );
 }
-

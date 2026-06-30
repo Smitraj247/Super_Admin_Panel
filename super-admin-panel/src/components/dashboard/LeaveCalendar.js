@@ -79,12 +79,15 @@ export default function LeaveCalendar({
     return [...years].sort((a, b) => b - a);
   }, [leaves]);
 
-  // Leaves Map
+  // Leaves Map - Filter out deleted users (users with no name or "Unknown")
   const leavesByDate = useMemo(() => {
     const map = {};
 
     leaves.forEach((leave) => {
       if (!leave?.fromDate || !leave?.toDate) return;
+
+      // Skip if user is deleted (no user object or no name)
+      if (!leave?.user || !leave.user.name) return;
 
       const from = new Date(leave.fromDate);
       const to = new Date(leave.toDate);
@@ -104,7 +107,7 @@ export default function LeaveCalendar({
           if (!alreadyExists) {
             map[day].push({
               userId: leave?.user?._id,
-              name: leave?.user?.name || "Unknown",
+              name: leave?.user?.name || "Unknown", // Fallback, but won't be used if user exists
               type: leave?.leaveType || "Leave",
               status: leave?.status || "PENDING",
               isHalfDay: leave?.isHalfDay || false,
@@ -311,12 +314,15 @@ export default function LeaveCalendar({
                 </div>
               )}
 
-              {/* Leaves */}
-              <div className="space-y-0.5">
-                {dayLeaves.slice(0, dayHoliday ? 1 : 2).map((leave, index) => (
-                  <div
-                    key={index}
-                    className={`text-[10px] px-1.5 py-0.5 rounded truncate
+              {/* Leaves - Only show if there are leaves */}
+              {dayLeaves.length > 0 && (
+                <div className="space-y-0.5">
+                  {dayLeaves
+                    .slice(0, dayHoliday ? 1 : 2)
+                    .map((leave, index) => (
+                      <div
+                        key={index}
+                        className={`text-[10px] px-1.5 py-0.5 rounded truncate
                         ${
                           leave.status === "APPROVED"
                             ? "bg-green-100 text-green-700"
@@ -325,79 +331,80 @@ export default function LeaveCalendar({
                               : "bg-red-100 text-red-700"
                         }
                       `}
-                    title={`${leave.name} - ${leave.type}`}
-                  >
-                    {leave.name}
-                  </div>
-                ))}
+                        title={`${leave.name} - ${leave.type}`}
+                      >
+                        {leave.name}
+                      </div>
+                    ))}
 
-                {dayLeaves.length > (dayHoliday ? 1 : 2) && (
-                  <div className="text-[9px] text-slate-500 px-1">
-                    +{dayLeaves.length - (dayHoliday ? 1 : 2)} more
-                  </div>
-                )}
+                  {dayLeaves.length > (dayHoliday ? 1 : 2) && (
+                    <div className="text-[9px] text-slate-500 px-1">
+                      +{dayLeaves.length - (dayHoliday ? 1 : 2)} more
+                    </div>
+                  )}
+                </div>
+              )}
 
-                {/* Selected User's Today Attendance Timeline on Today's Cell */}
-                {isToday && selectedUserId && selectedUserTodayAtt && (
-                  <div className="mt-1 pt-1 border-t border-dashed border-indigo-200 space-y-0.5">
-                    <div className="flex items-center gap-1 text-[8px] text-green-600 font-semibold">
-                      <UserCheck size={8} />
-                      <span>
-                        IN:{" "}
-                        {selectedUserTodayAtt.checkIn
-                          ? new Date(
-                              selectedUserTodayAtt.checkIn,
-                            ).toLocaleTimeString("en-US", {
+              {/* Selected User's Today Attendance Timeline on Today's Cell */}
+              {isToday && selectedUserId && selectedUserTodayAtt && (
+                <div className="mt-1 pt-1 border-t border-dashed border-indigo-200 space-y-0.5">
+                  <div className="flex items-center gap-1 text-[8px] text-green-600 font-semibold">
+                    <UserCheck size={8} />
+                    <span>
+                      IN:{" "}
+                      {selectedUserTodayAtt.checkIn
+                        ? new Date(
+                            selectedUserTodayAtt.checkIn,
+                          ).toLocaleTimeString("en-US", {
+                            hour: "2-digit",
+                            minute: "2-digit",
+                          })
+                        : "---"}
+                    </span>
+                  </div>
+                  {selectedUserTodayAtt.breaks?.length > 0 &&
+                    selectedUserTodayAtt.breaks.map((b, bi) => (
+                      <div key={bi} className="flex items-center gap-0.5">
+                        <div className="flex items-center gap-1 text-[7px] text-yellow-600 font-semibold">
+                          <Clock size={7} />
+                          <span>
+                            B{bi + 1}I:{" "}
+                            {new Date(b.breakIn).toLocaleTimeString("en-US", {
                               hour: "2-digit",
                               minute: "2-digit",
-                            })
-                          : "---"}
-                      </span>
-                    </div>
-                    {selectedUserTodayAtt.breaks?.length > 0 &&
-                      selectedUserTodayAtt.breaks.map((b, bi) => (
-                        <div key={bi} className="flex items-center gap-0.5">
-                          <div className="flex items-center gap-1 text-[7px] text-yellow-600 font-semibold">
-                            <Clock size={7} />
-                            <span>
-                              B{bi + 1}I:{" "}
-                              {new Date(b.breakIn).toLocaleTimeString("en-US", {
-                                hour: "2-digit",
-                                minute: "2-digit",
-                              })}
-                            </span>
-                          </div>
-                          <div className="flex items-center gap-1 text-[7px] text-blue-600 font-semibold">
-                            <Clock size={7} />
-                            <span>
-                              O:{" "}
-                              {b.breakOut
-                                ? new Date(b.breakOut).toLocaleTimeString(
-                                    "en-US",
-                                    { hour: "2-digit", minute: "2-digit" },
-                                  )
-                                : "---"}
-                            </span>
-                          </div>
+                            })}
+                          </span>
                         </div>
-                      ))}
-                    <div className="flex items-center gap-1 text-[8px] text-purple-600 font-semibold">
-                      <Briefcase size={8} />
-                      <span>
-                        OUT:{" "}
-                        {selectedUserTodayAtt.checkOut
-                          ? new Date(
-                              selectedUserTodayAtt.checkOut,
-                            ).toLocaleTimeString("en-US", {
-                              hour: "2-digit",
-                              minute: "2-digit",
-                            })
-                          : "---"}
-                      </span>
-                    </div>
+                        <div className="flex items-center gap-1 text-[7px] text-blue-600 font-semibold">
+                          <Clock size={7} />
+                          <span>
+                            O:{" "}
+                            {b.breakOut
+                              ? new Date(b.breakOut).toLocaleTimeString(
+                                  "en-US",
+                                  { hour: "2-digit", minute: "2-digit" },
+                                )
+                              : "---"}
+                          </span>
+                        </div>
+                      </div>
+                    ))}
+                  <div className="flex items-center gap-1 text-[8px] text-purple-600 font-semibold">
+                    <Briefcase size={8} />
+                    <span>
+                      OUT:{" "}
+                      {selectedUserTodayAtt.checkOut
+                        ? new Date(
+                            selectedUserTodayAtt.checkOut,
+                          ).toLocaleTimeString("en-US", {
+                            hour: "2-digit",
+                            minute: "2-digit",
+                          })
+                        : "---"}
+                    </span>
                   </div>
-                )}
-              </div>
+                </div>
+              )}
             </>
           )}
         </div>,

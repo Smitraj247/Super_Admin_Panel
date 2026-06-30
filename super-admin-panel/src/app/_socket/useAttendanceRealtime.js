@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { useSocket } from "../context/SocketContext";
+import { useSocket } from "@/context/SocketContext";
 import { SocketEvents } from "./socketEvents";
 
 /**
@@ -9,18 +9,25 @@ import { SocketEvents } from "./socketEvents";
  */
 export const useAttendanceRealtime = (userId, initialData = []) => {
   const { socket } = useSocket();
-  console.log('useAttendanceRealtime hook init – socket:', socket, 'userId:', userId);
+  console.log(
+    "useAttendanceRealtime hook init – socket:",
+    socket,
+    "userId:",
+    userId,
+  );
   const [attendance, setAttendance] = useState(initialData);
 
   useEffect(() => {
     if (!socket) return;
 
     const handler = (data) => {
-      console.log('Socket attendance update received:', data);
+      console.log("Socket attendance update received:", data);
       // Ensure the event belongs to the current userId (room ensures it, but double‑check)
       // Removed userId check; the socket room already ensures correct user
       setAttendance((prev) => {
-        const index = prev.findIndex((rec) => rec._id?.toString() === data._id?.toString());
+        const index = prev.findIndex(
+          (rec) => rec._id?.toString() === data._id?.toString(),
+        );
         if (index !== -1) {
           const updated = [...prev];
           updated[index] = data;

@@ -79,7 +79,8 @@ export const SocketProvider = ({ children }) => {
       setSocket(null);
       setIsConnected(false);
     };
-    // Re-run only when the logged-in user's ID changes
+    // Re-run only 
+    //  the logged-in user's ID changes
   }, [user?._id]);
 
   return (

@@ -26,7 +26,7 @@ export const getUser = async (req, res) => {
       });
     }
 
-    const users = await User.find({ role: userRole._id })
+    const users = await User.find({ role: userRole._id, isActive: true })
       .populate("role", "name")
       .populate("department", "name")
       .select("-password");

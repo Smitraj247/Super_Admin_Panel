@@ -5,6 +5,7 @@ import { loginApi } from "../../services/authApi";
 import { useRouter } from "next/navigation";
 import { useAuth } from "../../context/AuthContext";
 import { ROLES, DEPARTMENTS } from "../../utils/constants";
+import Link from "next/link";
 import {
   Mail,
   Lock,
@@ -68,7 +69,9 @@ export default function Login() {
       }
     } catch (error) {
       console.error("Login error:", error);
-      toast.error(error?.response?.data?.message || "Invalid email or password");
+      toast.error(
+        error?.response?.data?.message || "Invalid email or password",
+      );
     } finally {
       setLoading(false);
     }
@@ -275,8 +278,14 @@ export default function Login() {
           <p className="mt-6 text-center text-[13px] text-[var(--text-muted)]">
             Don&apos;t have an account?{" "}
             <button
+              type="button"
+              disabled={loading}
               onClick={() => router.push("/register")}
-              className="text-indigo-400 hover:text-indigo-300 font-semibold transition-colors"
+              className={`font-semibold transition-colors ${
+                loading
+                  ? "text-gray-400 cursor-not-allowed opacity-50"
+                  : "text-indigo-400 hover:text-indigo-300"
+              }`}
             >
               Register Now
             </button>

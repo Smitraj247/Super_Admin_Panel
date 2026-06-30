@@ -7,18 +7,14 @@ import { useRouter } from "next/router";
 import {
   User,
   Mail,
-  Shield,
   Settings,
   X,
   Save,
   Phone,
-  Calendar,
   Camera,
   Briefcase,
-  Users,
   MapPin,
-  Palette,
-  Folder,
+  Loader2,
 } from "lucide-react";
 import { useState, useEffect } from "react";
 import {
@@ -54,10 +50,7 @@ export default function ProfilePage() {
     phone: "",
     gender: "Male",
     birthday: "",
-    maritalStatus: "Unmarried",
-    marriageAnniversary: "",
     designation: "",
-    batch: "",
     joiningDate: "",
     probationStartDate: "",
     probationEndDate: "",
@@ -95,12 +88,7 @@ export default function ProfilePage() {
         phone: data?.phone || "",
         gender: data?.gender || "Male",
         birthday: data?.birthday ? data.birthday.split("T")[0] : "",
-        maritalStatus: data?.maritalStatus || "Unmarried",
-        marriageAnniversary: data?.marriageAnniversary
-          ? data.marriageAnniversary.split("T")[0]
-          : "",
         designation: data?.designation || "",
-        batch: data?.batch || "",
         joiningDate: data?.joiningDate ? data.joiningDate.split("T")[0] : "",
         probationStartDate: data?.probationStartDate
           ? data.probationStartDate.split("T")[0]
@@ -190,12 +178,7 @@ export default function ProfilePage() {
         birthday: profileData.birthday
           ? toISTDateStr(profileData.birthday)
           : "",
-        maritalStatus: profileData.maritalStatus || "Unmarried",
-        marriageAnniversary: profileData.marriageAnniversary
-          ? toISTDateStr(profileData.marriageAnniversary)
-          : "",
         designation: profileData.designation || "",
-        batch: profileData.batch || "",
         joiningDate: profileData.joiningDate
           ? toISTDateStr(profileData.joiningDate)
           : "",
@@ -270,12 +253,7 @@ export default function ProfilePage() {
         phone: freshData.phone || "",
         gender: freshData.gender || "Male",
         birthday: freshData.birthday ? toISTDateStr(freshData.birthday) : "",
-        maritalStatus: freshData.maritalStatus || "Unmarried",
-        marriageAnniversary: freshData.marriageAnniversary
-          ? toISTDateStr(freshData.marriageAnniversary)
-          : "",
         designation: freshData.designation || "",
-        batch: freshData.batch || "",
         joiningDate: freshData.joiningDate
           ? toISTDateStr(freshData.joiningDate)
           : "",
@@ -328,10 +306,14 @@ export default function ProfilePage() {
       <div className="min-h-screen">
         <Sidebar />
         <Navbar />
-        <main className="md:pl-64 pt-16 flex items-center justify-center">
-          <div className="text-center">
-            <div className="h-12 w-12 border-4 border-indigo-600 border-t-transparent rounded-full animate-spin mx-auto"></div>
-            <p className="mt-4 text-gray-600">Loading profile...</p>
+
+        <main className="md:pl-64 pt-20">
+          <div className="fixed inset-0 md:left-64 top-20 flex items-center justify-center">
+            <div className="text-center">
+              <div className="h-12 w-12 border-4 border-indigo-600 border-t-transparent rounded-full animate-spin mx-auto"></div>
+
+              <p className="mt-4 text-gray-600">Loading profile...</p>
+            </div>
           </div>
         </main>
       </div>
@@ -533,33 +515,6 @@ export default function ProfilePage() {
                           </div>
                           <div>
                             <label className="block text-sm font-semibold text-slate-700 mb-2">
-                              Marital Status
-                            </label>
-                            <select
-                              name="maritalStatus"
-                              value={formData.maritalStatus}
-                              onChange={handleChange}
-                              className="w-full px-4 py-2 bg-slate-50 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500"
-                            >
-                              <option value="Single">Single</option>
-                              <option value="Married">Married</option>
-                              <option value="Unmarried">Unmarried</option>
-                            </select>
-                          </div>
-                          <div>
-                            <label className="block text-sm font-semibold text-slate-700 mb-2">
-                              Marriage Anniversary
-                            </label>
-                            <input
-                              type="date"
-                              name="marriageAnniversary"
-                              value={formData.marriageAnniversary}
-                              onChange={handleChange}
-                              className="w-full px-4 py-2 bg-slate-50 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500"
-                            />
-                          </div>
-                          <div>
-                            <label className="block text-sm font-semibold text-slate-700 mb-2">
                               Phone
                             </label>
                             <input
@@ -588,18 +543,6 @@ export default function ProfilePage() {
                               type="text"
                               name="designation"
                               value={formData.designation}
-                              onChange={handleChange}
-                              className="w-full px-4 py-2 bg-slate-50 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500"
-                            />
-                          </div>
-                          <div>
-                            <label className="block text-sm font-semibold text-slate-700 mb-2">
-                              Batch
-                            </label>
-                            <input
-                              type="text"
-                              name="batch"
-                              value={formData.batch}
                               onChange={handleChange}
                               className="w-full px-4 py-2 bg-slate-50 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500"
                             />
@@ -787,27 +730,7 @@ export default function ProfilePage() {
                                   ).toLocaleDateString()
                                 : "0000-00-00"}
                             </p>
-                          </div>
-                          <div>
-                            <p className="text-sm text-gray-400">
-                              Marital Status
-                            </p>
-                            <p className="font-medium ">
-                              {profileData?.maritalStatus}
-                            </p>
-                          </div>
-                          <div>
-                            <p className="text-sm text-gray-400">
-                              Marriage Anniversary
-                            </p>
-                            <p className="font-medium ">
-                              {profileData?.marriageAnniversary
-                                ? new Date(
-                                    profileData.marriageAnniversary,
-                                  ).toLocaleDateString()
-                                : "-"}
-                            </p>
-                          </div>
+                          </div>    
                           <div>
                             <p className="text-sm text-gray-400">Status</p>
                             <p className="font-medium">
@@ -839,18 +762,7 @@ export default function ProfilePage() {
                               {profileData?.designation || "-"}
                             </p>
                           </div>
-                          <div>
-                            <p className="text-sm text-gray-400">Batch</p>
-                            <p className="font-medium ">
-                              {profileData?.batch || "-"}
-                            </p>
-                          </div>
-                          <div>
-                            <p className="text-sm text-gray-400">Report To</p>
-                            <p className="font-medium ">
-                              {profileData?.reportTo?.name || "-"}
-                            </p>
-                          </div>
+
                           <div>
                             <p className="text-sm text-gray-400">
                               Joining Date

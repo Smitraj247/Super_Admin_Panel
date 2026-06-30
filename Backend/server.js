@@ -22,6 +22,8 @@ import leaveRoutes from "./routes/leaveRoutes.js";
 import attendanceRoutes from "./routes/attendanceRoutes.js";
 import notificationRoutes from "./routes/notificationRoutes.js";
 import chatRoutes from "./routes/chatRoutes.js";
+import reportRoutes from "./routes/reportRoutes.js";
+import googleAuthRoutes from "./routes/googleAuthRoutes.js";
 
 await connectDB();
 
@@ -67,7 +69,9 @@ io.on("connection", (socket) => {
   });
 
   socket.on("disconnect", (reason) => {
-    console.log(`[Socket.io] Client disconnected: ${socket.id} — reason: ${reason}`);
+    console.log(
+      `[Socket.io] Client disconnected: ${socket.id} — reason: ${reason}`,
+    );
   });
 });
 
@@ -94,6 +98,9 @@ app.use("/api/leaves", leaveRoutes);
 app.use("/api/attendance", attendanceRoutes);
 app.use("/api/notifications", notificationRoutes);
 app.use("/api/chats", chatRoutes);
+app.use("/api/reports", reportRoutes);
+app.use("/auth", googleAuthRoutes);
+
 
 app.get("/", (req, res) => {
   res.send("API is running ");

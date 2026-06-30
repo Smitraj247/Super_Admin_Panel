@@ -52,7 +52,7 @@ export const removeRole = async (id) => {
 
 // ─── Users
 export const listUsers = async (user, departmentFilter) => {
-  const query = { role: { $ne: null } };
+  const query = { role: { $ne: null }, isActive: true };
   
   // If admin (not super admin), filter by department
   if (user && user.role && departmentFilter) {
@@ -89,7 +89,11 @@ export const editUser = async (id, userData, createdBy, departmentFilter) => {
 };
 
 export const removeUser = async (id, user) => {
-  const removedUser = await User.findByIdAndDelete(id);
+  const removedUser = await User.findByIdAndUpdate(
+    id,
+    { isActive: false },
+    { new: true }
+  );
   if (!removedUser) throw new Error("User not found");
   return removedUser;
 };
@@ -103,7 +107,7 @@ export const listAdmins = async (user) => {
   if (adminRole) roleIds.push(adminRole._id);
   if (superAdminRole) roleIds.push(superAdminRole._id);
 
-  const admins = await User.find({ role: { $in: roleIds } })
+  const admins = await User.find({ role: { $in: roleIds }, isActive: true })
     .select("-password")
     .populate("role", "name")
     .populate("department", "name")
@@ -137,7 +141,11 @@ export const editAdmin = async (id, adminData, createdBy) => {
 };
 
 export const removeAdmin = async (id, user) => {
-  const admin = await User.findByIdAndDelete(id);
+  const admin = await User.findByIdAndUpdate(
+    id,
+    { isActive: false },
+    { new: true }
+  );
   if (!admin) throw new Error("Admin not found");
   return admin;
 };

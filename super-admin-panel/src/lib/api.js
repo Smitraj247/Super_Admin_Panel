@@ -36,4 +36,6 @@ API.interceptors.response.use(
   },
 );
 
+export const createAbortController = () => new AbortController();
+
 export default API;
