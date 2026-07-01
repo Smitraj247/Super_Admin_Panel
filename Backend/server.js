@@ -33,7 +33,7 @@ const httpServer = createServer(app);
 const allowedOrigins = [
   "http://localhost:5173",
   "http://localhost:3000",
-  "https://super-admin-panel-git-main-smit24.vercel.app",
+  "https://super-admin-panel-lemon.vercel.app/",
 ];
 
 const io = new Server(httpServer, {

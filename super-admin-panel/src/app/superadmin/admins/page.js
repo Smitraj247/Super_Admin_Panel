@@ -253,7 +253,7 @@ export default function AdminsPage() {
                   {editingId ? <Edit3 size={18} /> : <UserPlus size={18} />}
                   {editingId ? "Edit Admin" : "Add New Admin"}
                 </h3>
-
+                  
                 <form onSubmit={handleSubmit} className="space-y-4">
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-1">

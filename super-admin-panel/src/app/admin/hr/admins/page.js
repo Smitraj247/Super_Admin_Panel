@@ -1,8 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import Sidebar from "@/components/Sidebar";
-import Navbar from "@/components/layout/Navbar";
+import DashboardLayout from "@/components/layout/DashboardLayout";
 import ChatWindow from "@/components/ui/ChatWindow";
 import {
   getAdminsApi,
@@ -140,255 +139,248 @@ export default function AdminsPage() {
   );
 
   return (
-    <div className="min-h-screen">
-      <Sidebar />
-      <Navbar />
+    <DashboardLayout>
+      <div className="flex flex-col md:flex-row md:justify-between md:items-center mb-8 py-3 gap-4 overflow-hidden">
+        <div>
+          <h1 className="text-2xl font-bold flex items-center gap-2 bg-gradient-to-r from-cyan-600 via-blue-600 to-purple-600 bg-clip-text text-transparent">
+            <Shield className="text-cyan-600" size={26} />
+            Admin Management
+          </h1>
+          <p className="text-gray-500 text-sm">
+            Manage administrator accounts for your department
+          </p>
+        </div>
 
-      <main className="md:pl-64 pt-16">
-        <div className="p-8">
-          <div className="flex flex-col md:flex-row md:justify-between md:items-center mb-8 py-3 gap-4 overflow-hidden">
-            <div>
-              <h1 className="text-2xl font-bold flex items-center gap-2 bg-gradient-to-r from-cyan-600 via-blue-600 to-purple-600 bg-clip-text text-transparent">
-                <Shield className="text-cyan-600" size={26} />
-                Admin Management
-              </h1>
-              <p className="text-gray-500 text-sm">
-                Manage administrator accounts for your department
-              </p>
-            </div>
+        <div className="bg-white text-blue-600 border border-blue-300  rounded-lg px-4 py-2 flex items-center gap-2">
+          <Users size={16} className="text-blue-800" />
+          {admins.length} Admins
+        </div>
+      </div>
 
-            <div className="bg-white text-blue-600 border border-blue-300  rounded-lg px-4 py-2 flex items-center gap-2">
-              <Users size={16} className="text-blue-800" />
-              {admins.length} Admins
-            </div>
-          </div>
+      {loading ? (
+        <div className="text-center py-20 text-gray-500">
+          Loading admins...
+        </div>
+      ) : (
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+          <div className="bg-white/70 backdrop-blur-xl rounded-3xl border border-blue-200 p-6 shadow-lg h-fit">
+            <h3 className="font-bold mb-4 flex items-center gap-2 text-blue-600">
+              {editingId ? <Edit3 size={18} /> : <UserPlus size={18} />}
+              {editingId ? "Edit Admin" : "Add New Admin"}
+            </h3>
 
-          {loading ? (
-            <div className="text-center py-20 text-gray-500">
-              Loading admins...
-            </div>
-          ) : (
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-              <div className="bg-white/70 backdrop-blur-xl rounded-3xl border border-blue-200 p-6 shadow-lg h-fit">
-                <h3 className="font-bold mb-4 flex items-center gap-2 text-blue-600">
-                  {editingId ? <Edit3 size={18} /> : <UserPlus size={18} />}
-                  {editingId ? "Edit Admin" : "Add New Admin"}
-                </h3>
-
-                <form onSubmit={handleSubmit} className="space-y-4">
-                  <div>
-                    <label className="block text-sm font-medium text-cyan-700 mb-1">
-                      Full Name *
-                    </label>
-                    <input
-                      name="name"
-                      value={form.name}
-                      onChange={handleChange}
-                      placeholder="e.g., John Doe"
-                      className="w-full border border-blue-200 rounded-lg p-3 outline-none focus:ring-2 focus:ring-blue-200 focus:border-blue-300"
-                      required
-                    />
-                  </div>
-
-                  <div>
-                    <label className="block text-sm font-medium text-cyan-700 mb-1">
-                      Email Address *
-                    </label>
-                    <input
-                      name="email"
-                      type="email"
-                      value={form.email}
-                      onChange={handleChange}
-                      placeholder="e.g., admin@company.com"
-                      className="w-full border border-blue-200 rounded-lg p-3 outline-none focus:ring-2 focus:ring-blue-200 focus:border-blue-300"
-                      required
-                    />
-                  </div>
-
-                  {!editingId && (
-                    <div>
-                      <label className="block text-sm font-medium text-cyan-700 mb-1">
-                        Password *
-                      </label>
-                      <input
-                        name="password"
-                        type="password"
-                        value={form.password}
-                        onChange={handleChange}
-                        placeholder="Enter secure password"
-                        className="w-full border border-blue-200 rounded-lg p-3 outline-none focus:ring-2 focus:ring-blue-200 focus:border-blue-300"
-                        required
-                      />
-                    </div>
-                  )}
-
-                  <div>
-                    <label className="block text-sm font-medium text-cyan-700 mb-1">
-                      Department *
-                    </label>
-                    <select
-                      name="department"
-                      value={form.department}
-                      onChange={handleChange}
-                      className="w-full border border-blue-200 rounded-lg p-3 outline-none focus:ring-2 focus:ring-blue-200 focus:border-blue-300"
-                      required
-                    >
-                      <option value="">-- Select Department --</option>
-                      {departments.map((dept) => (
-                        <option key={dept._id} value={dept._id}>
-                          {dept.name}
-                        </option>
-                      ))}
-                    </select>
-                  </div>
-
-                  <button
-                    type="submit"
-                    className="w-full bg-blue-600 text-white py-2 rounded-lg hover:bg-blue-700 font-medium transition"
-                  >
-                    {editingId ? "Update Admin" : "Create Admin"}
-                  </button>
-
-                  {editingId && (
-                    <button
-                      type="button"
-                      onClick={() => {
-                        setEditingId(null);
-                        setForm({
-                          name: "",
-                          email: "",
-                          password: "",
-                          department: "",
-                        });
-                      }}
-                      className="w-full text-sm text-gray-500 hover:text-gray-700"
-                    >
-                      Cancel
-                    </button>
-                  )}
-                </form>
+            <form onSubmit={handleSubmit} className="space-y-4">
+              <div>
+                <label className="block text-sm font-medium text-cyan-700 mb-1">
+                  Full Name *
+                </label>
+                <input
+                  name="name"
+                  value={form.name}
+                  onChange={handleChange}
+                  placeholder="e.g., John Doe"
+                  className="w-full border border-blue-200 rounded-lg p-3 outline-none focus:ring-2 focus:ring-blue-200 focus:border-blue-300"
+                  required
+                />
               </div>
 
-              <div className="lg:col-span-2 space-y-4">
-                <div className="bg-white border border-blue-200 rounded-2xl p-4 flex items-center gap-2 overflow-hidden">
-                  <Search size={18} className="text-blue-400" />
+              <div>
+                <label className="block text-sm font-medium text-cyan-700 mb-1">
+                  Email Address *
+                </label>
+                <input
+                  name="email"
+                  type="email"
+                  value={form.email}
+                  onChange={handleChange}
+                  placeholder="e.g., admin@company.com"
+                  className="w-full border border-blue-200 rounded-lg p-3 outline-none focus:ring-2 focus:ring-blue-200 focus:border-blue-300"
+                  required
+                />
+              </div>
+
+              {!editingId && (
+                <div>
+                  <label className="block text-sm font-medium text-cyan-700 mb-1">
+                    Password *
+                  </label>
                   <input
-                    type="text"
-                    placeholder="Search admins by name, email, or department..."
-                    value={search}
-                    onChange={(e) => setSearch(e.target.value)}
-                    className="flex-1 outline-none"
+                    name="password"
+                    type="password"
+                    value={form.password}
+                    onChange={handleChange}
+                    placeholder="Enter secure password"
+                    className="w-full border border-blue-200 rounded-lg p-3 outline-none focus:ring-2 focus:ring-blue-200 focus:border-blue-300"
+                    required
                   />
                 </div>
+              )}
 
-                <div className="bg-white border border-blue-200 rounded-2xl overflow-hidden">
-                  <div className="overflow-auto ">
-                    <table className="w-full text-sm md:text-md min-w-[600px]">
-                      <thead className="border-b border-blue-300 bg-blue-50 sticky top-0 z-10">
-                        <tr>
-                          <th className="p-3 text-left">Admin</th>
-                          <th className="p-3 text-left hidden sm:table-cell">
-                            Email
-                          </th>
-                          <th className="p-3 text-left hidden md:table-cell">
-                            Department
-                          </th>
-                          <th className="p-3 text-right">Actions</th>
+              <div>
+                <label className="block text-sm font-medium text-cyan-700 mb-1">
+                  Department *
+                </label>
+                <select
+                  name="department"
+                  value={form.department}
+                  onChange={handleChange}
+                  className="w-full border border-blue-200 rounded-lg p-3 outline-none focus:ring-2 focus:ring-blue-200 focus:border-blue-300"
+                  required
+                >
+                  <option value="">-- Select Department --</option>
+                  {departments.map((dept) => (
+                    <option key={dept._id} value={dept._id}>
+                      {dept.name}
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              <button
+                type="submit"
+                className="w-full bg-blue-600 text-white py-2 rounded-lg hover:bg-blue-700 font-medium transition"
+              >
+                {editingId ? "Update Admin" : "Create Admin"}
+              </button>
+
+              {editingId && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    setEditingId(null);
+                    setForm({
+                      name: "",
+                      email: "",
+                      password: "",
+                      department: "",
+                    });
+                  }}
+                  className="w-full text-sm text-gray-500 hover:text-gray-700"
+                >
+                  Cancel
+                </button>
+              )}
+            </form>
+          </div>
+
+          <div className="lg:col-span-2 space-y-4">
+            <div className="bg-white border border-blue-200 rounded-2xl p-4 flex items-center gap-2 overflow-hidden">
+              <Search size={18} className="text-blue-400" />
+              <input
+                type="text"
+                placeholder="Search admins by name, email, or department..."
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+                className="flex-1 outline-none"
+              />
+            </div>
+
+            <div className="bg-white border border-blue-200 rounded-2xl overflow-hidden">
+              <div className="overflow-auto ">
+                <table className="w-full text-sm md:text-md min-w-[600px]">
+                  <thead className="border-b border-blue-300 bg-blue-50 sticky top-0 z-10">
+                    <tr>
+                      <th className="p-3 text-left">Admin</th>
+                      <th className="p-3 text-left hidden sm:table-cell">
+                        Email
+                      </th>
+                      <th className="p-3 text-left hidden md:table-cell">
+                        Department
+                      </th>
+                      <th className="p-3 text-right">Actions</th>
+                    </tr>
+                  </thead>
+
+                  <tbody>
+                    {filteredAdmins.length > 0 ? (
+                      filteredAdmins.map((admin) => (
+                        <tr
+                          key={admin._id}
+                          className="border-b border-blue-200 hover:bg-blue-50"
+                        >
+                          <td className="p-3">
+                            <div className="flex items-center gap-3">
+                              <div className="w-9 h-9 bg-blue-100 rounded-full flex items-center justify-center text-blue-600 font-semibold">
+                                {admin.name?.charAt(0).toUpperCase()}
+                              </div>
+                              <div>
+                                <div className="font-medium">
+                                  {admin.name}
+                                </div>
+                              </div>
+                            </div>
+                          </td>
+
+                          <td className="p-3 hidden sm:table-cell">
+                            <div className="flex items-center gap-1 text-gray-600">
+                              <Mail size={14} />
+                              <span>{admin.email}</span>
+                            </div>
+                          </td>
+
+                          <td className="p-3 hidden md:table-cell">
+                            <div className="flex items-center gap-1">
+                              <Building2
+                                size={14}
+                                className="text-gray-500"
+                              />
+                              <span className="px-2 py-1 bg-blue-100 text-blue-700 rounded-full text-xs">
+                                {admin.department?.name || "N/A"}
+                              </span>
+                            </div>
+                          </td>
+
+                          <td className="p-3 text-right">
+                            <div className="flex justify-end gap-3">
+                              <button
+                                onClick={() => setChatUser(admin)}
+                                className="text-blue-600 hover:text-blue-800 transition"
+                                title="Chat with Admin"
+                              >
+                                <MessageCircle size={16} />
+                              </button>
+
+                              <button
+                                onClick={() => startEdit(admin)}
+                                className="text-green-600 hover:text-green-800 transition"
+                                title="Edit Admin"
+                              >
+                                <Edit3 size={16} />
+                              </button>
+
+                              <button
+                                onClick={() => deleteAdmin(admin._id)}
+                                className="text-red-500 hover:text-red-700 transition"
+                                title="Delete Admin"
+                              >
+                                <Trash2 size={16} />
+                              </button>
+                            </div>
+                          </td>
                         </tr>
-                      </thead>
-
-                      <tbody>
-                        {filteredAdmins.length > 0 ? (
-                          filteredAdmins.map((admin) => (
-                            <tr
-                              key={admin._id}
-                              className="border-b border-blue-200 hover:bg-blue-50"
-                            >
-                              <td className="p-3">
-                                <div className="flex items-center gap-3">
-                                  <div className="w-9 h-9 bg-blue-100 rounded-full flex items-center justify-center text-blue-600 font-semibold">
-                                    {admin.name?.charAt(0).toUpperCase()}
-                                  </div>
-                                  <div>
-                                    <div className="font-medium">
-                                      {admin.name}
-                                    </div>
-                                  </div>
-                                </div>
-                              </td>
-
-                              <td className="p-3 hidden sm:table-cell">
-                                <div className="flex items-center gap-1 text-gray-600">
-                                  <Mail size={14} />
-                                  <span>{admin.email}</span>
-                                </div>
-                              </td>
-
-                              <td className="p-3 hidden md:table-cell">
-                                <div className="flex items-center gap-1">
-                                  <Building2
-                                    size={14}
-                                    className="text-gray-500"
-                                  />
-                                  <span className="px-2 py-1 bg-blue-100 text-blue-700 rounded-full text-xs">
-                                    {admin.department?.name || "N/A"}
-                                  </span>
-                                </div>
-                              </td>
-
-                              <td className="p-3 text-right">
-                                <div className="flex justify-end gap-3">
-                                  <button
-                                    onClick={() => setChatUser(admin)}
-                                    className="text-blue-600 hover:text-blue-800 transition"
-                                    title="Chat with Admin"
-                                  >
-                                    <MessageCircle size={16} />
-                                  </button>
-
-                                  <button
-                                    onClick={() => startEdit(admin)}
-                                    className="text-green-600 hover:text-green-800 transition"
-                                    title="Edit Admin"
-                                  >
-                                    <Edit3 size={16} />
-                                  </button>
-
-                                  <button
-                                    onClick={() => deleteAdmin(admin._id)}
-                                    className="text-red-500 hover:text-red-700 transition"
-                                    title="Delete Admin"
-                                  >
-                                    <Trash2 size={16} />
-                                  </button>
-                                </div>
-                              </td>
-                            </tr>
-                          ))
-                        ) : (
-                          <tr>
-                            <td
-                              colSpan="4"
-                              className="p-10 text-center text-gray-400"
-                            >
-                              No Admins Found
-                            </td>
-                          </tr>
-                        )}
-                      </tbody>
-                    </table>
-                  </div>
-                </div>
+                      ))
+                    ) : (
+                      <tr>
+                        <td
+                          colSpan="4"
+                          className="p-10 text-center text-gray-400"
+                        >
+                          No Admins Found
+                        </td>
+                      </tr>
+                    )}
+                  </tbody>
+                </table>
               </div>
             </div>
-          )}
+          </div>
         </div>
-      </main>
-
+      )}
       {/* Chat Window */}
       {chatUser && (
         <ChatWindow user={chatUser} onClose={() => setChatUser(null)} />
       )}
-    </div>
+    </DashboardLayout>
   );
 }
+ 
