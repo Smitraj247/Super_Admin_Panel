@@ -762,11 +762,12 @@ export default function HRUserAttendanceDetail() {
                       </div>
                     </div>
                   </div>
-                )}
-              </div>
+                </div>
+              )}
             </div>
           </div>
-        )}
+        </div>
+      )}
       </DashboardLayout>
   );
 }
