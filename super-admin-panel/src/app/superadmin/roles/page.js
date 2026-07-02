@@ -219,7 +219,6 @@ export default function RolesPage() {
               </div>
             </div>
           </div>
-        </div>
     </ProtectedDashboardRoute>
   );
 }

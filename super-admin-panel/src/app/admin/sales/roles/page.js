@@ -218,7 +218,7 @@ export default function RolesPage() {
               </div>
             </div>
           </div>
-        </div>
+      </main>
     </div>
   );
 }

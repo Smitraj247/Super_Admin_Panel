@@ -225,7 +225,7 @@ export default function DepartmentsPage() {
               </div>
             </div>
           </div>
-        </div>
+      </main>
     </div>
   );
 }

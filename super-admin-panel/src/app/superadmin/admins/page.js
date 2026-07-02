@@ -477,7 +477,6 @@ export default function AdminsPage() {
         {chatUser && (
           <ChatWindow user={chatUser} onClose={() => setChatUser(null)} />
         )}
-        </div>
     </ProtectedDashboardRoute>
   );
 }

@@ -14,7 +14,6 @@ export default function TargetsPage() {
               Targets management system coming soon...
             </p>
           </div>
-        </div>
     </div>
   );
 }

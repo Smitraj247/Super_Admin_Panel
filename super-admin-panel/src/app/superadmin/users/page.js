@@ -87,13 +87,11 @@ export default function UsersPage() {
               </div>
             </div>
           </div>
-        </main>
-
         {/* Chat Window */}
         {chatUser && (
           <ChatWindow user={chatUser} onClose={() => setChatUser(null)} />
         )}
-      </div>
+      </main>
     </ProtectedDashboardRoute>
   );
 }

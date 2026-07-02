@@ -223,7 +223,6 @@ export default function DepartmentsPage() {
               </div>
             </div>
           </div>
-        </div>
     </ProtectedDashboardRoute>
   );
 }

@@ -518,8 +518,7 @@ function SalesUserEmailsPage() {
             </div>
           </div>
         )}
-      </main>
-    </div>
+      </div>
   );
 }
 

@@ -893,6 +893,5 @@ export default function HRUserAttendanceDetail() {
           </div>
         )}
       </div>
-    </div>
   );
 }
