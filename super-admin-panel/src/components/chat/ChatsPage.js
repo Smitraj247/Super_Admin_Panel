@@ -116,10 +116,8 @@ export default function ChatsPage({
     };
   }, [socket, currentUser?._id]);
 
-  // Real-time chat list updates
+  // Real-time chat list updates via socket or polling
   useEffect(() => {
-    if (!socket) return;
-
     const handleChatUpdated = (updatedChat) => {
       // Update the sidebar chat list
       setChats((prev) => {
@@ -143,44 +141,43 @@ export default function ChatsPage({
       loadChats();
     };
 
-    // On reconnect, reload chats to catch any messages missed while offline
-    const handleReconnect = () => {
-      loadChats();
-    };
+    if (socket) {
+      socket.on("chatUpdated", handleChatUpdated);
+      socket.on("user:created", handleUserChange);
+      socket.on("user:deleted", handleUserChange);
+      socket.on("user:updated", handleUserChange);
 
-    socket.on("chatUpdated", handleChatUpdated);
-    socket.on("user:created", handleUserChange);
-    socket.on("user:deleted", handleUserChange);
-    socket.on("user:updated", handleUserChange);
-    socket.on("connect", handleReconnect);
-
-    return () => {
-      socket.off("chatUpdated", handleChatUpdated);
-      socket.off("user:created", handleUserChange);
-      socket.off("user:deleted", handleUserChange);
-      socket.off("user:updated", handleUserChange);
-      socket.off("connect", handleReconnect);
-    };
+      return () => {
+        socket.off("chatUpdated", handleChatUpdated);
+        socket.off("user:created", handleUserChange);
+        socket.off("user:deleted", handleUserChange);
+        socket.off("user:updated", handleUserChange);
+      };
+    }
   }, [socket, loadChats]);
 
-  // Polling fallback for chat list — when socket is disconnected (Vercel/serverless)
+  // Polling for chat list (works on Vercel serverless) — runs every 3-5 seconds
   useEffect(() => {
     if (!currentUser?._id) return;
 
     const poll = async () => {
-      if (socket?.connected) return; // socket is working, skip
       await loadChats();
     };
 
-    const interval = setInterval(poll, 5000);
-    const onVisible = () => { if (document.visibilityState === "visible") poll(); };
+    // Poll every 4 seconds in production, immediate in dev
+    const interval = setInterval(poll, process.env.NODE_ENV === "production" ? 4000 : 2000);
+
+    // Also poll when tab becomes visible
+    const onVisible = () => {
+      if (document.visibilityState === "visible") poll();
+    };
     document.addEventListener("visibilitychange", onVisible);
 
     return () => {
       clearInterval(interval);
       document.removeEventListener("visibilitychange", onVisible);
     };
-  }, [socket, currentUser?._id, loadChats]);
+  }, [currentUser?._id, loadChats]);
 
   // Search filter
   useEffect(() => {

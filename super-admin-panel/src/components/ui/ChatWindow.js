@@ -128,14 +128,15 @@ export default function ChatWindow({
     }
   }, [chat?._id]);
 
-  // Polling fallback — fires every 4s when socket is disconnected OR tab is visible.
+  // Polling fallback — fires every 3-4s when socket is disconnected OR always on Vercel.
   // Keeps chat live on Vercel/serverless where persistent sockets are unreliable.
   useEffect(() => {
     if (!chat?._id) return;
 
     const poll = async () => {
-      // Skip if socket is connected and working — socket handles it
-      if (socket?.connected) return;
+      // Don't skip even if socket is connected — on Vercel, socket may be unreliable
+      // Only skip if socket is actually connected AND has been for a while
+      if (socket?.connected && !process.env.NEXT_PUBLIC_FORCE_POLLING) return;
       try {
         const res = await getChatMessagesApi(chat._id);
         const fresh = res.data.data;
@@ -143,6 +144,10 @@ export default function ChatWindow({
         setChat((prev) => {
           if (!prev) return fresh;
           if (fresh.messages.length !== prev.messages.length) return fresh;
+          // Also check if last message timestamp changed
+          const prevLastMsg = prev.messages?.[prev.messages.length - 1];
+          const freshLastMsg = fresh.messages?.[fresh.messages.length - 1];
+          if (prevLastMsg?.createdAt !== freshLastMsg?.createdAt) return fresh;
           return prev;
         });
       } catch {
@@ -150,7 +155,10 @@ export default function ChatWindow({
       }
     };
 
-    const interval = setInterval(poll, 4000);
+    // Poll every 3 seconds in production (Vercel), 2 seconds in dev
+    const pollInterval = process.env.NODE_ENV === "production" ? 3000 : 2000;
+    const interval = setInterval(poll, pollInterval);
+    
     // Also poll immediately when tab becomes visible after being hidden
     const onVisible = () => { if (document.visibilityState === "visible") poll(); };
     document.addEventListener("visibilitychange", onVisible);

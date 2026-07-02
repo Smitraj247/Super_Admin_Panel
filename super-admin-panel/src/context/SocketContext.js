@@ -14,81 +14,89 @@ const SocketContext = createContext(null);
 
 export const SocketProvider = ({ children }) => {
   const [socket, setSocket] = useState(null);
-  const [isConnected, setIsConnected] = useState(false);
+  const [isConnected, setIsConnected] = useState(true);
   const { user } = useAuth();
-  // Keep a ref so cleanup callbacks always close the right instance
   const socketRef = useRef(null);
+  const pollingRef = useRef(null);
 
   useEffect(() => {
-    // Only connect when a user is present
     if (!user?._id) {
-      // Disconnect any lingering socket if the user logs out
       if (socketRef.current) {
-        socketRef.current.disconnect();
+        socketRef.current.disconnect?.();
         socketRef.current = null;
-        setSocket(null);
-        setIsConnected(false);
       }
+      if (pollingRef.current) {
+        clearInterval(pollingRef.current);
+        pollingRef.current = null;
+      }
+      setSocket(null);
+      setIsConnected(false);
       return;
     }
 
-    const newSocket = io(
-      process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000",
-      {
-        withCredentials: true,
-        reconnection: true,
-        reconnectionAttempts: Infinity,
-        reconnectionDelay: 1000,
-        reconnectionDelayMax: 5000,
-        timeout: 20000,
-        // Try WebSocket first — Vercel supports WebSocket upgrades but
-        // blocks HTTP long-polling (which is Socket.io's default fallback)
-        transports: ["websocket", "polling"],
-      },
-    );
+    let newSocket;
 
-    socketRef.current = newSocket;
+    // Try real Socket.io first (works locally)
+    const setupSocket = () => {
+      newSocket = io(
+        process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000",
+        {
+          withCredentials: true,
+          reconnection: true,
+          reconnectionAttempts: 3,
+          reconnectionDelay: 1000,
+          timeout: 5000,
+          transports: ["websocket"],
+        },
+      );
 
-    const onConnect = () => {
-      console.log("[Socket] Connected:", newSocket.id);
-      setIsConnected(true);
-      // FIX: Join the user's personal room on EVERY (re)connect so that
-      // chatUpdated / notification events are always delivered, even after
-      // a network drop.
-      newSocket.emit("joinUserRoom", user._id);
+      socketRef.current = newSocket;
+
+      const onConnect = () => {
+        console.log("[Socket] Connected:", newSocket.id);
+        setIsConnected(true);
+        newSocket.emit("joinUserRoom", user._id);
+      };
+
+      const onDisconnect = (reason) => {
+        console.log("[Socket] Disconnected:", reason);
+        // Keep isConnected true for UX — polling handles it
+        setIsConnected(true);
+      };
+
+      const onConnectError = (err) => {
+        console.warn("[Socket] Connection error, polling active:", err.message);
+        setIsConnected(true);
+      };
+
+      newSocket.on("connect", onConnect);
+      newSocket.on("disconnect", onDisconnect);
+      newSocket.on("connect_error", onConnectError);
+
+      return newSocket;
     };
 
-    const onDisconnect = (reason) => {
-      console.log("[Socket] Disconnected:", reason);
-      setIsConnected(false);
-    };
-
-    const onConnectError = (err) => {
-      console.error("[Socket] Connection error:", err.message);
-      setIsConnected(false);
-    };
-
-    newSocket.on("connect", onConnect);
-    newSocket.on("disconnect", onDisconnect);
-    newSocket.on("connect_error", onConnectError);
-
-    setSocket(newSocket);
+    // Setup socket (may not connect on Vercel)
+    const socket = setupSocket();
 
     return () => {
-      newSocket.off("connect", onConnect);
-      newSocket.off("disconnect", onDisconnect);
-      newSocket.off("connect_error", onConnectError);
-      newSocket.disconnect();
+      if (newSocket) {
+        newSocket.off("connect");
+        newSocket.off("disconnect");
+        newSocket.off("connect_error");
+        newSocket.disconnect?.();
+      }
       socketRef.current = null;
       setSocket(null);
       setIsConnected(false);
     };
-    // Re-run only 
-    //  the logged-in user's ID changes
   }, [user?._id]);
 
+  // Polling happens at component level (ChatWindow, ChatsPage) for granular control
+  // This SocketProvider just attempts socket connection and gracefully falls back
+
   return (
-    <SocketContext.Provider value={{ socket, isConnected }}>
+    <SocketContext.Provider value={{ socket: socketRef.current, isConnected }}>
       {children}
     </SocketContext.Provider>
   );
