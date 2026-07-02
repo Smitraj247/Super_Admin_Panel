@@ -6,12 +6,13 @@ import React, {
   useState,
   useEffect,
   useCallback,
+  useRef,
 } from "react";
 import { useAuth } from "./AuthContext";
-import { useSocket } from "./SocketContext";
 import toast from "react-hot-toast";
 import {
   getNotificationsApi,
+  getUnreadCountApi,
   markAsReadApi,
   markAllAsReadApi,
   deleteNotificationApi,
@@ -24,7 +25,8 @@ export const NotificationProvider = ({ children }) => {
   const [notifications, setNotifications] = useState([]);
   const [unreadCount, setUnreadCount] = useState(0);
   const { user, getDepartment } = useAuth();
-  const { socket } = useSocket();
+  const lastHashRef = useRef({ notifHash: null, unreadCount: null });
+  const prevUnreadCountRef = useRef(0);
 
   // Fetch initial notifications and unread count
   const fetchNotifications = useCallback(async () => {
@@ -100,68 +102,101 @@ export const NotificationProvider = ({ children }) => {
     }
   }, []);
 
-  // Socket event listeners
+  // Show toast for new notification
+  const showNotificationToast = useCallback((notification) => {
+    toast(
+      <div>
+        <strong>{notification.title}</strong>
+        <p className="text-sm">{notification.message}</p>
+      </div>,
+      {
+        duration: 5000,
+        position: "top-right",
+      },
+    );
+  }, []);
+
+  // Polling for notifications - replaces Socket.IO
   useEffect(() => {
-    if (!socket) return;
+    if (!user) return;
 
-    const handleNotificationCreated = (notification) => {
-      setNotifications((prev) => [notification, ...prev]);
-      setUnreadCount((prev) => prev + 1);
-      // Show toast notification
-      toast(
-        <div>
-          <strong>{notification.title}</strong>
-          <p className="text-sm">{notification.message}</p>
-        </div>,
-        {
-          duration: 5000,
-          position: "top-right",
-        },
-      );
-      playNotificationSound();
-    };
+    const pollNotifications = async () => {
+      try {
+        const res = await getNotificationsApi(50, 0);
+        const data = res.data;
 
-    const handleUnreadCountUpdated = ({ unreadCount: count }) => {
-      setUnreadCount(count);
-    };
-
-    const handleChatUpdated = (chat) => {
-      const lastMessage = chat.messages?.[chat.messages.length - 1];
-      if (lastMessage && lastMessage.sender._id !== user?._id) {
-        // Get department path
-        const deptName = getDepartment();
-        let deptPath = "/dashboard/employee";
-        if (deptName && DEPARTMENTS[deptName]) {
-          deptPath = DEPARTMENTS[deptName].path;
+        if (data && data.notifications) {
+          const hash = JSON.stringify(data.notifications);
+          
+          // Check if notifications changed
+          if (lastHashRef.current.notifHash !== hash) {
+            const oldHash = lastHashRef.current.notifHash;
+            lastHashRef.current.notifHash = hash;
+            
+            // If this is not the first load, detect new notifications
+            if (oldHash !== null && data.notifications.length > notifications.length) {
+              const newNotif = data.notifications[0];
+              
+              // Check if it's actually new (not just a re-fetch)
+              const existsInOld = notifications.some(n => n._id === newNotif._id);
+              
+              if (!existsInOld) {
+                // Show toast and play sound for new notification
+                showNotificationToast(newNotif);
+                playNotificationSound();
+              }
+            }
+            
+            setNotifications(data.notifications);
+          }
         }
 
-        // Play notification sound but don't show toast
-        playNotificationSound();
+        if (data && data.unreadCount !== undefined) {
+          const newUnreadCount = data.unreadCount;
+          
+          // Check if unread count increased (new notification)
+          if (lastHashRef.current.unreadCount !== null && 
+              newUnreadCount > lastHashRef.current.unreadCount) {
+            // Unread count increased - play sound
+            playNotificationSound();
+          }
+          
+          lastHashRef.current.unreadCount = newUnreadCount;
+          setUnreadCount(newUnreadCount);
+        }
+      } catch (err) {
+        console.warn("[Notification Polling] Error:", err.message);
       }
     };
 
-    socket.on("notification:created", handleNotificationCreated);
-    socket.on("unread:count:updated", handleUnreadCountUpdated);
-    socket.on("chatUpdated", handleChatUpdated);
-    socket.on("newMessage", handleChatUpdated);
+    // Initial fetch
+    pollNotifications();
+
+    // Poll every 3 seconds for real-time updates
+    const interval = setInterval(pollNotifications, 3000);
+
+    // Poll when tab becomes visible
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === "visible") {
+        pollNotifications();
+      }
+    };
+    document.addEventListener("visibilitychange", handleVisibilityChange);
 
     return () => {
-      socket.off("notification:created", handleNotificationCreated);
-      socket.off("unread:count:updated", handleUnreadCountUpdated);
-      socket.off("chatUpdated", handleChatUpdated);
-      socket.off("newMessage", handleChatUpdated);
+      clearInterval(interval);
+      document.removeEventListener("visibilitychange", handleVisibilityChange);
     };
-  }, [socket, playNotificationSound, user, getDepartment]);
+  }, [user, notifications.length, playNotificationSound, showNotificationToast]);
 
-  // Fetch initial data when user is logged in
+  // Reset state when user logs out
   useEffect(() => {
-    if (user) {
-      fetchNotifications();
-    } else {
+    if (!user) {
       setNotifications([]);
       setUnreadCount(0);
+      lastHashRef.current = { notifHash: null, unreadCount: null };
     }
-  }, [user, fetchNotifications]);
+  }, [user]);
 
   return (
     <NotificationContext.Provider

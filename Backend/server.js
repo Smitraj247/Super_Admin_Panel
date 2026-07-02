@@ -1,14 +1,11 @@
 import "dotenv/config";
 
 import express from "express";
-import { createServer } from "http";
-import { Server } from "socket.io";
 import dotenv from "dotenv";
 import connectDB from "./config/db.js";
 import cors from "cors";
 import { notFound, errorHandler } from "./middleware/errorMiddleware.js";
 import compression from "compression";
-import { setSocketIO } from "./utils/socketEmitter.js";
 
 import authRoutes from "./routes/authRoutes.js";
 import superAdminRoutes from "./routes/superAdminRoutes.js";
@@ -28,7 +25,6 @@ import googleAuthRoutes from "./routes/googleAuthRoutes.js";
 await connectDB();
 
 const app = express();
-const httpServer = createServer(app);
 
 const allowedOrigins = [
   "http://localhost:5173",
@@ -44,45 +40,6 @@ const corsOriginFn = (origin, callback) => {
   if (allowedOrigins.includes(clean)) return callback(null, true);
   callback(new Error(`CORS: origin ${origin} not allowed`));
 };
-
-const io = new Server(httpServer, {
-  cors: {
-    origin: corsOriginFn,
-    credentials: true,
-    methods: ["GET", "POST"],
-  },
-});
-
-// Set the io instance in the socket emitter
-setSocketIO(io);        
-                                                                                
-// In your Socket.io server setup
-io.on("connection", (socket) => {
-  console.log(`[Socket.io] Client connected: ${socket.id}`);
-
-  // Lets a client join a specific chat room to receive newMessage events
-  socket.on("joinChat", (chatId) => {
-    socket.join(chatId);
-    console.log(`[Socket.io] Socket ${socket.id} joined chat room: ${chatId}`);
-  });
-
-  socket.on("leaveChat", (chatId) => {
-    socket.leave(chatId);
-    console.log(`[Socket.io] Socket ${socket.id} left chat room: ${chatId}`);
-  });
-
-  // Joins the user's personal room so chatUpdated / notification events are received
-  socket.on("joinUserRoom", (userId) => {
-    socket.join(userId);
-    console.log(`[Socket.io] Socket ${socket.id} joined user room: ${userId}`);
-  });
-
-  socket.on("disconnect", (reason) => {
-    console.log(
-      `[Socket.io] Client disconnected: ${socket.id} — reason: ${reason}`,
-    );
-  });
-});
 
 app.use(
   cors({
@@ -119,8 +76,9 @@ app.use(errorHandler);
 
 const PORT = process.env.PORT || 5000;
 
-httpServer.listen(PORT, () => {
+app.listen(PORT, () => {
   console.log(`Server is running on port ${PORT}`);
+  console.log("Real-time updates via polling (Vercel-compatible)");
 });
 
 export default app;

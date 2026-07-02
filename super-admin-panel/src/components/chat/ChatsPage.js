@@ -4,7 +4,6 @@ import { useEffect, useState, useCallback } from "react";
 import { useSearchParams } from "next/navigation";
 import ChatWindow from "@/components/ui/ChatWindow";
 import { useAuth } from "@/context/AuthContext";
-import { useSocket } from "@/context/SocketContext";
 import {
   getUserChatsApi,
   deleteChatApi,
@@ -39,7 +38,6 @@ export default function ChatsPage({
   canDelete = false,
 }) {
   const { user: currentUser } = useAuth();
-  const { socket } = useSocket();
   const searchParams = useSearchParams();
 
   const [chats, setChats] = useState([]);
@@ -62,9 +60,12 @@ export default function ChatsPage({
 
   // ── Data loading
 
-  const loadChats = useCallback(async () => {
+  const loadChats = useCallback(async (showLoadingState = true) => {
     try {
-      setLoading(true);
+      // Only show loading indicator on initial load, not on background refreshes
+      if (showLoadingState) {
+        setLoading(true);
+      }
       const res = await getUserChatsApi();
       const data = res.data.data || [];
       setChats(data);
@@ -72,12 +73,15 @@ export default function ChatsPage({
     } catch (err) {
       console.error("Load chats error:", err);
     } finally {
-      setLoading(false);
+      if (showLoadingState) {
+        setLoading(false);
+      }
     }
   }, []);
 
   useEffect(() => {
-    loadChats();
+    // Initial load with loading state
+    loadChats(true);
   }, [loadChats]);
 
   // Handle chatId query param
@@ -100,84 +104,99 @@ export default function ChatsPage({
     }
   }, [searchParams, chats, loading, currentUser]);
 
-  // Join the user's personal room — and re-join after every reconnect
-  useEffect(() => {
-    if (!socket || !currentUser?._id) return;
-
-    const joinRoom = () => {
-      socket.emit("joinUserRoom", currentUser._id);
-    };
-
-    joinRoom();
-    socket.on("connect", joinRoom); // re-join on reconnect
-
-    return () => {
-      socket.off("connect", joinRoom);
-    };
-  }, [socket, currentUser?._id]);
-
-  // Real-time chat list updates via socket or polling
-  useEffect(() => {
-    const handleChatUpdated = (updatedChat) => {
-      // Update the sidebar chat list
-      setChats((prev) => {
-        const exists = prev.find((c) => c._id === updatedChat._id);
-        const next = exists
-          ? prev.map((c) => (c._id === updatedChat._id ? updatedChat : c))
-          : [updatedChat, ...prev];
-        return [...next].sort(
-          (a, b) => new Date(b.lastMessageAt) - new Date(a.lastMessageAt),
-        );
-      });
-
-      // Propagate the updated chat into ChatWindow via selectedChat
-      setSelectedChat((prev) => {
-        if (prev && prev._id === updatedChat._id) return updatedChat;
-        return prev;
-      });
-    };
-
-    const handleUserChange = () => {
-      loadChats();
-    };
-
-    if (socket) {
-      socket.on("chatUpdated", handleChatUpdated);
-      socket.on("user:created", handleUserChange);
-      socket.on("user:deleted", handleUserChange);
-      socket.on("user:updated", handleUserChange);
-
-      return () => {
-        socket.off("chatUpdated", handleChatUpdated);
-        socket.off("user:created", handleUserChange);
-        socket.off("user:deleted", handleUserChange);
-        socket.off("user:updated", handleUserChange);
-      };
-    }
-  }, [socket, loadChats]);
-
-  // Polling for chat list (works on Vercel serverless) — runs every 3-5 seconds
+  // Polling for chat list updates - Vercel-compatible real-time updates
+  // Background polling without loading states to prevent flickering
   useEffect(() => {
     if (!currentUser?._id) return;
 
-    const poll = async () => {
-      await loadChats();
+    const pollChats = async () => {
+      try {
+        // Background fetch - no loading indicators
+        const res = await getUserChatsApi();
+        const freshChats = res.data?.data || [];
+        
+        // Update chat list only if data changed
+        setChats((prevChats) => {
+          // Create hash to detect changes
+          const prevHash = JSON.stringify(
+            prevChats.map(c => ({
+              id: c._id,
+              lastMsg: c.lastMessage,
+              lastMsgAt: c.lastMessageAt,
+              msgCount: c.messages?.length
+            }))
+          );
+          
+          const freshHash = JSON.stringify(
+            freshChats.map(c => ({
+              id: c._id,
+              lastMsg: c.lastMessage,
+              lastMsgAt: c.lastMessageAt,
+              msgCount: c.messages?.length
+            }))
+          );
+          
+          // Only update if changed to prevent unnecessary re-renders
+          if (prevHash !== freshHash) {
+            return freshChats;
+          }
+          
+          return prevChats;
+        });
+
+        // Update filtered chats silently
+        setFilteredChats((prevFiltered) => {
+          // If no search query, return all chats
+          if (!searchQuery.trim()) {
+            return freshChats;
+          }
+          
+          // Re-apply search filter to fresh data
+          const q = searchQuery.toLowerCase();
+          return freshChats.filter((chat) => {
+            if (chat.isGroupChat) return chat.groupName?.toLowerCase().includes(q);
+            const other = chat.participants?.find((p) => p._id !== currentUser._id);
+            return (
+              other?.name?.toLowerCase().includes(q) ||
+              other?.email?.toLowerCase().includes(q)
+            );
+          });
+        });
+
+        // Update selected chat if it exists in the new list (silent background update)
+        setSelectedChat((prevSelected) => {
+          if (!prevSelected) return null;
+          const updated = freshChats.find(c => c._id === prevSelected._id);
+          return updated || prevSelected;
+        });
+      } catch (err) {
+        // Silently ignore polling errors to prevent disruption
+        console.debug("[Chat Polling] Background update skipped:", err.message);
+      }
     };
 
-    // Poll every 4 seconds in production, immediate in dev
-    const interval = setInterval(poll, process.env.NODE_ENV === "production" ? 4000 : 2000);
+    // Initial poll (silent - data already loaded)
+    pollChats();
 
-    // Also poll when tab becomes visible
-    const onVisible = () => {
-      if (document.visibilityState === "visible") poll();
+    // Poll every 4 seconds in production, 3 seconds in dev (background updates)
+    const interval = setInterval(
+      pollChats,
+      process.env.NODE_ENV === "production" ? 4000 : 3000
+    );
+
+    // Poll when tab becomes visible (silent)
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === "visible") {
+        pollChats();
+      }
     };
-    document.addEventListener("visibilitychange", onVisible);
+    document.addEventListener("visibilitychange", handleVisibilityChange);
 
     return () => {
       clearInterval(interval);
-      document.removeEventListener("visibilitychange", onVisible);
+      document.removeEventListener("visibilitychange", handleVisibilityChange);
     };
-  }, [currentUser?._id, loadChats]);
+  }, [currentUser?._id, searchQuery]);
 
   // Search filter
   useEffect(() => {
@@ -280,7 +299,8 @@ export default function ChatsPage({
     try {
       const res = await createGroupChatApi(groupName, selectedParticipants);
       setShowModal(false);
-      loadChats();
+      // Background refresh - no loading state
+      loadChats(false);
       setSelectedChat(res.data.data);
       setSelectedUser(null);
     } catch (err) {
@@ -617,11 +637,11 @@ export default function ChatsPage({
           onClose={() => {
             setSelectedUser(null);
             setSelectedChat(null);
-            loadChats();
+            // Background refresh - no loading state
+            loadChats(false);
           }}
-          // FIX: pass loadChats directly — it is already a stable useCallback
-          // so ChatWindow's socket effect won't re-fire on every render.
-          onUpdate={loadChats}
+          // Background refresh - no loading state when chat updates
+          onUpdate={() => loadChats(false)}
         />
       )}
     </div>

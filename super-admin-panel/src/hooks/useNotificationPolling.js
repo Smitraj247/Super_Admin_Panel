@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useEffect, useState, useCallback, useRef } from "react";
+import { useEffect, useState, useCallback, useRef } from "react";
 import { getNotificationsApi, getUnreadCountApi } from "@/services/notificationApi";
 
 /**
@@ -64,7 +64,18 @@ export const useNotificationPolling = (enabled = true) => {
     // Initial fetch
     pollUnreadCount();
 
-    return () => clearInterval(interval);
+    // Poll when tab becomes visible
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === "visible") {
+        pollUnreadCount();
+      }
+    };
+    document.addEventListener("visibilitychange", handleVisibilityChange);
+
+    return () => {
+      clearInterval(interval);
+      document.removeEventListener("visibilitychange", handleVisibilityChange);
+    };
   }, [enabled]);
 
   // Poll for full notifications list every 5 seconds
@@ -72,8 +83,22 @@ export const useNotificationPolling = (enabled = true) => {
     if (!enabled) return;
 
     const interval = setInterval(fetchNotifications, 5000);
+    
+    // Initial fetch
+    fetchNotifications();
 
-    return () => clearInterval(interval);
+    // Poll when tab becomes visible
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === "visible") {
+        fetchNotifications();
+      }
+    };
+    document.addEventListener("visibilitychange", handleVisibilityChange);
+
+    return () => {
+      clearInterval(interval);
+      document.removeEventListener("visibilitychange", handleVisibilityChange);
+    };
   }, [enabled, fetchNotifications]);
 
   return {

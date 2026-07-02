@@ -2,6 +2,7 @@ import Notification from "../models/Notification.js";
 import { emitEvent, SocketEvents } from "../utils/socketEmitter.js";
 
 // Get all notifications for the logged-in user
+// Polled by frontend every 3-5 seconds for real-time updates
 export const getNotifications = async (req, res) => {
   try {
     const userId = req.user._id;
@@ -135,6 +136,7 @@ export const createNotification = async (req, res) => {
 };
 
 // Helper function to create notification (can be used in other controllers)
+// Note: Real-time updates are handled via polling, no socket emission
 export const createNotificationHelper = async (
   userId,
   type,
@@ -150,15 +152,20 @@ export const createNotificationHelper = async (
       message,
       link,
     });
+    
+    // Notifications are picked up by frontend polling (every 3 seconds)
+    // emitEvent calls are no-ops in polling mode
     emitEvent(
       SocketEvents.NOTIFICATION_CREATED,
       notification,
       userId.toString(),
     );
+    
     const unreadCount = await Notification.countDocuments({
       userId,
       read: false,
     });
+    
     emitEvent(
       SocketEvents.UNREAD_COUNT_UPDATED,
       { unreadCount },
@@ -228,7 +235,8 @@ export const broadcastToDepartment = async (req, res) => {
 
     const createdNotifications = await Notification.insertMany(notifications);
 
-    // Emit events to each user
+    // Real-time updates handled by polling (every 3 seconds)
+    // emitEvent calls are no-ops in polling mode
     createdNotifications.forEach(async (notification) => {
       emitEvent(
         SocketEvents.NOTIFICATION_CREATED,
@@ -312,7 +320,8 @@ export const broadcastToAll = async (req, res) => {
 
     const createdNotifications = await Notification.insertMany(notifications);
 
-    // Emit events to each user
+    // Real-time updates handled by polling (every 3 seconds)
+    // emitEvent calls are no-ops in polling mode
     createdNotifications.forEach(async (notification) => {
       emitEvent(
         SocketEvents.NOTIFICATION_CREATED,

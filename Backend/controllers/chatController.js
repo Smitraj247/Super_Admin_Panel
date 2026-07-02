@@ -1,6 +1,6 @@
 import Chat from "../models/Chat.js";
 import User from "../models/User.models.js";
-import { getIO, SocketEvents } from "../utils/socketEmitter.js";
+import { SocketEvents } from "../utils/socketEmitter.js";
 import { createNotificationHelper } from "./notificationController.js";
 
 // Get messages for a chat — used as a polling fallback in production
@@ -152,18 +152,8 @@ export const sendMessage = async (req, res) => {
       })
       .populate("messages.sender", "name email");
 
-    // Emit real-time event to all participants in the chat room
-    const io = getIO();
-    if (io) {
-      // Deliver the new message to everyone currently viewing this chat
-      io.to(chatId).emit(SocketEvents.CHAT_NEW_MESSAGE, updatedChat);
-
-      // Also notify each participant's personal room so their chat list
-      // sidebar updates the preview / unread count in real-time
-      updatedChat.participants.forEach((participant) => {
-        io.to(participant._id.toString()).emit(SocketEvents.CHAT_UPDATED, updatedChat);
-      });
-    }
+    // Real-time updates now handled by polling on frontend
+    // No Socket.IO emission needed
 
     // Create notifications for all participants except the sender
     const sender = updatedChat.participants.find(

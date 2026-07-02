@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useRef, useCallback } from "react";
+import { useState, useEffect, useRef } from "react";
 import {
   getOrCreateChatApi,
   sendMessageApi,
@@ -10,7 +10,6 @@ import {
   getChatMessagesApi,
 } from "@/services/chatApi";
 import { useAuth } from "@/context/AuthContext";
-import { useSocket } from "@/context/SocketContext";
 import {
   X,
   Send,
@@ -34,7 +33,6 @@ export default function ChatWindow({
   onUpdate,
 }) {
   const { user: currentUser } = useAuth();
-  const { socket } = useSocket();
   const [chat, setChat] = useState(initialChat || null);
   const [message, setMessage] = useState("");
   const [loading, setLoading] = useState(!initialChat);
@@ -46,8 +44,7 @@ export default function ChatWindow({
   const messagesEndRef = useRef(null);
   const messageInputRef = useRef(null);
 
-  // KEY FIX: keep a ref to the current chatId so socket listeners
-  // always read the latest value without needing to re-register
+  // Keep a ref to the current chatId for polling
   const chatIdRef = useRef(chat?._id);
   useEffect(() => {
     chatIdRef.current = chat?._id;
@@ -56,17 +53,12 @@ export default function ChatWindow({
   const isGroupChat = chat?.isGroupChat || false;
   const isGroupAdmin = isGroupChat && chat?.groupAdmin?._id === currentUser._id;
 
-  // KEY FIX: Sync when parent passes a NEW initialChat object.
-  // Dependency must be `initialChat` (the object reference), NOT `initialChat?._id`.
-  // When ChatsPage receives a `chatUpdated` socket event it calls setSelectedChat()
-  // with a brand-new object — the _id is identical but the reference differs.
-  // Depending on _id meant this effect NEVER ran for new messages, keeping the
-  // window permanently stale until page refresh.
+  // Sync when parent passes a NEW initialChat object
   useEffect(() => {
     if (initialChat) {
       setChat(initialChat);
     }
-  }, [initialChat]); // <-- full object reference, not just _id
+  }, [initialChat]);
 
   // Load chat if opened via user object (no existing chat)
   useEffect(() => {
@@ -75,46 +67,74 @@ export default function ChatWindow({
     }
   }, [user]);
 
-  // Join/leave the socket chat room — also re-joins after reconnect
+  // Polling for messages - Vercel-compatible real-time updates
+  // Background polling without loading states to prevent flickering
   useEffect(() => {
-    if (!socket || !chat?._id) return;
+    if (!chat?._id) return;
 
-    const joinRoom = () => {
-      socket.emit("joinChat", chat._id);
-    };
+    const pollMessages = async () => {
+      try {
+        // Background fetch - no loading indicators, silent update
+        const res = await getChatMessagesApi(chat._id);
+        const freshChat = res.data?.data;
+        
+        if (freshChat && freshChat.messages) {
+          // Only update if messages actually changed (prevents flickering)
+          setChat((prevChat) => {
+            if (!prevChat) return freshChat;
+            
+            // Compare message counts first (fast check)
+            if (freshChat.messages.length !== prevChat.messages.length) {
+              return freshChat;
+            }
+            
+            // Compare last message timestamp (detect edits/updates)
+            const prevLastMsg = prevChat.messages?.[prevChat.messages.length - 1];
+            const freshLastMsg = freshChat.messages?.[freshChat.messages.length - 1];
+            
+            if (prevLastMsg?.createdAt !== freshLastMsg?.createdAt) {
+              return freshChat;
+            }
+            
+            // No changes detected - keep existing state to prevent re-render
+            return prevChat;
+          });
 
-    joinRoom(); // join immediately
-    socket.on("connect", joinRoom); // re-join on reconnect
-
-    return () => {
-      socket.off("connect", joinRoom);
-      socket.emit("leaveChat", chat._id);
-    };
-  }, [socket, chat?._id]);
-
-  // Register newMessage listener once per socket instance.
-  // Use chatIdRef to avoid stale closures — never add chat._id to the deps here.
-  // When this client is the SENDER, handleSendMessage already updates local state
-  // from the API response. When this client is the RECEIVER, the newMessage event
-  // carries the fully-populated updatedChat from the server.
-  useEffect(() => {
-    if (!socket) return;
-
-    const handleNewMessage = (updatedChat) => {
-      // chatIdRef.current is always the latest id without needing to re-register
-      if (updatedChat._id === chatIdRef.current) {
-        setChat(updatedChat);
-        markAsReadApi(updatedChat._id).catch(() => {});
-        // Notify ChatsPage to refresh its sidebar list so the last message preview updates
-        if (onUpdate) onUpdate();
+          // Mark as read if we received new messages (silent API call)
+          if (freshChat.messages.length > (chat.messages?.length || 0)) {
+            markAsReadApi(chat._id).catch(() => {});
+            // Notify parent to refresh chat list (background refresh)
+            if (onUpdate) onUpdate();
+          }
+        }
+      } catch (err) {
+        // Silently ignore polling errors to prevent disruption
+        console.debug("[Chat Message Polling] Background update skipped:", err.message);
       }
     };
 
-    socket.on("newMessage", handleNewMessage);
-    return () => {
-      socket.off("newMessage", handleNewMessage);
+    // Initial poll (silent - chat already loaded)
+    pollMessages();
+
+    // Poll every 3 seconds in production, 2 seconds in dev (background updates)
+    const interval = setInterval(
+      pollMessages,
+      process.env.NODE_ENV === "production" ? 3000 : 2000
+    );
+
+    // Poll when tab becomes visible (silent)
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === "visible") {
+        pollMessages();
+      }
     };
-  }, [socket, onUpdate]); // onUpdate is a stable useCallback ref from ChatsPage
+    document.addEventListener("visibilitychange", handleVisibilityChange);
+
+    return () => {
+      clearInterval(interval);
+      document.removeEventListener("visibilitychange", handleVisibilityChange);
+    };
+  }, [chat?._id, onUpdate]);
 
   // Scroll to bottom on new messages
   useEffect(() => {
@@ -127,47 +147,6 @@ export default function ChatWindow({
       markAsReadApi(chat._id).catch(() => {});
     }
   }, [chat?._id]);
-
-  // Polling fallback — fires every 3-4s when socket is disconnected OR always on Vercel.
-  // Keeps chat live on Vercel/serverless where persistent sockets are unreliable.
-  useEffect(() => {
-    if (!chat?._id) return;
-
-    const poll = async () => {
-      // Don't skip even if socket is connected — on Vercel, socket may be unreliable
-      // Only skip if socket is actually connected AND has been for a while
-      if (socket?.connected && !process.env.NEXT_PUBLIC_FORCE_POLLING) return;
-      try {
-        const res = await getChatMessagesApi(chat._id);
-        const fresh = res.data.data;
-        // Only update if there are actually new messages to avoid flicker
-        setChat((prev) => {
-          if (!prev) return fresh;
-          if (fresh.messages.length !== prev.messages.length) return fresh;
-          // Also check if last message timestamp changed
-          const prevLastMsg = prev.messages?.[prev.messages.length - 1];
-          const freshLastMsg = fresh.messages?.[fresh.messages.length - 1];
-          if (prevLastMsg?.createdAt !== freshLastMsg?.createdAt) return fresh;
-          return prev;
-        });
-      } catch {
-        // silently ignore — polling is best-effort
-      }
-    };
-
-    // Poll every 3 seconds in production (Vercel), 2 seconds in dev
-    const pollInterval = process.env.NODE_ENV === "production" ? 3000 : 2000;
-    const interval = setInterval(poll, pollInterval);
-    
-    // Also poll immediately when tab becomes visible after being hidden
-    const onVisible = () => { if (document.visibilityState === "visible") poll(); };
-    document.addEventListener("visibilitychange", onVisible);
-
-    return () => {
-      clearInterval(interval);
-      document.removeEventListener("visibilitychange", onVisible);
-    };
-  }, [socket, chat?._id]);
 
   const loadChat = async () => {
     try {
