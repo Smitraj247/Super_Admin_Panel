@@ -27,3 +27,6 @@ export const removeParticipantApi = (chatId, userId) =>
 
 export const leaveGroupChatApi = (chatId) =>
   API.post(`/chats/group/${chatId}/leave`);
+
+export const getChatMessagesApi = (chatId) =>
+  API.get(`/chats/${chatId}/messages`);

@@ -1,8 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import Sidebar from "@/components/Sidebar";
-import Navbar from "@/components/layout/Navbar";
+
 import { ProtectedDashboardRoute } from "@/components/auth/ProtectedDashboardRoute";
 import { ROLES } from "@/utils/constants";
 import ChatWindow from "@/components/ui/ChatWindow";
@@ -224,11 +223,7 @@ export default function AdminsPage() {
 
   return (
     <ProtectedDashboardRoute requiredRole={ROLES.SUPER_ADMIN}>
-      <div className="min-h-screen">
-        <Sidebar />
-        <Navbar />
-
-        <main className=" md:pl-64 pt-16">
+      
           <div className="p-8">
             <div className="flex flex-col md:flex-row md:justify-between md:items-center mb-8 py-3  gap-4 overflow-hidden">
               <div>
@@ -478,13 +473,11 @@ export default function AdminsPage() {
               </div>
             </div>
           </div>
-        </main>
-
         {/* Chat Window */}
         {chatUser && (
           <ChatWindow user={chatUser} onClose={() => setChatUser(null)} />
         )}
-      </div>
+        </div>
     </ProtectedDashboardRoute>
   );
 }

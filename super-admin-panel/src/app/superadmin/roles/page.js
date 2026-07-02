@@ -1,8 +1,6 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import Sidebar from "@/components/Sidebar";
-import Navbar from "@/components/layout/Navbar";
 import { Shield, PlusCircle, Trash2, Edit3 } from "lucide-react";
 import { toast } from "react-toastify";
 import { ProtectedDashboardRoute } from "@/components/auth/ProtectedDashboardRoute";
@@ -94,12 +92,7 @@ export default function RolesPage() {
 
   return (
     <ProtectedDashboardRoute requiredRole={ROLES.SUPER_ADMIN}>
-      <div className="min-h-screen">
-        <Sidebar />
-        <Navbar />
-
-        <main className="md:pl-64 pt-16">
-          <div className="p-8">
+      <div className="p-8">
             <div className="flex justify-between items-center mb-10">
               <div>
                 <h1 className="text-3xl font-bold text-[var(--text-primary)] flex items-center gap-3">
@@ -226,8 +219,7 @@ export default function RolesPage() {
               </div>
             </div>
           </div>
-        </main>
-      </div>
+        </div>
     </ProtectedDashboardRoute>
   );
 }

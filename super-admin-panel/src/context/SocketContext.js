@@ -36,10 +36,14 @@ export const SocketProvider = ({ children }) => {
       process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000",
       {
         withCredentials: true,
-        // Reconnect automatically with sensible defaults
         reconnection: true,
-        reconnectionAttempts: 5,
+        reconnectionAttempts: Infinity,
         reconnectionDelay: 1000,
+        reconnectionDelayMax: 5000,
+        timeout: 20000,
+        // Try WebSocket first — Vercel supports WebSocket upgrades but
+        // blocks HTTP long-polling (which is Socket.io's default fallback)
+        transports: ["websocket", "polling"],
       },
     );
 

@@ -1,7 +1,5 @@
 "use client";
 
-import Sidebar from "@/components/Sidebar";
-import Navbar from "@/components/layout/Navbar";
 import { useUsers } from "@/hooks/useUsers";
 import UserForm from "@/components/features/users/UserForm";
 import UserTable from "@/components/features/users/UserTable";
@@ -35,11 +33,7 @@ export default function UsersPage() {
 
   return (
     <div className="min-h-screen">
-      <Sidebar />
-      <Navbar />
-
-      <main className="md:pl-64 pt-16">
-        <div className="p-8">
+      <div className="p-8">
           <div className="flex flex-col md:flex-row md:justify-between md:items-center mb-8 py-3 gap-4 overflow-hidden">
             <div>
               <h1 className="text-2xl font-bold flex items-center gap-2 text-gray-800">
@@ -109,7 +103,6 @@ export default function UsersPage() {
             </div>
           </div>
         </div>
-      </main>
     </div>
   );
 }

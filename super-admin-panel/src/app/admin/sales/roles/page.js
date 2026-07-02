@@ -1,8 +1,6 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import Sidebar from "@/components/Sidebar";
-import Navbar from "@/components/layout/Navbar";
 import { Shield, Edit3, PlusCircle, Trash2 } from "lucide-react";
 import { toast } from "react-toastify";
 import {
@@ -92,11 +90,7 @@ export default function RolesPage() {
 
   return (
     <div className="min-h-screen">
-      <Sidebar />
-      <Navbar />
-
-      <main className="md:pl-64 pt-16">
-        <div className="p-8">
+      <main className="p-8">
           <div className="flex justify-between items-center mb-8">
             <div>
               <h1 className="text-2xl font-bold flex items-center gap-2">
@@ -225,7 +219,6 @@ export default function RolesPage() {
             </div>
           </div>
         </div>
-      </main>
     </div>
   );
 }

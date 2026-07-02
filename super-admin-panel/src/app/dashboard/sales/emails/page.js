@@ -2,8 +2,6 @@
 
 import { useState, useEffect } from "react";
 import { toast } from "react-hot-toast";
-import Sidebar from "@/components/Sidebar";
-import Navbar from "@/components/layout/Navbar";
 import { ProtectedDashboardRoute } from "@/components/auth/ProtectedDashboardRoute";
 import { ROLES, DEPARTMENTS } from "@/utils/constants";
 import {
@@ -147,24 +145,15 @@ function SalesUserEmailsPage() {
 
   if (loading) {
     return (
-      <div className="min-h-screen">
-        <Sidebar />
-        <Navbar />
-        <main className="md:pl-64 pt-16">
-          <div className="flex justify-center items-center min-h-[80vh]">
-            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
-          </div>
-        </main>
+      <div className="flex justify-center items-center min-h-[80vh]">
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen">
-      <Sidebar />
-      <Navbar />
-      <main className="md:pl-64 pt-16 h-screen overflow-hidden bg-white">
-        <div className="flex h-full">
+    <div className="h-screen overflow-hidden bg-white">
+      <div className="flex h-full">
           {/* Email Sidebar */}
           <div className="w-64 bg-[#1e293b] text-white border-r border-gray-700 p-4 overflow-y-auto">
             <button

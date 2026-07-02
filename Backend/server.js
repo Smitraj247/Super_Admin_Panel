@@ -33,20 +33,29 @@ const httpServer = createServer(app);
 const allowedOrigins = [
   "http://localhost:5173",
   "http://localhost:3000",
-  "https://super-admin-panel-lemon.vercel.app/",
+  "https://super-admin-panel-lemon.vercel.app",
 ];
+
+const corsOriginFn = (origin, callback) => {
+  // Allow requests with no origin (server-to-server, curl, etc.)
+  if (!origin) return callback(null, true);
+  // Strip trailing slash for comparison
+  const clean = origin.replace(/\/$/, "");
+  if (allowedOrigins.includes(clean)) return callback(null, true);
+  callback(new Error(`CORS: origin ${origin} not allowed`));
+};
 
 const io = new Server(httpServer, {
   cors: {
-    origin: allowedOrigins,
+    origin: corsOriginFn,
     credentials: true,
     methods: ["GET", "POST"],
   },
 });
 
 // Set the io instance in the socket emitter
-setSocketIO(io);
-
+setSocketIO(io);        
+                                                                                
 // In your Socket.io server setup
 io.on("connection", (socket) => {
   console.log(`[Socket.io] Client connected: ${socket.id}`);
@@ -77,7 +86,7 @@ io.on("connection", (socket) => {
 
 app.use(
   cors({
-    origin: allowedOrigins,
+    origin: corsOriginFn,
     credentials: true,
     methods: ["GET", "POST", "PUT", "DELETE"],
     allowedHeaders: ["Content-Type", "Authorization"],

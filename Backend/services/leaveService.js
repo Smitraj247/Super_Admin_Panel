@@ -359,38 +359,76 @@ export const calculateDynamicDL = async (userId, year, month) => {
     Math.max(cycleStart.getTime(), joiningMonthStart.getTime()),
   );
 
+  // If it's the first month of a new cycle (evalStart == targetMonthStart),
+  // we need to also check the previous cycle to carry over earned DL.
+  // DL earned in previous cycle months that was not spent should roll into this cycle.
+  let prevCycleEvalStart = null;
+  if (evalStart.getTime() === targetMonthStart.getTime()) {
+    // Determine previous cycle start
+    const prevCycleStart =
+      cycleStart.getMonth() === 0
+        ? new Date(cycleStart.getFullYear() - 1, 6, 1) // previous Jul
+        : new Date(cycleStart.getFullYear(), 0, 1);     // previous Jan
+
+    prevCycleEvalStart = new Date(
+      Math.max(prevCycleStart.getTime(), joiningMonthStart.getTime()),
+    );
+  }
+
+  // Fetch all relevant leaves — current cycle + possibly previous cycle
+  const fetchFrom = prevCycleEvalStart || evalStart;
   const leaves = await Leave.find({
     user: userId,
     leaveType: { $in: ["PL", "SL", "DL"] },
     status: { $in: ["PENDING", "APPROVED"] },
-    fromDate: { $gte: evalStart },
+    fromDate: { $gte: fetchFrom },
   });
 
   const monthNames = [
-    "January",
-    "February",
-    "March",
-    "April",
-    "May",
-    "June",
-    "July",
-    "August",
-    "September",
-    "October",
-    "November",
-    "December",
+    "January", "February", "March", "April", "May", "June",
+    "July", "August", "September", "October", "November", "December",
   ];
 
   let grossDL = 0;
   const breakdown = { PL: [], SL: [] };
 
-  let processDate = new Date(evalStart);
+  // Process previous cycle months first (carry-over DL)
+  if (prevCycleEvalStart) {
+    let processDate = new Date(prevCycleEvalStart);
+    while (processDate < cycleStart) {
+      const y = processDate.getFullYear();
+      const m = processDate.getMonth();
+      const startOfMonth = new Date(y, m, 1);
+      const endOfMonth = new Date(y, m + 1, 0);
 
+      const plUsed = leaves
+        .filter(
+          (l) =>
+            l.leaveType === "PL" &&
+            new Date(l.fromDate) >= startOfMonth &&
+            new Date(l.fromDate) <= endOfMonth,
+        )
+        .reduce(
+          (acc, l) => acc + calcLeaveDays(l.fromDate, l.toDate, l.isHalfDay),
+          0,
+        );
+
+      const unusedPL = Math.max(0, 1 - plUsed);
+      if (unusedPL > 0) {
+        grossDL += unusedPL;
+        breakdown.PL.push(monthNames[m]);
+      }
+      processDate.setMonth(processDate.getMonth() + 1);
+    }
+  }
+
+  // Process current cycle months up to (but not including) the current month
+  let processDate = new Date(evalStart);
   while (processDate < targetMonthStart) {
-    const year = processDate.getFullYear();
-    const month = processDate.getMonth();
-    const startOfMonth = new Date(year, month, 1);
-    const endOfMonth = new Date(year, month + 1, 0);
+    const y = processDate.getFullYear();
+    const m = processDate.getMonth();
+    const startOfMonth = new Date(y, m, 1);
+    const endOfMonth = new Date(y, m + 1, 0);
 
     const plUsed = leaves
       .filter(
@@ -408,7 +446,7 @@ export const calculateDynamicDL = async (userId, year, month) => {
 
     if (unusedPL > 0) {
       grossDL += unusedPL;
-      breakdown.PL.push(monthNames[month]);
+      breakdown.PL.push(monthNames[m]);
     }
 
     processDate.setMonth(processDate.getMonth() + 1);
@@ -422,7 +460,7 @@ export const calculateDynamicDL = async (userId, year, month) => {
     );
 
   return {
-    netDL: grossDL - dlUsed,
+    netDL: Math.max(0, grossDL - dlUsed),
     grossDL,
     dlUsed,
     breakdown,

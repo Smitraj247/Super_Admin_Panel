@@ -11,6 +11,7 @@ import {
   removeParticipant,
   leaveGroupChat,
   updateGroupName,
+  getChatMessages,
 } from "../controllers/chatController.js";
 import authMiddleware from "../middleware/authMiddleware.js";
 
@@ -45,6 +46,9 @@ router.post("/group/:chatId/leave", leaveGroupChat);
 
 // Send a message in a chat
 router.post("/:chatId/message", sendMessage);
+
+// Get messages for a chat (used as polling fallback in production)
+router.get("/:chatId/messages", getChatMessages);
 
 // Mark messages as read
 router.put("/:chatId/read", markAsRead);

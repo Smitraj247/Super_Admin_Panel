@@ -2,9 +2,6 @@
 
 import { useEffect, useState } from "react";
 import { getMonthlyAttendanceApi } from "@/services/attandanceApi";
-import Navbar from "@/components/layout/Navbar";
-import Sidebar from "@/components/Sidebar";
-import { Menu } from "lucide-react";
 import { toast } from "react-toastify";
 
 export default function Attendance() {
@@ -12,7 +9,6 @@ export default function Attendance() {
   const [startDate, setStartDate] = useState("");
   const [endDate, setEndDate] = useState("");
   const [loading, setLoading] = useState(false);
-  const [open, setOpen] = useState(false); // mobile sidebar
 
   useEffect(() => {
     fetchCurrentMonth();
@@ -56,35 +52,7 @@ export default function Attendance() {
   };
 
   return (
-    <div className="flex min-h-screen">
-      <Sidebar />
-
-      {/* Mobile Sidebar */}
-      {open && (
-        <div className="fixed inset-0 z-50 bg-black/40 md:hidden">
-          <div className="w-64 bg-white h-full shadow-lg p-4">
-            <button
-              onClick={() => setOpen(false)}
-              className="mb-4 text-gray-600"
-            >
-              Close
-            </button>
-            <Sidebar />
-          </div>
-        </div>
-      )}
-
-      <div className="flex-1 flex flex-col pt-4 md:ml-64">
-        {/* Navbar */}
-        <div className="flex items-center justify-between bg-white shadow px-4 py-3 ">
-          <button className="md:hidden" onClick={() => setOpen(true)}>
-            <Menu />
-          </button>
-          <Navbar />
-        </div>
-
-        {/* Content */}
-        <div className="p-4 md:p-10 pt-10">
+    <div className="p-4 md:p-10">
           {/* Filters */}
           <div className="flex flex-col md:flex-row gap-3 mb-4">
             <input
@@ -162,8 +130,6 @@ export default function Attendance() {
               </tbody>
             </table>
           </div>
-        </div>
-      </div>
     </div>
   );
 }

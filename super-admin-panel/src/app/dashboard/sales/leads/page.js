@@ -2,8 +2,6 @@
 
 import { useState, useEffect } from "react";
 import { toast } from "react-hot-toast";
-import Sidebar from "@/components/Sidebar";
-import Navbar from "@/components/layout/Navbar";
 import { ProtectedDashboardRoute } from "@/components/auth/ProtectedDashboardRoute";
 import { ROLES, DEPARTMENTS } from "@/utils/constants";
 
@@ -103,23 +101,11 @@ function SalesUserLeadsPage() {
   };
 
   if (loading) {
-    return (
-      <div className="min-h-screen">
-        <Sidebar />
-        <Navbar />
-        <main className="md:pl-64 pt-16">
-          <div className="flex justify-center items-center min-h-[80vh]">Loading...</div>
-        </main>
-      </div>
-    );
+    return <div className="flex justify-center items-center min-h-[80vh]">Loading...</div>;
   }
 
   return (
-    <div className="min-h-screen">
-      <Sidebar />
-      <Navbar />
-      <main className="md:pl-64 pt-16">
-        <div className="p-6">
+    <div className="p-6">
           <h1 className="text-3xl font-bold mb-6">My Leads</h1>
 
           {stats && (
@@ -233,8 +219,6 @@ function SalesUserLeadsPage() {
               <div className="text-center py-12 text-gray-500">No leads assigned yet</div>
             )}
           </div>
-        </div>
-      </main>
     </div>
   );
 }

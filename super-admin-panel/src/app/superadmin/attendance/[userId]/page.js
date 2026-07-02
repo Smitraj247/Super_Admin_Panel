@@ -3,8 +3,7 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 
-import Navbar from "@/components/layout/Navbar";
-import Sidebar from "@/components/Sidebar";
+
 
 import {
   getUserAttendanceByIdApi,
@@ -366,13 +365,9 @@ export default function HRUserAttendanceDetail() {
   };
 
   return (
-    <div className="min-h-screen">
-      <Navbar />
-      <Sidebar />
-
-      <div className="md:ml-64 p-4 md:p-8 pt-24">
+    <div className="p-4 md:p-8">
         {/* HEADER */}
-        <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-6 mb-8 mt-16">
+        <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-6 mb-8">
           <div className="flex items-center gap-4">
             <div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-green-500 to-emerald-600 flex items-center justify-center shadow-lg">
               <User className="text-white" size={26} />

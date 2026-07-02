@@ -1,7 +1,5 @@
 "use client";
 
-import Navbar from "@/components/layout/Navbar";
-import Sidebar from "@/components/Sidebar";
 import { ShieldCheck } from "lucide-react";
 import { ProtectedDashboardRoute } from "@/components/auth/ProtectedDashboardRoute";
 import { ROLES } from "@/utils/constants";
@@ -19,12 +17,7 @@ export default function AuditPage() {
 
   return (
     <ProtectedDashboardRoute requiredRole={ROLES.SUPER_ADMIN}>
-      <div className="min-h-screen">
-        <Sidebar />
-        <Navbar />
-
-        <main className="md:pl-64 pt-16">
-          <div className="p-8">
+      <div className="p-8">
             <div className="flex justify-between items-center mb-10">
               <div>
                 <h1 className="text-3xl font-bold text-[var(--text-primary)] flex items-center gap-3">
@@ -80,8 +73,7 @@ export default function AuditPage() {
               </table>
             </div>
           </div>
-        </main>
-      </div>
+        </div>
     </ProtectedDashboardRoute>
   );
 }

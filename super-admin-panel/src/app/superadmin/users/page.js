@@ -1,7 +1,5 @@
 "use client";
 
-import Sidebar from "@/components/Sidebar";
-import Navbar from "@/components/layout/Navbar";
 import { ProtectedDashboardRoute } from "@/components/auth/ProtectedDashboardRoute";
 import { ROLES } from "@/utils/constants";
 import ChatWindow from "@/components/ui/ChatWindow";
@@ -33,10 +31,7 @@ export default function UsersPage() {
 
   return (
     <ProtectedDashboardRoute requiredRole={ROLES.SUPER_ADMIN}>
-      <div className="min-h-screen">
-        <Sidebar />
-        <Navbar />
-        <main className="md:pl-64 pt-12">
+      <main>
           <div className="p-6">
             <div className="flex flex-col md:flex-row md:justify-between md:items-center py-3 mb-8 gap-3">
               <div>

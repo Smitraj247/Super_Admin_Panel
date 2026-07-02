@@ -13,8 +13,6 @@ import {
   RefreshCw,
 } from "lucide-react";
 import { useRouter } from "next/navigation";
-import Navbar from "@/components/layout/Navbar";
-import Sidebar from "@/components/Sidebar";
 import StatCard from "@/components/dashboard/StatCard";
 import QuickActionButton from "@/components/dashboard/ActionButton";
 import LeaveCalendar from "@/components/dashboard/LeaveCalendar";
@@ -345,250 +343,239 @@ export default function SuperAdminDashboard() {
 
   if (loading) {
     return (
-      <main className="min-h-screen">
-        <Navbar />
-        <Sidebar />
-        <div className="sidebar-aware pt-20 flex items-center justify-center min-h-screen">
-          <div className="text-center animate-fade-in">
-            <div className="w-10 h-10 border-2 border-[var(--border-strong)] border-t-indigo-500 rounded-full animate-spin mx-auto mb-4" />
-            <p className="text-[var(--text-muted)] text-sm">
-              Loading dashboard…
-            </p>
-          </div>
+      <div className="flex items-center justify-center min-h-screen">
+        <div className="text-center animate-fade-in">
+          <div className="w-10 h-10 border-2 border-[var(--border-strong)] border-t-indigo-500 rounded-full animate-spin mx-auto mb-4" />
+          <p className="text-[var(--text-muted)] text-sm">
+            Loading dashboard…
+          </p>
         </div>
-      </main>
+      </div>
     );
   }
 
   return (
-    <main className="min-h-screen">
-      <Navbar />
-      <Sidebar />
+    <div className="max-w-[1600px] mx-auto p-4 sm:p-6 space-y-6 animate-fade-in">
+      {/* Header */}
+      <div className="flex items-center justify-between">
+        <div>
+          <h1 className="text-2xl sm:text-3xl font-bold bg-gradient-to-r from-[#7c6fff] via-[#8b5cf6] to-[#00d4aa] bg-clip-text text-transparent">
+            Super Admin Dashboard
+          </h1>
+          <p className="text-sm text-[var(--text-muted)] mt-0.5">
+            Overview of the entire attendance system
+          </p>
+        </div>
+        <div className="flex items-center gap-2">
+          <button
+            onClick={handleRefresh}
+            disabled={refreshing}
+            className="p-2 rounded-xl text-[var(--text-muted)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-elevated)] disabled:opacity-40 transition-all"
+          >
+            <RefreshCw
+              size={16}
+              className={refreshing ? "animate-spin text-indigo-400" : ""}
+            />
+          </button>
+          <div className="hidden sm:flex items-center gap-2 bg-indigo-500/10 border border-indigo-500/20 px-3 py-2 rounded-xl text-indigo-400">
+            <CalendarIcon size={14} />
+            <span className="text-[12px] font-semibold">
+              {new Date().toLocaleDateString("en-US", {
+                weekday: "long",
+                year: "numeric",
+                month: "long",
+                day: "numeric",
+              })}
+            </span>
+          </div>
+        </div>
+      </div>
 
-      <div className="sidebar-aware pt-20">
-        <div className="max-w-[1600px] mx-auto p-4 sm:p-6 space-y-6 animate-fade-in">
-          {/* Header */}
-          <div className="flex items-center justify-between">
-            <div>
-              <h1 className="text-2xl sm:text-3xl font-bold bg-gradient-to-r from-[#7c6fff] via-[#8b5cf6] to-[#00d4aa] bg-clip-text text-transparent">
-                Super Admin Dashboard
-              </h1>
-              <p className="text-sm text-[var(--text-muted)] mt-0.5">
-                Overview of the entire attendance system
-              </p>
-            </div>
-            <div className="flex items-center gap-2">
+      {/* Stat Cards */}
+      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3 sm:gap-4">
+        {[
+          {
+            title: "Total Employees",
+            value: stats.totalEmployees,
+            icon: <Users size={18} />,
+            up: true,
+            color: "purple",
+            sparkline: [1100, 1150, 1200, stats.totalEmployees],
+          },
+          {
+            title: "Present Today",
+            value: stats.presentToday,
+            icon: <UserCheck size={18} />,
+            up: stats.attendanceRate >= 80,
+            color: "blue",
+            sparkline: [850, 900, 950, stats.presentToday],
+          },
+          {
+            title: "Total Departments",
+            value: stats.totalDepartments,
+            icon: <Building2 size={18} />,
+            up: true,
+            color: "green",
+            sparkline: [20, 22, 23, stats.totalDepartments],
+          },
+          {
+            title: "On Leave Today",
+            value: stats.onLeaveToday,
+            icon: <Briefcase size={18} />,
+            up: false,
+            color: "orange",
+            sparkline: [100, 110, 120, stats.onLeaveToday],
+          },
+          {
+            title: "Working Hours (mo.)",
+            value: `${stats.totalWorkingHours}h`,
+            icon: <Clock size={18} />,
+            up: true,
+            color: "cyan",
+            sparkline: [7000, 7500, 8000, stats.totalWorkingHours],
+          },
+          {
+            title: "Attendance Rate",
+            value: `${stats.attendanceRate}%`,
+            icon: <BarChart3 size={18} />,
+            up: true,
+            color: "indigo",
+            sparkline: [88, 90, 91, stats.attendanceRate],
+          },
+        ].map((p) => (
+          <StatCard key={p.title} subtitle="" {...p} />
+        ))}
+      </div>
+
+      {/* Attendance Overview + Trend + Birthdays */}
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        <AttendanceOverview
+          overview={overview}
+          attendanceRate={stats.attendanceRate}
+          mounted={mounted}
+        />
+        <UpcomingBirthdays />
+
+        <SectionCard
+          title={
+            <span className="flex items-center gap-2">
+              <Activity size={16} className="text-indigo-400" />
+              Recent System Activities
+            </span>
+          }
+          action={
+            <div className="flex items-center gap-3">
+              <span className="text-xs text-[var(--text-muted)] flex items-center gap-1">
+                <span className="w-1.5 h-1.5 bg-emerald-400 rounded-full animate-pulse inline-block" />
+                Live
+              </span>
               <button
                 onClick={handleRefresh}
                 disabled={refreshing}
-                className="p-2 rounded-xl text-[var(--text-muted)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-elevated)] disabled:opacity-40 transition-all"
+                className="p-1.5 hover:bg-[var(--bg-elevated)] rounded-lg transition disabled:opacity-50"
               >
                 <RefreshCw
-                  size={16}
-                  className={refreshing ? "animate-spin text-indigo-400" : ""}
+                  size={14}
+                  className={`text-[var(--text-muted)] ${refreshing ? "animate-spin" : ""}`}
                 />
               </button>
-              <div className="hidden sm:flex items-center gap-2 bg-indigo-500/10 border border-indigo-500/20 px-3 py-2 rounded-xl text-indigo-400">
-                <CalendarIcon size={14} />
-                <span className="text-[12px] font-semibold">
-                  {new Date().toLocaleDateString("en-US", {
-                    weekday: "long",
-                    year: "numeric",
-                    month: "long",
-                    day: "numeric",
-                  })}
-                </span>
-              </div>
             </div>
-          </div>
-
-          {/* Stat Cards */}
-          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3 sm:gap-4">
-            {[
-              {
-                title: "Total Employees",
-                value: stats.totalEmployees,
-                icon: <Users size={18} />,
-                up: true,
-                color: "purple",
-                sparkline: [1100, 1150, 1200, stats.totalEmployees],
-              },
-              {
-                title: "Present Today",
-                value: stats.presentToday,
-                icon: <UserCheck size={18} />,
-                up: stats.attendanceRate >= 80,
-                color: "blue",
-                sparkline: [850, 900, 950, stats.presentToday],
-              },
-              {
-                title: "Total Departments",
-                value: stats.totalDepartments,
-                icon: <Building2 size={18} />,
-                up: true,
-                color: "green",
-                sparkline: [20, 22, 23, stats.totalDepartments],
-              },
-              {
-                title: "On Leave Today",
-                value: stats.onLeaveToday,
-                icon: <Briefcase size={18} />,
-                up: false,
-                color: "orange",
-                sparkline: [100, 110, 120, stats.onLeaveToday],
-              },
-              {
-                title: "Working Hours (mo.)",
-                value: `${stats.totalWorkingHours}h`,
-                icon: <Clock size={18} />,
-                up: true,
-                color: "cyan",
-                sparkline: [7000, 7500, 8000, stats.totalWorkingHours],
-              },
-              {
-                title: "Attendance Rate",
-                value: `${stats.attendanceRate}%`,
-                icon: <BarChart3 size={18} />,
-                up: true,
-                color: "indigo",
-                sparkline: [88, 90, 91, stats.attendanceRate],
-              },
-            ].map((p) => (
-              <StatCard key={p.title} subtitle="" {...p} />
-            ))}
-          </div>
-
-          {/* Attendance Overview + Trend + Birthdays */}
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-            <AttendanceOverview
-              overview={overview}
-              attendanceRate={stats.attendanceRate}
-              mounted={mounted}
-            />
-            <UpcomingBirthdays />
-
-            <SectionCard
-              title={
-                <span className="flex items-center gap-2">
-                  <Activity size={16} className="text-indigo-400" />
-                  Recent System Activities
-                </span>
-              }
-              action={
-                <div className="flex items-center gap-3">
-                  <span className="text-xs text-[var(--text-muted)] flex items-center gap-1">
-                    <span className="w-1.5 h-1.5 bg-emerald-400 rounded-full animate-pulse inline-block" />
-                    Live
-                  </span>
-                  <button
-                    onClick={handleRefresh}
-                    disabled={refreshing}
-                    className="p-1.5 hover:bg-[var(--bg-elevated)] rounded-lg transition disabled:opacity-50"
-                  >
-                    <RefreshCw
-                      size={14}
-                      className={`text-[var(--text-muted)] ${refreshing ? "animate-spin" : ""}`}
-                    />
-                  </button>
+          }
+        >
+          <div className="space-y-3 max-h-80 overflow-y-auto pr-1">
+            {recentActivity.length > 0 ? (
+              recentActivity.map((a) => (
+                <div
+                  key={a.id}
+                  className="flex gap-3 p-3 rounded-xl hover:bg-[var(--bg-elevated)] transition-colors"
+                >
+                  <div className="mt-1 w-2 h-2 rounded-full bg-indigo-400 shrink-0" />
+                  <div className="flex-1 min-w-0">
+                    <p className="text-[13px] text-[var(--text-primary)] font-medium">
+                      {a.text}
+                    </p>
+                    {a.performedBy && (
+                      <p className="text-[11px] text-[var(--text-muted)] mt-0.5">
+                        by {a.performedBy}
+                        {a.targetUser && ` → ${a.targetUser}`}
+                        {a.department && ` (${a.department})`}
+                      </p>
+                    )}
+                    <p className="text-[11px] text-[var(--text-muted)] mt-0.5 flex items-center gap-1">
+                      <Clock size={10} />
+                      {getTimeAgo(a.time)}
+                    </p>
+                  </div>
                 </div>
-              }
-            >
-              <div className="space-y-3 max-h-80 overflow-y-auto pr-1">
-                {recentActivity.length > 0 ? (
-                  recentActivity.map((a) => (
-                    <div
-                      key={a.id}
-                      className="flex gap-3 p-3 rounded-xl hover:bg-[var(--bg-elevated)] transition-colors"
-                    >
-                      <div className="mt-1 w-2 h-2 rounded-full bg-indigo-400 shrink-0" />
-                      <div className="flex-1 min-w-0">
-                        <p className="text-[13px] text-[var(--text-primary)] font-medium">
-                          {a.text}
-                        </p>
-                        {a.performedBy && (
-                          <p className="text-[11px] text-[var(--text-muted)] mt-0.5">
-                            by {a.performedBy}
-                            {a.targetUser && ` → ${a.targetUser}`}
-                            {a.department && ` (${a.department})`}
-                          </p>
-                        )}
-                        <p className="text-[11px] text-[var(--text-muted)] mt-0.5 flex items-center gap-1">
-                          <Clock size={10} />
-                          {getTimeAgo(a.time)}
-                        </p>
-                      </div>
-                    </div>
-                  ))
-                ) : (
-                  <p className="text-center text-[var(--text-muted)] py-8 text-sm">
-                    No recent activity
-                  </p>
-                )}
-              </div>
-            </SectionCard>
+              ))
+            ) : (
+              <p className="text-center text-[var(--text-muted)] py-8 text-sm">
+                No recent activity
+              </p>
+            )}
           </div>
-
-          {/* Department Summary + Recent Leaves */}
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-            <DepartmentSummary deptSummary={deptSummary} />
-            <RecentLeaves recentLeaves={recentLeaves} />
-          </div>
-
-          {/* Leave Calendar with Integrated Employee Filter */}
-          <SectionCard title="Recent Leaves Calendar">
-            <LeaveCalendar
-              leaves={allLeaves}
-              holidays={holidays}
-              selectedUserId={selectedUserId}
-              selectedUserTodayAtt={selectedUserTodayAtt}
-              selectedUserData={selectedUserData}
-              selectedUserLoading={selectedUserLoading}
-              allUsers={allUsers}
-              onUserSelect={(userId) => setSelectedUserId(userId)}
-              userSearchQuery={userSearchQuery}
-              onSearchChange={(q) => setUserSearchQuery(q)}
-              onClear={() => {
-                setSelectedUserId("");
-                setUserSearchQuery("");
-              }}
-            />
-          </SectionCard>
-
-          {/* Quick Actions */}
-          <SectionCard title="Quick Actions">
-            <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
-              <QuickActionButton
-                icon={<Users />}
-                path="/superadmin/users"
-                label="Add Employee"
-                subtitle="Add new employee"
-                color="blue"
-              />
-              <QuickActionButton
-                icon={<UserCheck />}
-                path="/superadmin/attendance"
-                label="Mark Attendance"
-                subtitle="Bulk mark attendance"
-                color="green"
-              />
-              <QuickActionButton
-                icon={<Building2 />}
-                path="/superadmin/departments"
-                label="Add Department"
-                subtitle="Create new dept"
-                color="purple"
-              />
-              <QuickActionButton
-                icon={<BarChart3 />}
-                path="/superadmin/audit"
-                label="Generate Report"
-                subtitle="Custom reports"
-                color="indigo"
-              />
-            </div>
-          </SectionCard>
-        </div>
+        </SectionCard>
       </div>
-    </main>
+
+      {/* Department Summary + Recent Leaves */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <DepartmentSummary deptSummary={deptSummary} />
+        <RecentLeaves recentLeaves={recentLeaves} />
+      </div>
+
+      {/* Leave Calendar with Integrated Employee Filter */}
+      <SectionCard title="Recent Leaves Calendar">
+        <LeaveCalendar
+          leaves={allLeaves}
+          holidays={holidays}
+          selectedUserId={selectedUserId}
+          selectedUserTodayAtt={selectedUserTodayAtt}
+          selectedUserData={selectedUserData}
+          selectedUserLoading={selectedUserLoading}
+          allUsers={allUsers}
+          onUserSelect={(userId) => setSelectedUserId(userId)}
+          userSearchQuery={userSearchQuery}
+          onSearchChange={(q) => setUserSearchQuery(q)}
+          onClear={() => {
+            setSelectedUserId("");
+            setUserSearchQuery("");
+          }}
+        />
+      </SectionCard>
+
+      {/* Quick Actions */}
+      <SectionCard title="Quick Actions">
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
+          <QuickActionButton
+            icon={<Users />}
+            path="/superadmin/users"
+            label="Add Employee"
+            subtitle="Add new employee"
+            color="blue"
+          />
+          <QuickActionButton
+            icon={<UserCheck />}
+            path="/superadmin/attendance"
+            label="Mark Attendance"
+            subtitle="Bulk mark attendance"
+            color="green"
+          />
+          <QuickActionButton
+            icon={<Building2 />}
+            path="/superadmin/departments"
+            label="Add Department"
+            subtitle="Create new dept"
+            color="purple"
+          />
+          <QuickActionButton
+            icon={<BarChart3 />}
+            path="/superadmin/audit"
+            label="Generate Report"
+            subtitle="Custom reports"
+            color="indigo"
+          />
+        </div>
+      </SectionCard>
+    </div>
   );
 }

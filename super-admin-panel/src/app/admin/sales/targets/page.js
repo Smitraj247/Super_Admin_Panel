@@ -1,16 +1,9 @@
 "use client";
-import Navbar from "@/components/layout/Navbar";
-import Sidebar from "@/components/Sidebar";
 import { ClipboardList } from "lucide-react";
 
 export default function TargetsPage() {
   return (
-    <main className="min-h-screen">
-      <Sidebar />
-      <Navbar />
-
-      <div className="md:pl-64 pt-16">
-        <div className="p-8">
+    <div className="p-8">
           <h1 className="text-3xl font-bold mb-8 flex items-center gap-2">
             <ClipboardList size={24} className="text-purple-600" />
             Targets
@@ -22,7 +15,6 @@ export default function TargetsPage() {
             </p>
           </div>
         </div>
-      </div>
-    </main>
+    </div>
   );
 }

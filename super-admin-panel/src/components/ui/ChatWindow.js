@@ -7,6 +7,7 @@ import {
   markAsReadApi,
   updateGroupNameApi,
   leaveGroupChatApi,
+  getChatMessagesApi,
 } from "@/services/chatApi";
 import { useAuth } from "@/context/AuthContext";
 import { useSocket } from "@/context/SocketContext";
@@ -74,11 +75,19 @@ export default function ChatWindow({
     }
   }, [user]);
 
-  // Join/leave the socket chat room
+  // Join/leave the socket chat room — also re-joins after reconnect
   useEffect(() => {
     if (!socket || !chat?._id) return;
-    socket.emit("joinChat", chat._id);
+
+    const joinRoom = () => {
+      socket.emit("joinChat", chat._id);
+    };
+
+    joinRoom(); // join immediately
+    socket.on("connect", joinRoom); // re-join on reconnect
+
     return () => {
+      socket.off("connect", joinRoom);
       socket.emit("leaveChat", chat._id);
     };
   }, [socket, chat?._id]);
@@ -118,6 +127,39 @@ export default function ChatWindow({
       markAsReadApi(chat._id).catch(() => {});
     }
   }, [chat?._id]);
+
+  // Polling fallback — fires every 4s when socket is disconnected OR tab is visible.
+  // Keeps chat live on Vercel/serverless where persistent sockets are unreliable.
+  useEffect(() => {
+    if (!chat?._id) return;
+
+    const poll = async () => {
+      // Skip if socket is connected and working — socket handles it
+      if (socket?.connected) return;
+      try {
+        const res = await getChatMessagesApi(chat._id);
+        const fresh = res.data.data;
+        // Only update if there are actually new messages to avoid flicker
+        setChat((prev) => {
+          if (!prev) return fresh;
+          if (fresh.messages.length !== prev.messages.length) return fresh;
+          return prev;
+        });
+      } catch {
+        // silently ignore — polling is best-effort
+      }
+    };
+
+    const interval = setInterval(poll, 4000);
+    // Also poll immediately when tab becomes visible after being hidden
+    const onVisible = () => { if (document.visibilityState === "visible") poll(); };
+    document.addEventListener("visibilitychange", onVisible);
+
+    return () => {
+      clearInterval(interval);
+      document.removeEventListener("visibilitychange", onVisible);
+    };
+  }, [socket, chat?._id]);
 
   const loadChat = async () => {
     try {

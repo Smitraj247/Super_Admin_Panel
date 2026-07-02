@@ -1,8 +1,6 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import Sidebar from "@/components/Sidebar";
-import Navbar from "@/components/layout/Navbar";
 import { ProtectedDashboardRoute } from "@/components/auth/ProtectedDashboardRoute";
 import { ROLES } from "@/utils/constants";
 import {
@@ -77,11 +75,7 @@ export default function HolidayPage() {
 
   return (
     <ProtectedDashboardRoute requiredRole={ROLES.SUPER_ADMIN}>
-      <div className="min-h-screen">
-        <Sidebar />
-        <Navbar />
-
-        <main className="md:ml-64 pt-25 p-8">
+      <main className="p-8">
           <h1 className="text-xl sm:text-3xl font-bold flex items-center gap-3 mb-6">
             <Calendar className="text-[var(--accent)]" />
             <span className="bg-gradient-to-r from-cyan-600 via-blue-600 to-purple-600 dark:from-cyan-400 dark:via-blue-400 dark:to-purple-400 bg-clip-text text-transparent">
@@ -92,7 +86,7 @@ export default function HolidayPage() {
           <form
             onSubmit={handleSubmit}
             className="bg-[var(--bg-surface)] p-6 rounded-xl mb-8 border border-[var(--border)]"
-          >
+          > 
             <h2 className="text-xl font-semibold mb-4 bg-gradient-to-r from-cyan-600 via-blue-600 to-purple-600 bg-clip-text text-transparent">
               Add New Holiday
             </h2>
@@ -267,7 +261,7 @@ export default function HolidayPage() {
             </table>
           </div>
         </main>
-      </div>
     </ProtectedDashboardRoute>
   );
 }
+

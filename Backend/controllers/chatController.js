@@ -3,6 +3,37 @@ import User from "../models/User.models.js";
 import { getIO, SocketEvents } from "../utils/socketEmitter.js";
 import { createNotificationHelper } from "./notificationController.js";
 
+// Get messages for a chat — used as a polling fallback in production
+// where WebSocket/Socket.io may not be reliably available (e.g. Vercel serverless)
+export const getChatMessages = async (req, res) => {
+  try {
+    const { chatId } = req.params;
+    const currentUserId = req.user._id;
+
+    const chat = await Chat.findById(chatId)
+      .populate({
+        path: "participants",
+        select: "name email role department",
+        populate: [
+          { path: "role", select: "name" },
+          { path: "department", select: "name" },
+        ],
+      })
+      .populate("messages.sender", "name email");
+
+    if (!chat) return res.status(404).json({ message: "Chat not found" });
+
+    if (!chat.participants.some((p) => p._id.toString() === currentUserId.toString())) {
+      return res.status(403).json({ message: "Not authorized" });
+    }
+
+    res.json({ success: true, data: chat });
+  } catch (error) {
+    console.error("Get chat messages error:", error);
+    res.status(500).json({ message: error.message });
+  }
+};
+
 // Get or create a chat between two users
 export const getOrCreateChat = async (req, res) => {
   try {

@@ -1,7 +1,5 @@
 "use client";
 
-import Navbar from "@/components/layout/Navbar";
-import Sidebar from "@/components/Sidebar";
 import { Calendar, ArrowLeft, User as UserIcon } from "lucide-react";
 import { useLeaves } from "@/hooks/useLeaves";
 import LeaveFilters from "@/components/features/leaves/LeaveFilters";
@@ -35,11 +33,7 @@ export default function SuperAdminLeaves() {
   } = useLeaves();
 
   return (
-    <div className="min-h-screen">
-      <Sidebar />
-      <Navbar />
-
-      <div className="md:ml-64 pt-25 p-6">
+    <div className="p-6">
         {!selectedUser ? (
           <>
             {/* Header */}
@@ -229,7 +223,6 @@ export default function SuperAdminLeaves() {
             />
           </>
         )}
-      </div>
     </div>
   );
 }

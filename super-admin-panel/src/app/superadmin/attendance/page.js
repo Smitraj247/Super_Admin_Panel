@@ -3,8 +3,7 @@
 import { useEffect, useState } from "react";
 import { getUsersApi, getAdminsApi } from "@/services/superAdminApi";
 import { getAllUsersSummaryApi } from "@/services/attandanceApi";
-import Navbar from "@/components/layout/Navbar";
-import Sidebar from "@/components/Sidebar";
+
 import AttendanceStats from "@/components/features/AttendanceStats";
 import { User, Search, ChevronRight, Users } from "lucide-react";
 import { useRouter } from "next/navigation";
@@ -119,10 +118,7 @@ export default function HRAttendance() {
   }).length;
 
   return (
-    <div className="min-h-screen">
-      <Sidebar />
-      <Navbar />
-      <div className="md:ml-64 pt-25 p-6">
+    <div className="p-6">
         <div className="mb-6 flex items-center justify-between">
           <h2 className="text-xl sm:text-3xl font-bold bg-gradient-to-r from-cyan-600 via-blue-600 to-purple-600 bg-clip-text text-transparent flex items-center gap-3">
             <Users className="text-blue-600" />
@@ -324,7 +320,6 @@ export default function HRAttendance() {
             </table>
           </div>
         </div>
-      </div>
     </div>
   );
 }

@@ -1,8 +1,6 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import Navbar from "@/components/layout/Navbar";
-import Sidebar from "@/components/Sidebar";
 import LeaveForm from "@/components/leave/LeaveForm";
 import {
   getUserLeavesApi,
@@ -170,11 +168,7 @@ export default function EmployeeLeavePage() {
         : "bg-yellow-200 text-yellow-800";
 
   return (
-    <main className="min-h-screen">
-      <Sidebar />
-      <Navbar />
-      <div className="lg:ml-64 pt-18">
-        <div className="p-6 space-y-6 min-h-screen">
+    <div className="p-6 space-y-6 min-h-screen">
           {/* Leave Balance Cards */}
           {leaveBalance && (
             <div className="space-y-6">
@@ -394,8 +388,6 @@ export default function EmployeeLeavePage() {
               </div>
             )}
           </div>
-        </div>
-      </div>
-    </main>
+    </div>
   );
 }

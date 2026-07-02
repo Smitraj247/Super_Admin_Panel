@@ -2,8 +2,6 @@
 
 import { useEffect, useState, useCallback } from "react";
 import { useSearchParams } from "next/navigation";
-import Sidebar from "@/components/Sidebar";
-import Navbar from "@/components/layout/Navbar";
 import ChatWindow from "@/components/ui/ChatWindow";
 import { useAuth } from "@/context/AuthContext";
 import { useSocket } from "@/context/SocketContext";
@@ -102,12 +100,20 @@ export default function ChatsPage({
     }
   }, [searchParams, chats, loading, currentUser]);
 
-  // FIX: Join the user's personal room so chatUpdated events are received.
-  // SocketContext already does this on connect, but we re-confirm here in case
-  // the socket connected before currentUser was available.
+  // Join the user's personal room — and re-join after every reconnect
   useEffect(() => {
     if (!socket || !currentUser?._id) return;
-    socket.emit("joinUserRoom", currentUser._id);
+
+    const joinRoom = () => {
+      socket.emit("joinUserRoom", currentUser._id);
+    };
+
+    joinRoom();
+    socket.on("connect", joinRoom); // re-join on reconnect
+
+    return () => {
+      socket.off("connect", joinRoom);
+    };
   }, [socket, currentUser?._id]);
 
   // Real-time chat list updates
@@ -126,9 +132,7 @@ export default function ChatsPage({
         );
       });
 
-      // KEY FIX: propagate the updated chat into ChatWindow via selectedChat.
-      // This works for BOTH group chats and direct chats because ChatWindow's
-      // initialChat sync effect now depends on the full object reference.
+      // Propagate the updated chat into ChatWindow via selectedChat
       setSelectedChat((prev) => {
         if (prev && prev._id === updatedChat._id) return updatedChat;
         return prev;
@@ -139,18 +143,44 @@ export default function ChatsPage({
       loadChats();
     };
 
+    // On reconnect, reload chats to catch any messages missed while offline
+    const handleReconnect = () => {
+      loadChats();
+    };
+
     socket.on("chatUpdated", handleChatUpdated);
     socket.on("user:created", handleUserChange);
     socket.on("user:deleted", handleUserChange);
     socket.on("user:updated", handleUserChange);
+    socket.on("connect", handleReconnect);
 
     return () => {
       socket.off("chatUpdated", handleChatUpdated);
       socket.off("user:created", handleUserChange);
       socket.off("user:deleted", handleUserChange);
       socket.off("user:updated", handleUserChange);
+      socket.off("connect", handleReconnect);
     };
   }, [socket, loadChats]);
+
+  // Polling fallback for chat list — when socket is disconnected (Vercel/serverless)
+  useEffect(() => {
+    if (!currentUser?._id) return;
+
+    const poll = async () => {
+      if (socket?.connected) return; // socket is working, skip
+      await loadChats();
+    };
+
+    const interval = setInterval(poll, 5000);
+    const onVisible = () => { if (document.visibilityState === "visible") poll(); };
+    document.addEventListener("visibilitychange", onVisible);
+
+    return () => {
+      clearInterval(interval);
+      document.removeEventListener("visibilitychange", onVisible);
+    };
+  }, [socket, currentUser?._id, loadChats]);
 
   // Search filter
   useEffect(() => {
@@ -287,11 +317,7 @@ export default function ChatsPage({
 
   return (
     <div className="min-h-screen">
-      <Sidebar />
-      <Navbar />
-
-      <main className="md:pl-64 pt-16">
-        <div className="p-6 md:p-8">
+      <main className="p-6 md:p-8">
           {/* Header */}
           <div className="flex justify-between items-center mb-8">
             <div>
@@ -432,7 +458,6 @@ export default function ChatsPage({
               </div>
             )}
           </div>
-        </div>
       </main>
 
       {/* ── New Chat / Group Modal */}

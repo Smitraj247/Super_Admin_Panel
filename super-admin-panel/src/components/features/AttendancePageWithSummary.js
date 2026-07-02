@@ -5,8 +5,6 @@ import {
   getMonthlyAttendanceApi,
   getAttendanceSummary,
 } from "@/services/attandanceApi";
-import Navbar from "@/components/layout/Navbar";
-import Sidebar from "@/components/Sidebar";
 import {
   Calendar,
   Filter,
@@ -494,12 +492,8 @@ export default function AttendancePage() {
       : `0% (0)`;
 
   return (
-    <main className="min-h-screen bg-slate-50">
-      <Sidebar />
-      <Navbar />
-
-      <div className="lg:ml-64 pt-22 px-4 sm:px-6 pb-10 space-y-4">
-        <div className="bg-white rounded-2xl shadow-sm border border-slate-200 p-5 sm:p-6">
+    <div className="space-y-4 px-4 sm:px-6 pb-10">
+      <div className="bg-white rounded-2xl shadow-sm border border-slate-200 p-5 sm:p-6">
           {/* Title + metric badges */}
           <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
             <div className="flex items-center gap-3">
@@ -621,7 +615,6 @@ export default function AttendancePage() {
             setCurrentPage={setCurrentPage}
           />
         </div>
-      </div>
-    </main>
+    </div>
   );
 }

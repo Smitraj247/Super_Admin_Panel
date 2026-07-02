@@ -1,8 +1,6 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import Navbar from "@/components/layout/Navbar";
-import Sidebar from "@/components/Sidebar";
 import {
   getHolidaysApi,
   updateHolidayApi,
@@ -78,10 +76,7 @@ export default function HolidayPage() {
 
   return (
     <div className="min-h-screen">
-      <Sidebar />
-      <Navbar />
-
-      <main className="md:pl-64 pt-16  p-8">
+      <main className="p-8">
         <h1 className="text-3xl font-bold mb-6 p-4 text-purple-900">
           Holiday Management
         </h1>
