@@ -524,7 +524,7 @@ export default function SuperAdminDashboard() {
       </div>
 
       {/* Leave Calendar with Integrated Employee Filter */}
-      <SectionCard title="Recent Leaves Calendar">
+      <SectionCard >
         <LeaveCalendar
           leaves={allLeaves}
           holidays={holidays}
@@ -540,6 +540,7 @@ export default function SuperAdminDashboard() {
             setSelectedUserId("");
             setUserSearchQuery("");
           }}
+          isSuperAdmin={true}
         />
       </SectionCard>
 

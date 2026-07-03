@@ -53,10 +53,9 @@ SystemMetric.displayName = "SystemMetric";
 export const SectionCard = memo(
   ({ title, action, children, className = "" }) => (
     <div
-      className={`rounded-2xl p-6 border border-[var(--border)] ${className}`}
-      style={{ background: "var(--bg-surface)", boxShadow: "var(--shadow-sm)" }}
+      className={`rounded-xl p-3 border border-[var(--border)] ${className}`}
     >
-      <div className="flex items-center justify-between mb-4">
+      <div className="flex items-center justify-between mb-2">
         <h3 className="text-[15px] font-semibold text-[var(--text-primary)]">
           {title}
         </h3>

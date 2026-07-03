@@ -11,6 +11,7 @@ import {
   Search,
   X,
   Users,
+  User as UserIcon,
 } from "lucide-react";
 
 export default function LeaveCalendar({
@@ -25,6 +26,7 @@ export default function LeaveCalendar({
   userSearchQuery = "",
   onSearchChange = () => {},
   onClear = () => {},
+  isSuperAdmin = false,
 }) {
   const today = new Date();
 
@@ -89,6 +91,9 @@ export default function LeaveCalendar({
       // Skip if user is deleted (no user object or no name)
       if (!leave?.user || !leave.user.name) return;
 
+      // Filter by selected user if applicable
+      if (selectedUserId && leave?.user?._id !== selectedUserId) return;
+
       const from = new Date(leave.fromDate);
       const to = new Date(leave.toDate);
 
@@ -118,7 +123,7 @@ export default function LeaveCalendar({
     });
 
     return map;
-  }, [leaves, month, year]);
+  }, [leaves, month, year, selectedUserId]);
 
   // Holidays Map
   const holidaysByDate = useMemo(() => {
@@ -419,7 +424,9 @@ export default function LeaveCalendar({
       {/* Employee Filter Section */}
 
       {/* Calendar */}
-      <div className="rounded-2xl border border-[var(--border)] overflow-hidden shadow-sm transition-all duration-300">
+      <div className={`rounded-2xl overflow-hidden transition-all duration-300 ${
+        isSuperAdmin ? '' : 'border border-[var(--border)] shadow-sm'
+      }`}>
         {/* HEADER */}
         <div
           className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 p-4
@@ -437,6 +444,27 @@ export default function LeaveCalendar({
 
           {/* CONTROLS */}
           <div className="flex flex-wrap items-center gap-2">
+            {/* User Filter Dropdown */}
+            <div className="relative">
+              <select
+                value={selectedUserId}
+                onChange={(e) => onUserSelect(e.target.value)}
+                className="text-xs px-2.5 py-1.5 rounded-xl border border-[var(--border)]
+                bg-white hover:shadow-sm transition-all duration-200 pr-8 min-w-[140px]"
+              >
+                <option value="">All Users</option>
+                {allUsers.map((user) => (
+                  <option key={user._id} value={user._id}>
+                    {user.name}
+                  </option>
+                ))}
+              </select>
+              <Users
+                size={14}
+                className="absolute right-2 top-1/2 -translate-y-1/2 text-indigo-400 pointer-events-none"
+              />
+            </div>
+
             <select
               value={selectedYear}
               onChange={handleYearChange}
@@ -489,6 +517,35 @@ export default function LeaveCalendar({
             </div>
           </div>
         </div>
+
+        {/* Selected User Info Banner */}
+        {selectedUserId && selectedUserData && (
+          <div className="px-4 py-3 bg-gradient-to-r from-indigo-50 to-blue-50 border-b border-indigo-100">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-full bg-indigo-200 flex items-center justify-center">
+                  <UserIcon className="text-indigo-600" size={20} />
+                </div>
+                <div>
+                  <p className="text-sm font-semibold text-indigo-900">
+                    Viewing {selectedUserData.name}'s Leave Calendar
+                  </p>
+                  <p className="text-xs text-indigo-600">
+                    {selectedUserData.role?.name || "Employee"} •{" "}
+                    {selectedUserData.email || ""}
+                  </p>
+                </div>
+              </div>
+              <button
+                onClick={onClear}
+                className="p-1.5 rounded-lg hover:bg-white transition-all"
+                title="Clear filter"
+              >
+                <X size={18} className="text-indigo-500" />
+              </button>
+            </div>
+          </div>
+        )}
 
         {/* CALENDAR */}
         <div className="p-4">
