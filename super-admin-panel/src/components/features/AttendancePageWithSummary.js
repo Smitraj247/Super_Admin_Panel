@@ -15,12 +15,12 @@ import {
 } from "lucide-react";
 import { toast } from "react-toastify";
 
-//  Constants 
+//  Constants
 
 const ITEMS_PER_PAGE = 5;
 const MAX_VISIBLE_PAGES = 5;
 
-//  Helpers 
+//  Helpers
 
 const monthBounds = () => {
   const parts = new Intl.DateTimeFormat("en-CA", {
@@ -76,7 +76,7 @@ const pageNumbers = (current, total) => {
   return [1, "...", current - 1, current, current + 1, "...", total];
 };
 
-//  Status config 
+//  Status config
 
 const STATUS_MAP = {
   CHECKED_IN: {
@@ -109,7 +109,7 @@ const STATUS_MAP = {
   },
 };
 
-//  Primitive UI pieces 
+//  Primitive UI pieces
 
 function StatusBadge({ status }) {
   const cfg = STATUS_MAP[status];
@@ -166,9 +166,7 @@ function StatTile({ bg, border, label, value }) {
       <span className="text-xs font-medium text-white uppercase tracking-wide leading-none">
         {label}
       </span>
-      <span className="text-xl font-bold text-white ">
-        {value}
-      </span>
+      <span className="text-xl font-bold text-white ">{value}</span>
     </div>
   );
 }
@@ -494,127 +492,127 @@ export default function AttendancePage() {
   return (
     <div className="space-y-4 px-4 sm:px-6 pb-10">
       <div className="bg-white rounded-2xl shadow-sm border border-slate-200 p-5 sm:p-6">
-          {/* Title + metric badges */}
-          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-            <div className="flex items-center gap-3">
-              <div className="p-2 bg-gradient-to-br from-cyan-500 to-blue-600 rounded-xl shadow shrink-0">
-                <BarChart3 className="w-5 h-5 text-white" />
-              </div>
-              <div>
-                <h1 className="text-xl font-bold bg-gradient-to-r from-cyan-600 via-blue-600 to-purple-600 bg-clip-text text-transparent leading-tight">
-                  Attendance dashboard 
-                </h1>
-                <p className="text-slate-500 text-sm mt-0.5">
-                  Monitor your work patterns and productivity 
-                </p>
-              </div>
+        {/* Title + metric badges */}
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+          <div className="flex items-center gap-3">
+            <div className="p-2 bg-gradient-to-br from-cyan-500 to-blue-600 rounded-xl shadow shrink-0">
+              <BarChart3 className="w-5 h-5 text-white" />
             </div>
-
-            {summary && (
-              <div className="flex flex-wrap gap-2 sm:shrink-0">
-                <MetricBadge
-                  icon={Target}
-                  label="Attendance rate"
-                  value={`${summary.productivity}%`}
-                  colorClass="bg-gradient-to-br from-cyan-50 to-blue-50"
-                  borderClass="border-cyan-200"
-                />
-                <MetricBadge
-                  icon={Zap}
-                  label="Avg hours/day"
-                  value={`${avgWorkHours}h`}
-                  colorClass="bg-gradient-to-br from-yellow-50 to-orange-50"
-                  borderClass="border-yellow-200"
-                />
-              </div>
-            )}
+            <div>
+              <h1 className="text-xl font-bold bg-gradient-to-r from-cyan-600 via-blue-600 to-purple-600 bg-clip-text text-transparent leading-tight">
+                Attendance dashboard
+              </h1>
+              <p className="text-slate-500 text-sm mt-0.5">
+                Monitor your work patterns and productivity
+              </p>
+            </div>
           </div>
 
-          {/* Date filter */}
-          <DateFilterBar
-            startDate={startDate}
-            endDate={endDate}
-            setStartDate={setStartDate}
-            setEndDate={setEndDate}
-            onApply={handleApply}
-            onReset={fetchCurrentMonth}
-            loading={loading}
-          />
+          {summary && (
+            <div className="flex flex-wrap gap-2 sm:shrink-0">
+              <MetricBadge
+                icon={Target}
+                label="Attendance rate"
+                value={`${summary.productivity}%`}
+                colorClass="bg-gradient-to-br from-cyan-50 to-blue-50"
+                borderClass="border-cyan-200"
+              />
+              <MetricBadge
+                icon={Zap}
+                label="Avg hours/day"
+                value={`${avgWorkHours}h`}
+                colorClass="bg-gradient-to-br from-yellow-50 to-orange-50"
+                borderClass="border-yellow-200"
+              />
+            </div>
+          )}
         </div>
 
-        {/* Stats grid */}
-        {summary && (
-          <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-            <StatTile
-              bg="bg-pink-400"
-              border="border-pink-500"
-              label="Days present"
-              value={summary.present}
-            />
-            <StatTile
-              bg="bg-orange-500"
-              border="border-orange-600"
-              label="Late"
-              value={pct(lateCount)}
-            />
-            <StatTile
-              bg="bg-cyan-400"
-              border="border-cyan-500"
-              label="Absent"
-              value={pct(summary.absent)}
-            />
-            <StatTile
-              bg="bg-yellow-400"
-              border="border-yellow-500"
-              label="Half day"
-              value={summary.halfDay}
-            />
-            <StatTile
-              bg="bg-green-600"
-              border="border-green-700"
-              label="Total office"
-              value={`${Math.floor(summary.totalOfficeHours)}h`}
-            />
-            <StatTile
-              bg="bg-indigo-600"
-              border="border-indigo-700"
-              label="Total worked"
-              value={`${Math.floor(summary.totalWorkHours)}h ${Math.round((summary.totalWorkHours % 1) * 60)}m`}
-            />
-            <StatTile
-              bg="bg-green-500"
-              border="border-green-600"
-              label="Productivity"
-              value={`${summary.productivity}%`}
-            />
-            <StatTile
-              bg="bg-green-700"
-              border="border-green-800"
-              label="PL leaves"
-              value={summary.leaves || 0}
-            />
-          </div>
-        )}
+        {/* Date filter */}
+        <DateFilterBar
+          startDate={startDate}
+          endDate={endDate}
+          setStartDate={setStartDate}
+          setEndDate={setEndDate}
+          onApply={handleApply}
+          onReset={fetchCurrentMonth}
+          loading={loading}
+        />
+      </div>
 
-        {/*Table + pagination */}
-        <div>
-          <div className="bg-slate-50 px-1 py-2">
-            <h2 className="text-sm font-semibold text-slate-600 px-1">
-              Attendance records
-            </h2>
-          </div>
-
-          <AttendanceTable pageRecords={pageRecords} loading={loading} />
-
-          <Pagination
-            currentPage={currentPage}
-            totalPages={totalPages}
-            pages={pages}
-            total={sorted.length}
-            startIndex={startIndex}
-            setCurrentPage={setCurrentPage}
+      {/* Stats grid */}
+      {summary && (
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+          <StatTile
+            bg="bg-pink-400"
+            border="border-pink-500"
+            label="Days present"
+            value={summary.present}
+          />
+          <StatTile
+            bg="bg-orange-500"
+            border="border-orange-600"
+            label="Late"
+            value={pct(lateCount)}
+          />
+          <StatTile
+            bg="bg-cyan-400"
+            border="border-cyan-500"
+            label="Absent"
+            value={pct(summary.absent)}
+          />
+          <StatTile
+            bg="bg-yellow-400"
+            border="border-yellow-500"
+            label="Half day"
+            value={summary.halfDay}
+          />
+          <StatTile
+            bg="bg-green-600"
+            border="border-green-700"
+            label="Total office"
+            value={`${Math.floor(summary.totalOfficeHours)}h`}
+          />
+          <StatTile
+            bg="bg-indigo-600"
+            border="border-indigo-700"
+            label="Total worked"
+            value={`${Math.floor(summary.totalWorkHours)}h ${Math.round((summary.totalWorkHours % 1) * 60)}m`}
+          />
+          <StatTile
+            bg="bg-green-500"
+            border="border-green-600"
+            label="Productivity"
+            value={`${summary.productivity}%`}
+          />
+          <StatTile
+            bg="bg-green-700"
+            border="border-green-800"
+            label="PL leaves"
+            value={summary.leaves || 0}
           />
         </div>
+      )}
+
+      {/*Table + pagination */}
+      <div>
+        <div className="bg-slate-50 px-1 py-2">
+          <h2 className="text-sm font-semibold text-slate-600 px-1">
+            Attendance records
+          </h2>
+        </div>
+
+        <AttendanceTable pageRecords={pageRecords} loading={loading} />
+
+        <Pagination
+          currentPage={currentPage}
+          totalPages={totalPages}
+          pages={pages}
+          total={sorted.length}
+          startIndex={startIndex}
+          setCurrentPage={setCurrentPage}
+        />
+      </div>
     </div>
   );
 }
