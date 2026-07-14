@@ -16,7 +16,7 @@ mongoose.connect(uri).then(async () => {
     return month < 6 ? new Date(year, 0, 1) : new Date(year, 6, 1);
   };
   
-  const getNextCycleStart = (date) => {
+  const getNextCycleStart = (date) => {   
     const year = date.getFullYear();
     const month = date.getMonth();
     return month < 6 ? new Date(year, 6, 1) : new Date(year + 1, 0, 1);

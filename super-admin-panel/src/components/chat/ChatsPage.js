@@ -2,8 +2,9 @@
 
 import { useEffect, useState, useCallback } from "react";
 import { useSearchParams } from "next/navigation";
-import ChatWindow from "@/components/ui/ChatWindow";
+import ChatWindowRealtime from "@/components/ui/ChatWindowRealtime";
 import { useAuth } from "@/context/AuthContext";
+import { useSocket } from "@/context/SocketContext";
 import {
   getUserChatsApi,
   deleteChatApi,
@@ -23,6 +24,7 @@ import { toast } from "react-toastify";
 
 /**
  * Unified Chats Page — works for SUPER_ADMIN, ADMIN, and USER roles.
+ * NOW WITH REAL-TIME SOCKET.IO SUPPORT
  *
  * Props:
  *  fetchUsers  — async fn that returns [{ _id, name, email, role, department }]
@@ -38,6 +40,7 @@ export default function ChatsPage({
   canDelete = false,
 }) {
   const { user: currentUser } = useAuth();
+  const { connected, socketService } = useSocket();
   const searchParams = useSearchParams();
 
   const [chats, setChats] = useState([]);
@@ -104,99 +107,70 @@ export default function ChatsPage({
     }
   }, [searchParams, chats, loading, currentUser]);
 
-  // Polling for chat list updates - Vercel-compatible real-time updates
-  // Background polling without loading states to prevent flickering
+  // ✓ REAL-TIME: Listen for new chats
   useEffect(() => {
-    if (!currentUser?._id) return;
+    if (!connected) return;
 
-    const pollChats = async () => {
-      try {
-        // Background fetch - no loading indicators
-        const res = await getUserChatsApi();
-        const freshChats = res.data?.data || [];
-        
-        // Update chat list only if data changed
-        setChats((prevChats) => {
-          // Create hash to detect changes
-          const prevHash = JSON.stringify(
-            prevChats.map(c => ({
-              id: c._id,
-              lastMsg: c.lastMessage,
-              lastMsgAt: c.lastMessageAt,
-              msgCount: c.messages?.length
-            }))
-          );
-          
-          const freshHash = JSON.stringify(
-            freshChats.map(c => ({
-              id: c._id,
-              lastMsg: c.lastMessage,
-              lastMsgAt: c.lastMessageAt,
-              msgCount: c.messages?.length
-            }))
-          );
-          
-          // Only update if changed to prevent unnecessary re-renders
-          if (prevHash !== freshHash) {
-            return freshChats;
-          }
-          
-          return prevChats;
-        });
-
-        // Update filtered chats silently
-        setFilteredChats((prevFiltered) => {
-          // If no search query, return all chats
-          if (!searchQuery.trim()) {
-            return freshChats;
-          }
-          
-          // Re-apply search filter to fresh data
-          const q = searchQuery.toLowerCase();
-          return freshChats.filter((chat) => {
-            if (chat.isGroupChat) return chat.groupName?.toLowerCase().includes(q);
-            const other = chat.participants?.find((p) => p._id !== currentUser._id);
-            return (
-              other?.name?.toLowerCase().includes(q) ||
-              other?.email?.toLowerCase().includes(q)
-            );
-          });
-        });
-
-        // Update selected chat if it exists in the new list (silent background update)
-        setSelectedChat((prevSelected) => {
-          if (!prevSelected) return null;
-          const updated = freshChats.find(c => c._id === prevSelected._id);
-          return updated || prevSelected;
-        });
-      } catch (err) {
-        // Silently ignore polling errors to prevent disruption
-        console.debug("[Chat Polling] Background update skipped:", err.message);
-      }
+    const handleChatCreated = ({ chat }) => {
+      console.log("✓ Received new chat via socket");
+      loadChats(false); // Refresh chat list
     };
 
-    // Initial poll (silent - data already loaded)
-    pollChats();
-
-    // Poll every 4 seconds in production, 3 seconds in dev (background updates)
-    const interval = setInterval(
-      pollChats,
-      process.env.NODE_ENV === "production" ? 4000 : 3000
-    );
-
-    // Poll when tab becomes visible (silent)
-    const handleVisibilityChange = () => {
-      if (document.visibilityState === "visible") {
-        pollChats();
-      }
-    };
-    document.addEventListener("visibilitychange", handleVisibilityChange);
+    socketService.onChatCreated(handleChatCreated);
 
     return () => {
-      clearInterval(interval);
-      document.removeEventListener("visibilitychange", handleVisibilityChange);
+      socketService.off("chat:created", handleChatCreated);
     };
-  }, [currentUser?._id, searchQuery]);
+  }, [connected, socketService]);
+
+  // ✓ REAL-TIME: Listen for chat updates
+  useEffect(() => {
+    if (!connected) return;
+
+    const handleChatUpdated = ({ chatId, lastMessage, lastMessageAt }) => {
+      console.log("✓ Received chat update via socket");
+      
+      setChats((prev) =>
+        prev.map((chat) =>
+          chat._id === chatId
+            ? {
+                ...chat,
+                lastMessage,
+                lastMessageAt,
+              }
+            : chat
+        ).sort((a, b) => new Date(b.lastMessageAt) - new Date(a.lastMessageAt))
+      );
+    };
+
+    socketService.onChatUpdated(handleChatUpdated);
+
+    return () => {
+      socketService.off("chat:updated", handleChatUpdated);
+    };
+  }, [connected, socketService]);
+
+  // ✓ REAL-TIME: Listen for chat deletions
+  useEffect(() => {
+    if (!connected) return;
+
+    const handleChatDeleted = ({ chatId }) => {
+      console.log("✓ Received chat deletion via socket");
+      
+      setChats((prev) => prev.filter((c) => c._id !== chatId));
+      setFilteredChats((prev) => prev.filter((c) => c._id !== chatId));
+      
+      if (selectedChat?._id === chatId) {
+        setSelectedChat(null);
+      }
+    };
+
+    socketService.onChatDeleted(handleChatDeleted);
+
+    return () => {
+      socketService.off("chat:deleted", handleChatDeleted);
+    };
+  }, [connected, selectedChat, socketService]);
 
   // Search filter
   useEffect(() => {
@@ -631,16 +605,14 @@ export default function ChatsPage({
 
       {/* Chat window */}
       {(selectedUser || selectedChat) && (
-        <ChatWindow
+        <ChatWindowRealtime
           user={selectedUser}
           chat={selectedChat}
           onClose={() => {
             setSelectedUser(null);
             setSelectedChat(null);
-            // Background refresh - no loading state
             loadChats(false);
           }}
-          // Background refresh - no loading state when chat updates
           onUpdate={() => loadChats(false)}
         />
       )}

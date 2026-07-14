@@ -1,29 +1,32 @@
-export const ROLES = {
-  SUPER_ADMIN: "SUPER_ADMIN",
-  ADMIN: "ADMIN",
-  USER: "USER",
+// API configuration
+export const API_BASE = process.env.NEXT_PUBLIC_API_BASE_URL || "http://localhost:5000/api";
+export const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000";
+
+// Socket events (must match backend)
+export const SocketEvents = {
+  // Chat events
+  CHAT_NEW_MESSAGE: "chat:newMessage",
+  CHAT_UPDATED: "chat:updated",
+  CHAT_DELETED: "chat:deleted",
+  CHAT_CREATED: "chat:created",
+
+  // Typing events
+  TYPING_START: "typing:start",
+  TYPING_STOP: "typing:stop",
+
+  // Read receipts
+  MESSAGE_READ: "message:read",
+
+  // Presence
+  USER_PRESENCE: "user:presence",
+
+  // Notifications
+  NOTIFICATION_CREATED: "notification:created",
+  UNREAD_COUNT_UPDATED: "unread:count:updated",
 };
 
-export const DEPARTMENTS = {
-  HR: {
-    name: "HR",
-    path: "/dashboard/hr",
-    adminPath: "/admin/hr",
-    color: "from-green-500 to-green-600",
-  },
-  SALES: {
-    name: "SALES",
-    path: "/dashboard/sales",
-    adminPath: "/admin/sales",
-    color: "from-purple-500 to-purple-600",
-  },
-  EMPLOYEE: {
-    name: "EMPLOYEE",
-    path: "/dashboard/employee",
-    adminPath: "/admin/employee",
-    color: "from-purple-500 to-purple-600",
-  },
+export default {
+  API_BASE,
+  API_URL,
+  SocketEvents,
 };
-
-export const API_BASE =
-  process.env.NEXT_PUBLIC_API_BASE_URL || "http://localhost:5000/api";

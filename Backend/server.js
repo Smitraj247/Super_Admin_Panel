@@ -1,11 +1,13 @@
 import "dotenv/config";
 
 import express from "express";
+import { createServer } from "http";
 import dotenv from "dotenv";
 import connectDB from "./config/db.js";
 import cors from "cors";
 import { notFound, errorHandler } from "./middleware/errorMiddleware.js";
 import compression from "compression";
+import { initializeSocket } from "./config/socket.js";
 
 import authRoutes from "./routes/authRoutes.js";
 import superAdminRoutes from "./routes/superAdminRoutes.js";
@@ -25,6 +27,7 @@ import googleAuthRoutes from "./routes/googleAuthRoutes.js";
 await connectDB();
 
 const app = express();
+const httpServer = createServer(app);
 
 const allowedOrigins = [
   "http://localhost:5173",
@@ -76,9 +79,13 @@ app.use(errorHandler);
 
 const PORT = process.env.PORT || 5000;
 
-app.listen(PORT, () => {
+// Initialize Socket.IO
+await initializeSocket(httpServer);
+
+httpServer.listen(PORT, () => {
   console.log(`Server is running on port ${PORT}`);
-  console.log("Real-time updates via polling (Vercel-compatible)");
+  console.log("✓ Real-time messaging with Socket.IO enabled");
+  console.log(`✓ WebSocket endpoint: ws://localhost:${PORT}`);
 });
 
-export default app;
+export default app;  
