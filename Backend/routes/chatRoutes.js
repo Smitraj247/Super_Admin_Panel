@@ -6,6 +6,7 @@ import {
   markAsRead,
   deleteChat,
   getUnreadCount,
+  getOnlineUsers,
   createGroupChat,
   addParticipant,
   removeParticipant,
@@ -25,6 +26,9 @@ router.get("/", getUserChats);
 
 // Get unread message count
 router.get("/unread-count", getUnreadCount);
+
+// Get online status for users
+router.get("/online-users", getOnlineUsers);
 
 // Get or create chat with a specific user
 router.get("/user/:userId", getOrCreateChat);

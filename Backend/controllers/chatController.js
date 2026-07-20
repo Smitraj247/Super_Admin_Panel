@@ -1,7 +1,8 @@
 import Chat from "../models/Chat.js";
 import User from "../models/User.models.js";
-import { SocketEvents } from "../utils/socketEmitter.js";
+import { SocketEvents, emitToChatRoom, emitToMultipleUsers } from "../utils/socketEmitter.js";
 import { createNotificationHelper } from "./notificationController.js";
+import { isUserOnline } from "../config/socket.js";
 
 // Get messages for a chat — used as a polling fallback in production
 // where WebSocket/Socket.io may not be reliably available (e.g. Vercel serverless)
@@ -152,8 +153,25 @@ export const sendMessage = async (req, res) => {
       })
       .populate("messages.sender", "name email");
 
-    // Real-time updates now handled by polling on frontend
-    // No Socket.IO emission needed
+    // ✓ REAL-TIME: Emit message to chat room instantly
+    emitToChatRoom(chatId, SocketEvents.CHAT_NEW_MESSAGE, {
+      chatId: updatedChat._id,
+      message: newMessage,
+      chat: updatedChat,
+    });
+
+    // ✓ REAL-TIME: Notify all participants via their user rooms
+    const participantIds = updatedChat.participants
+      .filter(p => p._id.toString() !== currentUserId.toString())
+      .map(p => p._id.toString());
+
+    if (participantIds.length > 0) {
+      emitToMultipleUsers(participantIds, SocketEvents.CHAT_UPDATED, {
+        chatId: updatedChat._id,
+        lastMessage: updatedChat.lastMessage,
+        lastMessageAt: updatedChat.lastMessageAt,
+      });
+    }
 
     // Create notifications for all participants except the sender
     const sender = updatedChat.participants.find(
@@ -247,6 +265,20 @@ export const markAsRead = async (req, res) => {
 
     await chat.save();
 
+    // ✓ REAL-TIME: Emit read receipts to chat room
+    const messageIds = chat.messages
+      .filter(m => m.sender?.toString() !== currentUserId.toString())
+      .map(m => m._id);
+
+    if (messageIds.length > 0) {
+      emitToChatRoom(chatId, SocketEvents.MESSAGE_READ, {
+        chatId,
+        messageIds,
+        userId: currentUserId,
+        readAt: new Date(),
+      });
+    }
+
     res.json({
       success: true,
       message: "Messages marked as read",
@@ -277,6 +309,12 @@ export const deleteChat = async (req, res) => {
     // Soft delete - mark as inactive
     chat.isActive = false;
     await chat.save();
+
+    // ✓ REAL-TIME: Notify all participants
+    const participantIds = chat.participants.map(p => p.toString());
+    emitToMultipleUsers(participantIds, SocketEvents.CHAT_DELETED, {
+      chatId: chat._id,
+    });
 
     res.json({
       success: true,
@@ -321,6 +359,35 @@ export const getUnreadCount = async (req, res) => {
   }
 };
 
+// Get online status for users
+export const getOnlineUsers = async (req, res) => {
+  try {
+    const { userIds } = req.query; // comma-separated user IDs
+    
+    if (!userIds) {
+      return res.json({
+        success: true,
+        data: { onlineUsers: [] },
+      });
+    }
+
+    const userIdArray = userIds.split(',');
+    const onlineStatus = {};
+
+    userIdArray.forEach(userId => {
+      onlineStatus[userId] = isUserOnline(userId);
+    });
+
+    res.json({
+      success: true,
+      data: { onlineUsers: onlineStatus },
+    });
+  } catch (error) {
+    console.error("Get online users error:", error);
+    res.status(500).json({ message: error.message });
+  }
+};
+
 // Create a group chat
 export const createGroupChat = async (req, res) => {
   try {
@@ -359,6 +426,12 @@ export const createGroupChat = async (req, res) => {
       .populate("participants", "name email role department")
       .populate("groupAdmin", "name email")
       .populate("messages.sender", "name email");
+
+    // ✓ REAL-TIME: Notify all participants about new group
+    const participantIds = populatedChat.participants.map(p => p._id.toString());
+    emitToMultipleUsers(participantIds, SocketEvents.CHAT_CREATED, {
+      chat: populatedChat,
+    });
 
     res.status(201).json({
       success: true,
@@ -547,6 +620,13 @@ export const updateGroupName = async (req, res) => {
       .populate("participants", "name email role department")
       .populate("groupAdmin", "name email")
       .populate("messages.sender", "name email");
+
+    // ✓ REAL-TIME: Notify all participants
+    const participantIds = updatedChat.participants.map(p => p._id.toString());
+    emitToMultipleUsers(participantIds, SocketEvents.CHAT_UPDATED, {
+      chatId: updatedChat._id,
+      groupName: updatedChat.groupName,
+    });
 
     res.json({
       success: true,

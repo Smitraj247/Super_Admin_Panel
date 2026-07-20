@@ -317,7 +317,7 @@ export const checkMonthlyLimit = async (
     }
 
     if (leaveType === "CL" && usesCarriedPL && carriedPLUsed + leaveDays > 1) {
-    return `Maximum 1 carried forward PL day can be used as CL per month. Already used ${carriedPLUsed} day(s) this month.`;
+    return `Maximum 1 carried forward PL day can be used as CL per month. Already used ${carriedPLUsed} day(s) this month.`;                       
   }
 
   return null;
@@ -537,7 +537,7 @@ export const markLeaveAttendance = async (
           breaks: [],
           status: isHalfDay ? "HALF_DAY_LEAVE" : "ON_LEAVE",
         });
-      }
+      }         
     } else {
       // Unmark action
       const record = await Attendance.findOne({ userId, date: dateStr });
@@ -559,7 +559,7 @@ export const markLeaveAttendance = async (
             } else {
               record.status = record.isLate ? "LATE" : "CHECKED_IN";
             }
-          }
+          }  
           await record.save();
         }
       }
