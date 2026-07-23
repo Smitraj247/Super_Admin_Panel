@@ -106,12 +106,6 @@ export const checkOverlap = async (
   return Leave.find(query);
 };
 
-/**
- * Adjust (deduct or restore) a user's leave balance.
- * direction: -1 to deduct, +1 to restore
- * if usesCarriedPL is true, deduct/restore from PL balance instead of CL
- * DL is deducted from PL balance
- */
 export const adjustLeaveBalance = async (
   userId,
   leaveType,
